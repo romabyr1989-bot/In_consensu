@@ -1,0 +1,31 @@
+# Readable logs and detailed health output while running the test suite.
+logging:
+  structured:
+    format:
+      console: ""
+  level:
+    org.testcontainers: WARN
+    com.github.dockerjava: WARN
+    tc: WARN
+
+management:
+  endpoint:
+    health:
+      show-details: always
+
+cus:
+  jobs:
+    # Фоновая доставка не должна опережать сценарий теста: события отправляются явным вызовом.
+    outbox:
+      initial-delay: PT1H
+      delay: PT1H
+    notification-dispatch:
+      initial-delay: PT1H
+      delay: PT1H
+  notifications:
+    mail:
+      # Тест с Mailpit включает отправку сам; остальным письма не нужны.
+      enabled: false
+  metrics:
+    # Пересчёт бизнес-метрик в тестах не нужен: он только шумит запросами в общую базу.
+    refresh: PT1H
