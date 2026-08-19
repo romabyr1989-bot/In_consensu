@@ -378,7 +378,7 @@ step "Бизнес-метрики (NFR-6)"
 # Вывод метрик большой: с set -o pipefail ранний выход grep обрывает curl по SIGPIPE, поэтому
 # ответ сначала сохраняется целиком.
 METRICS="$(curl --fail --silent "${BASE_URL}/actuator/prometheus")"
-if grep -qE 'cus_consents|cus_outbox_queue' <<<"$METRICS"; then
+if grep -qE 'inconsensu_consents|inconsensu_outbox_queue' <<<"$METRICS"; then
   ok "метрики согласий и очереди событий отдаются"
 else
   fail "бизнес-метрик нет в /actuator/prometheus"

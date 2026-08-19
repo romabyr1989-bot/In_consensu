@@ -7,4 +7,4 @@
 ALTER TABLE subject_contact ALTER COLUMN value TYPE VARCHAR(2048);
 ALTER TABLE subject_contact ALTER COLUMN value_normalized TYPE VARCHAR(2048);
 
-COMMENT ON COLUMN subject_contact.value IS 'Контакт; при inconsensu.crypto.enabled — шифртекст с префиксом enc:v1: (NFR-3)';
+COMMENT ON COLUMN subject_contact.value IS 'Контакт; при cus.crypto.enabled — шифртекст с префиксом enc:v1: (NFR-3)';

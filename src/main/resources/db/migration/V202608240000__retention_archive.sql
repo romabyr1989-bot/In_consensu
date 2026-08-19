@@ -37,7 +37,7 @@ CREATE INDEX retention_run_started_idx ON retention_run (started_at DESC);
 -- Настройки политики хранения (NFR-5). Значения по умолчанию соответствуют общему сроку исковой давности
 -- три года после прекращения обработки; фактические сроки заказчик уточняет (вопрос 7).
 INSERT INTO operator_settings (key, value, updated_at, updated_by) VALUES
-    ('inconsensu.retention.consents-after-revocation', 'P3Y',  TIMESTAMPTZ '2026-08-24 00:00:00+00', 'system'),
-    ('inconsensu.retention.audit-events',              'P5Y',  TIMESTAMPTZ '2026-08-24 00:00:00+00', 'system'),
-    ('inconsensu.retention.partner-exports',           'P30D', TIMESTAMPTZ '2026-08-24 00:00:00+00', 'system'),
-    ('inconsensu.retention.enabled',                   'false',TIMESTAMPTZ '2026-08-24 00:00:00+00', 'system');
+    ('cus.retention.consents-after-revocation', 'P3Y',  TIMESTAMPTZ '2026-08-24 00:00:00+00', 'system'),
+    ('cus.retention.audit-events',              'P5Y',  TIMESTAMPTZ '2026-08-24 00:00:00+00', 'system'),
+    ('cus.retention.partner-exports',           'P30D', TIMESTAMPTZ '2026-08-24 00:00:00+00', 'system'),
+    ('cus.retention.enabled',                   'false',TIMESTAMPTZ '2026-08-24 00:00:00+00', 'system');

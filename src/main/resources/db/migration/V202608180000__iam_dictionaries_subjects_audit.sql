@@ -160,7 +160,7 @@ CREATE TABLE subject (
     CONSTRAINT subject_external_id_uk UNIQUE (external_id)
 );
 
-COMMENT ON TABLE subject IS 'In consensu не мастер-система по клиентам: хранится минимально необходимый состав (§6)';
+COMMENT ON TABLE subject IS 'ЦУС не мастер-система по клиентам: хранится минимально необходимый состав (§6)';
 
 -- Prefix search over the full name (FR-5.2, минимум 3 символа). text_pattern_ops makes LIKE 'префикс%'
 -- index-friendly regardless of the database collation.
@@ -246,7 +246,7 @@ CREATE INDEX pdn_access_log_subject_idx ON pdn_access_log (subject_id, occurred_
 -- First line of defence, always active: a trigger that refuses UPDATE and DELETE. Second line, active
 -- when the operator runs the application under a role of its own: that role loses UPDATE and DELETE on
 -- the journals, while migrations keep running under the owner. The role name comes from the Flyway
--- placeholder `appRole` (spring.flyway.placeholders.appRole / INCONSENSU_DB_APP_ROLE); when it is empty or
+-- placeholder `appRole` (spring.flyway.placeholders.appRole / CUS_DB_APP_ROLE); when it is empty or
 -- equals the migration user, only the trigger protects the tables.
 -- ---------------------------------------------------------------------------------------------------
 
