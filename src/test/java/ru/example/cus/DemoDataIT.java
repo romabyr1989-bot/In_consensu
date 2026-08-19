@@ -27,6 +27,25 @@ class DemoDataIT extends AbstractIntegrationTest {
     @Autowired
     private ConsentQueryService consents;
 
+    @Autowired
+    private ru.example.cus.registry.application.SubjectCardService cards;
+
+    @Test
+    void card_shows_the_revoked_consent_as_appendix_a_requires() {
+        var travin =
+                subjects.findByExternalId(DemoDataLoader.TRAVIN_EXTERNAL_ID).orElseThrow();
+
+        var card = cards.cardOf(travin.getId());
+
+        // Приложение A и UI-4: в карточке четыре согласия, среди них отозванное; порядок — истекающие,
+        // действующие, отозванные.
+        assertThat(card.consents()).hasSize(4);
+        assertThat(card.consents())
+                .extracting(ConsentQueryService.ConsentView::status)
+                .containsExactly(
+                        ConsentStatus.EXPIRING, ConsentStatus.ACTIVE, ConsentStatus.ACTIVE, ConsentStatus.REVOKED);
+    }
+
     @Test
     void travin_card_matches_appendix_a() {
         var travin =

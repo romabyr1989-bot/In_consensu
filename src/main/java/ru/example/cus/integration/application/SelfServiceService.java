@@ -109,7 +109,8 @@ public class SelfServiceService {
 
     @Transactional(readOnly = true)
     public List<ConsentQueryService.ConsentView> myConsents(Subject subject) {
-        return consents.effectiveConsentsOf(subject.getId());
+        // UI-18: клиент видит и отозванные — из них складывается блок «История ваших отзывов».
+        return consents.cardConsentsOf(subject.getId());
     }
 
     /** Точный текст формы, по которой дано согласие (FR-8.1). */

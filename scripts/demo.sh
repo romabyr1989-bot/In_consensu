@@ -152,7 +152,7 @@ fi
 
 step "Карточка клиента (FR-5.1, Приложение A)"
 CARD="$(curl --fail --silent -H "$AUTH" "${BASE_URL}/api/v1/subjects/${SUBJECT_ID}/card")"
-for expected in "действует" "отозвано" "заканчивается через"; do
+for expected in '"statusText":"действует"' '"statusText":"отозвано"' "заканчивается через"; do
   if grep -q "$expected" <<<"$CARD"; then
     ok "статус «${expected}» присутствует в карточке"
   else

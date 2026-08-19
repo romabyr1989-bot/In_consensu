@@ -66,7 +66,7 @@ public class SubjectCardService {
         List<ChannelDecision> decisions = ChannelEvaluator.evaluate(snapshots.currentConsentsOf(subject.getId()));
         return new SubjectCard(
                 subject,
-                consents.effectiveConsentsOf(subject.getId()),
+                consents.cardConsentsOf(subject.getId()),
                 decisions,
                 ChannelSummaryComposer.compose(decisions),
                 transfers.transfersForCard(subject.getId()),

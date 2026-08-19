@@ -73,6 +73,29 @@ public class ConsentQueryService {
         return view(consents.findEffectiveBySubject(subjectId));
     }
 
+    /**
+     * Согласия для карточки клиента (FR-5.1, Приложение A, UI-4).
+     *
+     * <p>Отозванные и истёкшие показываются: карточка обязана отвечать на вопрос «а что было раньше»,
+     * иначе менеджер не увидит, что клиент уже отзывал рекламу. Скрыты только заменённые — они появляются
+     * по переключателю «Показать заменённые».
+     *
+     * <p>Порядок строк задан UI-4: сначала истекающие, затем действующие, затем отозванные и истёкшие.
+     */
+    @Transactional(readOnly = true)
+    public List<ConsentView> cardConsentsOf(UUID subjectId) {
+        return currentConsentsOf(subjectId).stream()
+                .sorted(java.util.Comparator.comparingInt((ConsentView view) -> switch (view.status()) {
+                            case EXPIRING -> 0;
+                            case ACTIVE -> 1;
+                            case REVOKED -> 2;
+                            case EXPIRED -> 3;
+                            case SUPERSEDED -> 4;
+                        })
+                        .thenComparing(view -> view.consent().getGrantedAt(), java.util.Comparator.reverseOrder()))
+                .toList();
+    }
+
     /** Полная история, включая заменённые и отозванные (FR-5.1). */
     @Transactional(readOnly = true)
     public List<ConsentView> historyOf(UUID subjectId) {

@@ -101,7 +101,7 @@ public class UiSubjectViewService {
     public Page<SubjectRow> search(String query, Pageable pageable) {
         boolean fullContacts = ContactAccessPolicy.seesFullContacts(CurrentUser.roles());
         return subjects.search(query, pageable).map(subject -> {
-            List<ConsentQueryService.ConsentView> effective = consents.effectiveConsentsOf(subject.getId());
+            List<ConsentQueryService.ConsentView> effective = consents.cardConsentsOf(subject.getId());
             return new SubjectRow(
                     subject,
                     contactsOf(subject, fullContacts),
