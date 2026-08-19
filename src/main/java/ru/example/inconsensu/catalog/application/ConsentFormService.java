@@ -115,8 +115,8 @@ public class ConsentFormService {
     /**
      * Список форм с фильтрами (FR-3.1).
      *
-     * <p>Условия уходят в запрос, а не применяются к уже выбранной странице: фильтрация в памяти давала бы
-     * неверное число страниц и прятала подходящие формы, оказавшиеся на других страницах.
+     * <p>Все условия, включая источник применения, уходят в запрос: фильтрация уже выбранной страницы
+     * давала бы неверное число страниц и прятала подходящие формы, оказавшиеся на других страницах.
      */
     @Transactional(readOnly = true)
     public Page<ConsentForm> list(FormFilter filter, Pageable pageable) {
@@ -145,19 +145,25 @@ public class ConsentFormService {
                 predicates.add(builder.equal(items.get("thirdPartyId"), filter.thirdPartyId()));
                 query.distinct(true);
             }
+            if (filter.source() != null) {
+                // Источники применения хранятся столбцом text[]; вхождение проверяется запросом, а не
+                // фильтрацией уже выбранной страницы: та прятала бы формы, оказавшиеся дальше по списку,
+                // и возвращала бы неверное число страниц.
+                //
+                // Сравнение с нулём, а не проверка на null: Hibernate оборачивает функцию в
+                // coalesce(..., 0), из-за чего «is not null» истинно всегда и фильтр молча исчезает.
+                predicates.add(builder.greaterThan(
+                        builder.function(
+                                "array_position",
+                                Integer.class,
+                                root.get("sourceChannels"),
+                                builder.literal(filter.source().name())),
+                        0));
+            }
             return builder.and(predicates.toArray(jakarta.persistence.criteria.Predicate[]::new));
         };
 
-        Page<ConsentForm> page = repository.findAll(specification, pageable);
-        if (filter.source() == null) {
-            return page;
-        }
-        // Источники применения хранятся массивом в самой форме: фильтр по ним проще применить к странице,
-        // чем городить запрос по text[] ради редкого случая.
-        List<ConsentForm> filtered = page.getContent().stream()
-                .filter(form -> form.getSourceChannels().contains(filter.source()))
-                .toList();
-        return new org.springframework.data.domain.PageImpl<>(filtered, pageable, page.getTotalElements());
+        return repository.findAll(specification, pageable);
     }
 
     @Transactional(readOnly = true)

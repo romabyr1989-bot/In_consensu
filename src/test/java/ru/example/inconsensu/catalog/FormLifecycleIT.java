@@ -9,12 +9,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import ru.example.inconsensu.catalog.application.ConsentFormService;
+import ru.example.inconsensu.common.domain.ConsentSource;
 import ru.example.inconsensu.common.domain.RoleCode;
 import ru.example.inconsensu.iam.application.OperatorSettingsService;
 import ru.example.inconsensu.support.AbstractIntegrationTest;
@@ -34,6 +37,9 @@ class FormLifecycleIT extends AbstractIntegrationTest {
 
     @Autowired
     private OperatorSettingsService settings;
+
+    @Autowired
+    private ConsentFormService forms;
 
     private HttpHeaders lawyer;
     private HttpHeaders dpo;
@@ -288,5 +294,28 @@ class FormLifecycleIT extends AbstractIntegrationTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat((java.util.List<?>) response.getBody().get("content")).isNotEmpty();
+    }
+
+    /**
+     * FR-3.1: фильтр по источнику применения обязан выполняться запросом.
+     *
+     * <p>Раньше он применялся к уже выбранной странице: подходящие формы с других страниц не показывались,
+     * а `totalElements` возвращался без учёта фильтра, из-за чего врало число страниц.
+     */
+    @Test
+    void source_filter_is_applied_by_the_query_and_not_to_the_fetched_page() {
+        var used = forms.list(
+                new ConsentFormService.FormFilter(null, ConsentSource.WEBSITE_APPLICATION, null, null, null),
+                PageRequest.of(0, 5));
+        assertThat(used.getTotalElements()).isPositive();
+        assertThat(used.getContent())
+                .allSatisfy(form -> assertThat(form.getSourceChannels()).contains(ConsentSource.WEBSITE_APPLICATION));
+
+        // Источник, которым не пользуется ни одна форма: счётчик обязан быть нулевым, а не общим числом форм.
+        var unused = forms.list(
+                new ConsentFormService.FormFilter(null, ConsentSource.CALL_CENTER, null, null, null),
+                PageRequest.of(0, 5));
+        assertThat(unused.getTotalElements()).isZero();
+        assertThat(unused.getContent()).isEmpty();
     }
 }

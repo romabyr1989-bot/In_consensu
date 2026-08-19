@@ -18,7 +18,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import ru.example.inconsensu.catalog.application.CatalogExportService;
 import ru.example.inconsensu.catalog.application.CatalogStatsService;
+import ru.example.inconsensu.catalog.application.ConsentFormService;
+import ru.example.inconsensu.catalog.application.ConsentTypeService;
 import ru.example.inconsensu.catalog.domain.ConsentForm;
+import ru.example.inconsensu.common.domain.ConsentCategory;
 import ru.example.inconsensu.common.domain.ConsentSource;
 import ru.example.inconsensu.common.domain.ContactType;
 import ru.example.inconsensu.common.domain.RoleCode;
@@ -27,6 +30,7 @@ import ru.example.inconsensu.common.domain.ThirdPartyRole;
 import ru.example.inconsensu.registry.application.ConsentRegistrationService;
 import ru.example.inconsensu.registry.application.SubjectService;
 import ru.example.inconsensu.support.AbstractIntegrationTest;
+import ru.example.inconsensu.support.RunAs;
 import ru.example.inconsensu.support.TestAccounts;
 import ru.example.inconsensu.support.TestForms;
 import ru.example.inconsensu.thirdparty.application.ThirdPartyService;
@@ -43,6 +47,9 @@ class CatalogStatsAndExportIT extends AbstractIntegrationTest {
 
     @Autowired
     private ThirdPartyService thirdParties;
+
+    @Autowired
+    private ConsentTypeService consentTypes;
 
     @Autowired
     private ConsentRegistrationService registration;
@@ -79,10 +86,10 @@ class CatalogStatsAndExportIT extends AbstractIntegrationTest {
                         Set.of("FIO", "PHONE"),
                         "dpo@partner.example"));
         form = testForms.publishFormWithTransfer(partner.getId(), List.of("FIO", "PHONE"));
-        registerConsents();
+        registerConsentFor(form);
     }
 
-    private void registerConsents() {
+    private void registerConsentFor(ConsentForm target) {
         var subject = new SubjectService.SubjectForm(
                 "CRM-" + UUID.randomUUID().toString().substring(0, 8),
                 "Полевая",
@@ -98,8 +105,8 @@ class CatalogStatsAndExportIT extends AbstractIntegrationTest {
                 new ConsentRegistrationService.RegistrationRequest(
                         null,
                         subject,
-                        form.getId(),
-                        form.getItems().stream()
+                        target.getId(),
+                        target.getItems().stream()
                                 .map(item -> new ConsentRegistrationService.ItemDecision(item.getId(), true))
                                 .toList(),
                         Instant.now(),
@@ -134,6 +141,59 @@ class CatalogStatsAndExportIT extends AbstractIntegrationTest {
         // Передача выдана на год: она действует и попадает в окно «истекают за 30 дней» только к концу срока.
         assertThat(byPartner.active()).isEqualTo(1);
         assertThat(byPartner.expiringSoon()).isZero();
+    }
+
+    /**
+     * FR-1.1 требует, чтобы согласия деактивированного типа продолжали действовать и учитываться, а §6
+     * запрещает удалять справочники. Раньше статистика и выгрузка перечисляли только активные типы, и
+     * деактивация стирала тип вместе с его согласиями из отчётов, хотя согласия никуда не делись.
+     *
+     * <p>Тип для теста создаётся свой: деактивация seed-типа осталась бы в общей базе и повлияла бы на
+     * соседние классы.
+     */
+    @Test
+    void a_deactivated_type_keeps_its_consents_in_statistics_and_export() {
+        String code = "TEMPORARY_OFFER_" + UUID.randomUUID().toString().substring(0, 8);
+        RunAs.roles(
+                "stats-admin",
+                List.of(RoleCode.ADMIN.name()),
+                () -> consentTypes.create(
+                        code,
+                        new ConsentTypeService.ConsentTypeForm(
+                                "Временное предложение",
+                                "Тип создан тестом статистики",
+                                ConsentCategory.OTHER,
+                                Set.of(),
+                                false,
+                                null,
+                                null,
+                                false,
+                                900)));
+        ConsentForm temporaryForm = testForms.publish(List.of(new ConsentFormService.ItemForm(
+                code, "Согласие на временное предложение", List.of("тест"), List.of("FIO"), null, null, false)));
+        registerConsentFor(temporaryForm);
+
+        assertThat(typeRow(stats.byType(), code).active()).isEqualTo(1);
+
+        RunAs.roles("stats-admin", List.of(RoleCode.ADMIN.name()), () -> consentTypes.deactivate(code));
+
+        assertThat(typeRow(stats.byType(), code).active())
+                .as("согласие деактивированного типа продолжает учитываться (FR-1.1)")
+                .isEqualTo(1);
+        assertThat(export.snapshot().types())
+                .filteredOn(row -> row.code().equals(code))
+                .singleElement()
+                .satisfies(row -> {
+                    assertThat(row.active()).isFalse();
+                    assertThat(row.activeConsents()).isEqualTo(1);
+                });
+    }
+
+    private static CatalogStatsService.TypeStats typeRow(List<CatalogStatsService.TypeStats> rows, String code) {
+        return rows.stream()
+                .filter(row -> row.code().equals(code))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Тип отсутствует в разрезе статистики: " + code));
     }
 
     @Test

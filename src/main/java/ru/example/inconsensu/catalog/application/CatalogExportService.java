@@ -94,7 +94,7 @@ public class CatalogExportService {
                 stats.allThirdParties().stream().collect(Collectors.toMap(ThirdParty::getId, p -> p));
 
         List<TypeRow> typeRows =
-                stats.activeTypes().stream().map(type -> typeRow(type, counts)).toList();
+                stats.allTypes().stream().map(type -> typeRow(type, counts)).toList();
         List<FormRow> formRows = forms.findAllWithItems().stream()
                 .sorted(Comparator.comparing(ConsentForm::getCode).thenComparingInt(ConsentForm::getVersionNumber))
                 .map(form -> formRow(form, parties))

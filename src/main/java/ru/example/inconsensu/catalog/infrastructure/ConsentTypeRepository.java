@@ -15,6 +15,9 @@ public interface ConsentTypeRepository extends JpaRepository<ConsentType, UUID>,
 
     List<ConsentType> findByActiveTrueOrderBySortOrderAsc();
 
+    /** Справочник целиком: деактивированный тип не исчезает из статистики и выгрузки (FR-1.1, FR-3.3, FR-3.4). */
+    List<ConsentType> findAllByOrderBySortOrderAsc();
+
     /** Типы, зависящие от указанного: используется каскадным отзывом FR-8.4 и предупреждением при деактивации. */
     List<ConsentType> findByDependsOnId(UUID dependsOnId);
 }

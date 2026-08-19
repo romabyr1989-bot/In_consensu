@@ -122,7 +122,7 @@ public class CatalogStatsService {
     public List<TypeStats> byType(Instant now, Instant horizon) {
         Map<UUID, Map<ConsentStatus, Long>> counts = group(consentCounts.countsByType());
         Map<UUID, Long> expiringSoon = flatten(consentCounts.expiringByType(now, horizon));
-        return types.activeTypes().stream()
+        return types.allTypes().stream()
                 .map(type -> {
                     Map<ConsentStatus, Long> byStatus = counts.getOrDefault(type.getId(), Map.of());
                     return new TypeStats(
@@ -159,10 +159,10 @@ public class CatalogStatsService {
                 .toList();
     }
 
-    /** Активные типы для экспорта каталога: он отдаёт те же счётчики построчно. */
+    /** Все типы для экспорта каталога: он отдаёт те же счётчики построчно (FR-1.1, FR-3.3). */
     @Transactional(readOnly = true)
-    public List<ConsentType> activeTypes() {
-        return types.activeTypes();
+    public List<ConsentType> allTypes() {
+        return types.allTypes();
     }
 
     /** Третьи лица для экспорта и разрезов статистики. */

@@ -109,6 +109,17 @@ public class ConsentTypeService {
         return repository.findByActiveTrueOrderBySortOrderAsc();
     }
 
+    /**
+     * Справочник целиком, включая деактивированные типы.
+     *
+     * <p>FR-1.1 требует, чтобы ранее полученные согласия деактивированного типа продолжали действовать и
+     * учитываться, поэтому статистика и выгрузка каталога считают по всем типам, а не только по активным.
+     */
+    @Transactional(readOnly = true)
+    public List<ConsentType> allTypes() {
+        return repository.findAllByOrderBySortOrderAsc();
+    }
+
     @Transactional(readOnly = true)
     public ConsentType get(UUID id) {
         return repository.findById(id).orElseThrow(() -> ApiException.notFound("Тип согласия не найден"));
