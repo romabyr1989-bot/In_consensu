@@ -160,6 +160,42 @@ public class SubjectService {
      *
      * <p>Контакты заменяются целиком: источником правды по клиенту остаётся мастер-система, а не ЦУС.
      */
+    /**
+     * Обновление клиента с добавлением контактов, а не заменой (FR-4.5).
+     *
+     * <p>Импорт идёт построчно, и в строке может не быть телефона или email. Полная замена контактов
+     * стирала бы то, что уже загружено предыдущими строками того же клиента; здесь новые контакты
+     * добавляются к существующим, а совпадающие по нормализованному значению не дублируются.
+     */
+    @Transactional
+    public Subject upsertMerging(SubjectForm form) {
+        Subject existing =
+                repository.findWithContactsByExternalId(form.externalId()).orElse(null);
+        if (existing == null) {
+            return upsert(form);
+        }
+
+        List<ContactForm> merged = new ArrayList<>();
+        for (SubjectContact contact : existing.getContacts()) {
+            merged.add(new ContactForm(contact.getType(), contact.getValue(), contact.isPrimary()));
+        }
+        java.util.Set<String> known = existing.getContacts().stream()
+                .map(contact ->
+                        contact.getType() + ":" + ContactNormalizer.normalize(contact.getType(), contact.getValue()))
+                .collect(java.util.stream.Collectors.toCollection(java.util.HashSet::new));
+        if (form.contacts() != null) {
+            for (ContactForm candidate : form.contacts()) {
+                String key = candidate.type() + ":" + ContactNormalizer.normalize(candidate.type(), candidate.value());
+                if (known.add(key)) {
+                    merged.add(candidate);
+                }
+            }
+        }
+
+        return upsert(new SubjectForm(
+                form.externalId(), form.lastName(), form.firstName(), form.middleName(), form.birthDate(), merged));
+    }
+
     @Transactional
     public Subject upsert(SubjectForm form) {
         Subject subject =

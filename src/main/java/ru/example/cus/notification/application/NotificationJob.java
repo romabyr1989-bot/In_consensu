@@ -75,6 +75,10 @@ public class NotificationJob {
         this.clock = clock;
     }
 
+    // Транзакция нужна самому планировому запуску: событие для канала WEBHOOK публикуется слушателем с
+    // propagation=MANDATORY, и без неё первый же прогон падал бы. Планировщик зовёт метод через прокси,
+    // поэтому аннотация здесь работает, в отличие от вызова scanNow() изнутри объекта.
+    @Transactional
     @Scheduled(cron = "${cus.jobs.notification.cron:0 0 6 * * *}", zone = "${cus.timezone:Europe/Moscow}")
     @SchedulerLock(name = "notificationScan", lockAtLeastFor = "PT1M", lockAtMostFor = "PT30M")
     public void scan() {

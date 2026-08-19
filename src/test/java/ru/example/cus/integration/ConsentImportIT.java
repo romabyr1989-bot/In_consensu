@@ -51,11 +51,23 @@ class ConsentImportIT extends AbstractIntegrationTest {
     }
 
     /** Импорт запускается синхронно: тест проверяет результат, а не гонку с фоновым потоком. */
+    /** Задача выполняется в фоне, поэтому тест дожидается её завершения, а не запускает её второй раз. */
     private ImportJob runImport(String content, boolean dryRun) {
         ImportJob job = importService.start(
                 "clients.csv", content.getBytes(StandardCharsets.UTF_8), "CLIENT_BASE_IMPORT", dryRun);
-        importService.run(job.getId(), content);
-        return importService.get(job.getId());
+        for (int attempt = 0; attempt < 100; attempt++) {
+            ImportJob current = importService.get(job.getId());
+            if (current.getStatus() == ImportJobStatus.COMPLETED || current.getStatus() == ImportJobStatus.FAILED) {
+                return current;
+            }
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(e);
+            }
+        }
+        throw new AssertionError("задача импорта не завершилась за отведённое время");
     }
 
     @Test

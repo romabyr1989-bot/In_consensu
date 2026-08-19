@@ -63,6 +63,7 @@ public class ConsentRegistrationService {
     public record RegistrationResult(List<Consent> created, List<UUID> declinedItems, boolean idempotentReplay) {}
 
     private final ConsentRepository consents;
+    private final ConsentQueryService queries;
     private final SubjectService subjects;
     private final ConsentFormService forms;
     private final ThirdPartyService thirdParties;
@@ -73,6 +74,7 @@ public class ConsentRegistrationService {
 
     public ConsentRegistrationService(
             ConsentRepository consents,
+            ConsentQueryService queries,
             SubjectService subjects,
             ConsentFormService forms,
             ThirdPartyService thirdParties,
@@ -81,6 +83,7 @@ public class ConsentRegistrationService {
             ApplicationEventPublisher events,
             Clock clock) {
         this.consents = consents;
+        this.queries = queries;
         this.subjects = subjects;
         this.forms = forms;
         this.thirdParties = thirdParties;
@@ -204,6 +207,7 @@ public class ConsentRegistrationService {
                 evidenceJson,
                 idempotencyKey + KEY_SEPARATOR + item.getId());
 
+        consent.refreshStatus(clock.instant(), queries.expiringDays());
         Consent saved = consents.save(consent);
         supersedePrevious(saved);
 
@@ -224,11 +228,32 @@ public class ConsentRegistrationService {
         return saved;
     }
 
-    /** FR-4.3: предыдущее эффективное согласие той же пары «тип + третье лицо» становится заменённым. */
+    /**
+     * FR-4.3: предыдущее эффективное согласие той же пары «тип + третье лицо» становится заменённым.
+     *
+     * <p>Сравниваются даты выражения согласия, а не порядок записи: строка импорта или регистрация задним
+     * числом не должна погасить более свежее согласие клиента. Если новое согласие старше существующего,
+     * заменённым становится оно само.
+     */
     private void supersedePrevious(Consent newer) {
         consents.findEffectiveForSupersede(
                         newer.getSubjectId(), newer.getConsentTypeId(), newer.getThirdPartyId(), newer.getId())
                 .forEach(previous -> {
+                    if (previous.getGrantedAt().isAfter(newer.getGrantedAt())) {
+                        newer.supersedeBy(previous);
+                        consents.save(newer);
+                        auditService.record(
+                                AGGREGATE_TYPE,
+                                newer.getId().toString(),
+                                newer.getSubjectId(),
+                                AuditEventType.SUPERSEDED,
+                                Map.of(
+                                        "supersededBy",
+                                        previous.getId().toString(),
+                                        "reason",
+                                        "зарегистрировано задним числом"));
+                        return;
+                    }
                     previous.supersedeBy(newer);
                     consents.save(previous);
                     auditService.record(
@@ -357,6 +382,7 @@ public class ConsentRegistrationService {
                 toJson(imported.evidence()),
                 imported.idempotencyKey());
 
+        consent.refreshStatus(clock.instant(), queries.expiringDays());
         Consent saved = consents.save(consent);
         supersedePrevious(saved);
 

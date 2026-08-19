@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.task.TaskExecutor;
 import org.springframework.security.concurrent.DelegatingSecurityContextRunnable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,7 +46,7 @@ public class ConsentImportService {
     private final ImportRowProcessor rowProcessor;
     private final ObjectMapper objectMapper;
     private final CusProperties properties;
-    private final TaskExecutor taskExecutor;
+    private final ru.example.cus.common.application.AfterCommitExecutor afterCommit;
     private final Clock clock;
 
     public ConsentImportService(
@@ -56,14 +55,14 @@ public class ConsentImportService {
             ImportRowProcessor rowProcessor,
             ObjectMapper objectMapper,
             CusProperties properties,
-            TaskExecutor taskExecutor,
+            ru.example.cus.common.application.AfterCommitExecutor afterCommit,
             Clock clock) {
         this.jobs = jobs;
         this.jobStore = jobStore;
         this.rowProcessor = rowProcessor;
         this.objectMapper = objectMapper;
         this.properties = properties;
-        this.taskExecutor = taskExecutor;
+        this.afterCommit = afterCommit;
         this.clock = clock;
     }
 
@@ -74,7 +73,9 @@ public class ConsentImportService {
         String text = new String(content, StandardCharsets.UTF_8);
 
         // Контекст безопасности переносится в поток задачи: иначе в аудите импорт останется без автора.
-        taskExecutor.execute(new DelegatingSecurityContextRunnable(() -> run(job.getId(), text)));
+        // После коммита: запущенный внутри транзакции поток может не увидеть строку import_job,
+        // и файл молча не импортируется, а задача навсегда остаётся «в очереди».
+        afterCommit.execute(new DelegatingSecurityContextRunnable(() -> run(job.getId(), text)));
         return job;
     }
 
@@ -96,7 +97,10 @@ public class ConsentImportService {
         try {
             boolean dryRun = get(jobId).isDryRun();
             List<ImportRow> rows = parse(content);
-            jobStore.markStarted(jobId, rows.size());
+            if (!jobStore.claim(jobId, rows.size())) {
+                // Задачу уже выполняет другой поток: повторный проход импортировал бы файл дважды.
+                return;
+            }
 
             for (ImportRow row : rows) {
                 if (!row.valid()) {

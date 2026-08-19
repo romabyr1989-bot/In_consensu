@@ -1,6 +1,5 @@
 package ru.example.cus.ui.api;
 
-import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -43,8 +42,8 @@ public class UiImportController {
             RedirectAttributes redirect) {
         try {
             byte[] content = file.getBytes();
+            // Задача уходит в фон сразу после коммита; страница задачи показывает прогресс (UI-12).
             var job = imports.start(file.getOriginalFilename(), content, source, dryRun);
-            imports.run(job.getId(), new String(content, StandardCharsets.UTF_8));
             return "redirect:/ui/import/" + job.getId();
         } catch (ApiException e) {
             redirect.addFlashAttribute("flashError", e.getMessage());

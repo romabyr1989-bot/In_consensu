@@ -49,11 +49,22 @@ public class ImportJobStore {
         return jobs.findById(jobId).orElseThrow(() -> ApiException.notFound("Задача импорта не найдена"));
     }
 
+    /**
+     * Переводит задачу в работу и сообщает, досталась ли она вызывающему.
+     *
+     * <p>Задачу ставит в очередь {@code start()}, а запустить её может и фоновый исполнитель, и явный
+     * вызов из теста или демо-сценария. Без этой проверки один и тот же файл импортировался бы дважды
+     * параллельно, и второй проход падал бы на уникальном индексе субъекта.
+     */
     @Transactional
-    public void markStarted(UUID jobId, int total) {
+    public boolean claim(UUID jobId, int total) {
         ImportJob job = get(jobId);
+        if (job.getStatus() != ru.example.cus.integration.domain.ImportJobStatus.PENDING) {
+            return false;
+        }
         job.start(total);
         jobs.save(job);
+        return true;
     }
 
     @Transactional

@@ -84,7 +84,8 @@ public class ImportRowProcessor {
             return;
         }
 
-        Subject subject = subjects.upsert(subjectFormOf(row));
+        // FR-4.5: строка без контакта не должна стирать уже загруженные — контакты дополняются.
+        Subject subject = subjects.upsertMerging(subjectFormOf(row));
         registration.registerImported(new ConsentRegistrationService.ImportedConsent(
                 subject.getId(),
                 type.getId(),
