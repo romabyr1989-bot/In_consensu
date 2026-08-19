@@ -4,19 +4,26 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
-import ru.example.inconsensu.common.application.CryptoService;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.utility.DockerImageName;
 import ru.example.inconsensu.common.domain.ContactType;
 import ru.example.inconsensu.registry.application.ContactMaintenanceService;
 import ru.example.inconsensu.registry.application.SubjectService;
 import ru.example.inconsensu.registry.domain.Subject;
-import ru.example.inconsensu.support.AbstractIntegrationTest;
 import ru.example.inconsensu.support.RunAs;
+import ru.example.inconsensu.support.TestAccounts;
+import ru.example.inconsensu.support.TestForms;
 
 /**
  * NFR-3: при включённом флаге контакты лежат в базе зашифрованными, но поиск и карточка работают как прежде.
@@ -27,7 +34,36 @@ import ru.example.inconsensu.support.RunAs;
             // Ключ теста вымышленный и используется только здесь; в эксплуатации он приходит из окружения.
             "inconsensu.crypto.key=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
         })
-class ContactEncryptionIT extends AbstractIntegrationTest {
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureObservability
+@ActiveProfiles("test")
+@Import({TestAccounts.class, TestForms.class})
+class ContactEncryptionIT {
+
+    /**
+     * Собственная база, а не общий контейнер остальных тестов.
+     *
+     * <p>Класс включает шифрование, а проход ротации ключа переписывает все контакты базы, какие в ней
+     * есть. На общей базе это утекало в соседние классы: они работают с выключенным флагом и падали в
+     * конвертере на чужом шифртексте. Точечная уборка после теста от этого не спасает — режим хранения
+     * глобален, поэтому изолируется хранилище, а не строки.
+     */
+    private static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>(
+                    DockerImageName.parse("postgres:16-alpine"))
+            .withDatabaseName("cus")
+            .withUsername("cus")
+            .withPassword("cus");
+
+    static {
+        POSTGRES.start();
+    }
+
+    @DynamicPropertySource
+    static void datasourceProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
+        registry.add("spring.datasource.username", POSTGRES::getUsername);
+        registry.add("spring.datasource.password", POSTGRES::getPassword);
+    }
 
     @Autowired
     private SubjectService subjects;
@@ -37,9 +73,6 @@ class ContactEncryptionIT extends AbstractIntegrationTest {
 
     @Autowired
     private JdbcTemplate jdbc;
-
-    @Autowired
-    private CryptoService crypto;
 
     @Test
     void contact_is_stored_encrypted_and_still_searchable() {
@@ -83,25 +116,5 @@ class ContactEncryptionIT extends AbstractIntegrationTest {
 
         assertThat(first.encryptionEnabled()).isTrue();
         assertThat(second.processed()).isEqualTo(first.processed());
-    }
-
-    /**
-     * Возврат базы в исходное состояние.
-     *
-     * <p>Проход перешифрования затрагивает все контакты общей базы, а не только созданные здесь. Классы,
-     * идущие следом, работают с выключенным флагом и на зашифрованном значении падают в конвертере — так
-     * ломался DemoDataIT, когда порядок классов на Linux оказался иным, чем на macOS.
-     */
-    @AfterEach
-    void restore_plaintext_contacts() {
-        List<Object[]> restored = jdbc
-                .query(
-                        "select id, value from subject_contact where value like ?",
-                        (row, index) -> new Object[] {row.getObject("id"), row.getString("value")},
-                        CryptoService.PREFIX + "%")
-                .stream()
-                .map(row -> new Object[] {crypto.decrypt((String) row[1]), row[0]})
-                .toList();
-        jdbc.batchUpdate("update subject_contact set value = ?, search_hmac = null where id = ?", restored);
     }
 }
