@@ -128,13 +128,13 @@ public class AuditController {
      * история запусков — по {@code GET /audit/verify}.
      */
     @PostMapping("/verify")
-    @PreAuthorize("hasAnyRole('AUDITOR','ADMIN')")
+    @PreAuthorize("hasAnyRole('AUDITOR','DPO','ADMIN')")
     public VerificationResponse verify() {
         return VerificationResponse.of(verifications.start(), properties.timezone());
     }
 
     @GetMapping("/verify")
-    @PreAuthorize("hasAnyRole('AUDITOR','ADMIN')")
+    @PreAuthorize("hasAnyRole('AUDITOR','DPO','ADMIN')")
     public List<VerificationResponse> verifications() {
         return verifications.history().stream()
                 .map(verification -> VerificationResponse.of(verification, properties.timezone()))
@@ -142,7 +142,7 @@ public class AuditController {
     }
 
     @GetMapping("/verify/{jobId}")
-    @PreAuthorize("hasAnyRole('AUDITOR','ADMIN')")
+    @PreAuthorize("hasAnyRole('AUDITOR','DPO','ADMIN')")
     public VerificationResponse verification(@PathVariable UUID jobId) {
         return VerificationResponse.of(verifications.get(jobId), properties.timezone());
     }

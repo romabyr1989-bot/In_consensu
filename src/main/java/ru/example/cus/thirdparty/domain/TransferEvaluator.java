@@ -32,13 +32,23 @@ public final class TransferEvaluator {
             UUID basisConsentId,
             boolean contractExpired) {}
 
+    /**
+     * Разрешённые передачи субъекта (FR-7.2).
+     *
+     * @param baseConsentUsable живо ли базовое согласие на обработку ПДн. Без него разрешений нет вовсе:
+     *     §8.3 п.3 распространяет требование живого PDN_PROCESSING и на передачи, а не только на каналы
+     */
     public static List<TransferPermission> evaluate(
             List<TransferSnapshots.TransferConsent> consents,
             Map<UUID, TransferSnapshots.Recipient> recipients,
+            boolean baseConsentUsable,
             Instant now,
             java.time.ZoneId operatorZone) {
 
         List<TransferPermission> permissions = new ArrayList<>();
+        if (!baseConsentUsable) {
+            return permissions;
+        }
         for (TransferSnapshots.TransferConsent consent : consents) {
             if (!consent.isUsable() || consent.thirdPartyId() == null) {
                 continue;
@@ -82,9 +92,14 @@ public final class TransferEvaluator {
             List<TransferSnapshots.TransferConsent> consents,
             TransferSnapshots.Recipient recipient,
             List<String> requestedCategories,
+            boolean baseConsentUsable,
             Instant now,
             java.time.ZoneId operatorZone) {
 
+        if (!baseConsentUsable) {
+            return new TransferCheck(
+                    false, List.of(), requestedCategories, null, "Нет действующего согласия на обработку ПДн");
+        }
         if (recipient == null || !recipient.active()) {
             return new TransferCheck(false, List.of(), requestedCategories, null, "Третье лицо неактивно");
         }
@@ -93,7 +108,8 @@ public final class TransferEvaluator {
             return new TransferCheck(false, List.of(), requestedCategories, null, "Договор с третьим лицом истёк");
         }
 
-        List<TransferPermission> permissions = evaluate(consents, Map.of(recipient.id(), recipient), now, operatorZone);
+        List<TransferPermission> permissions =
+                evaluate(consents, Map.of(recipient.id(), recipient), true, now, operatorZone);
         if (permissions.isEmpty()) {
             return new TransferCheck(
                     false, List.of(), requestedCategories, null, "Нет действующего согласия на передачу этому лицу");

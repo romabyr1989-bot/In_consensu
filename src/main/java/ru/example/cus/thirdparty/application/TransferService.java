@@ -59,6 +59,7 @@ public class TransferService {
                 consents.transferConsentsOf(subjectId),
                 recipient == null ? null : toRecipient(recipient),
                 categories,
+                consents.baseConsentUsable(subjectId),
                 clock.instant(),
                 properties.timezone());
     }
@@ -71,7 +72,12 @@ public class TransferService {
                 .distinct()
                 .forEach(id -> thirdParties.findById(id).ifPresent(found -> recipients.put(id, toRecipient(found))));
 
-        return TransferEvaluator.evaluate(transferConsents, recipients, clock.instant(), properties.timezone());
+        return TransferEvaluator.evaluate(
+                transferConsents,
+                recipients,
+                consents.baseConsentUsable(subjectId),
+                clock.instant(),
+                properties.timezone());
     }
 
     private TransferSnapshots.Recipient toRecipient(ThirdParty thirdParty) {

@@ -33,10 +33,17 @@ public class RegistryPartnerExportProvider implements PartnerExportDataPort {
 
     private final ConsentRepository consents;
     private final SubjectRepository subjects;
+    private final RegistryTransferConsentProvider transfers;
 
-    public RegistryPartnerExportProvider(ConsentRepository consents, SubjectRepository subjects) {
+    public RegistryPartnerExportProvider(
+            ConsentRepository consents, SubjectRepository subjects, RegistryTransferConsentProvider transfers) {
         this.consents = consents;
         this.subjects = subjects;
+        this.transfers = transfers;
+    }
+
+    private boolean baseConsentUsable(UUID subjectId) {
+        return transfers.baseConsentUsable(subjectId);
     }
 
     @Override
@@ -50,6 +57,10 @@ public class RegistryPartnerExportProvider implements PartnerExportDataPort {
                     .filter(allowedCategories::contains)
                     .collect(java.util.stream.Collectors.toCollection(java.util.LinkedHashSet::new));
             if (categories.isEmpty()) {
+                continue;
+            }
+            // §8.3 п.3: без живого базового согласия передавать нечего, даже если согласие на передачу цело.
+            if (!baseConsentUsable(consent.getSubjectId())) {
                 continue;
             }
             subjects.findWithContactsById(consent.getSubjectId())

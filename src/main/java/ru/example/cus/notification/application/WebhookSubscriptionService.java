@@ -18,6 +18,7 @@ import ru.example.cus.common.error.ApiException;
 import ru.example.cus.common.error.ErrorCode;
 import ru.example.cus.notification.domain.WebhookDelivery;
 import ru.example.cus.notification.domain.WebhookSubscription;
+import ru.example.cus.notification.domain.WebhookUrlPolicy;
 import ru.example.cus.notification.infrastructure.WebhookDeliveryRepository;
 import ru.example.cus.notification.infrastructure.WebhookSubscriptionRepository;
 
@@ -147,11 +148,9 @@ public class WebhookSubscriptionService {
         if (form.name() == null || form.name().isBlank()) {
             throw new ApiException(ErrorCode.VALIDATION_FAILED, "Укажите название подписки");
         }
-        String url = form.url();
-        if (url == null || !(url.startsWith("http://") || url.startsWith("https://"))) {
-            throw new ApiException(
-                    ErrorCode.VALIDATION_FAILED, "Адрес подписки должен начинаться с http:// или https://");
-        }
+        // NFR-4: адрес проверяется по списку разрешённых хостов — иначе роль ADMIN превращается в
+        // возможность заставить сервис ходить в произвольный, в том числе внутренний, адрес.
+        WebhookUrlPolicy.check(form.url(), webhook.allowedHosts(), webhook.requireHttps());
     }
 
     private void audit(WebhookSubscription subscription, AuditEventType eventType) {

@@ -33,7 +33,7 @@ class TransferEvaluatorTest {
 
     private static List<TransferEvaluator.TransferPermission> evaluate(
             TransferSnapshots.TransferConsent consent, TransferSnapshots.Recipient recipient) {
-        return TransferEvaluator.evaluate(List.of(consent), Map.of(MOMENTO, recipient), NOW, MOSCOW);
+        return TransferEvaluator.evaluate(List.of(consent), Map.of(MOMENTO, recipient), true, NOW, MOSCOW);
     }
 
     @Test
@@ -115,6 +115,7 @@ class TransferEvaluatorTest {
                 List.of(consent(List.of("FIO", "PHONE"), ConsentStatus.ACTIVE, null)),
                 recipient(List.of("FIO", "PHONE", "EMAIL"), null, true),
                 List.of("FIO", "EMAIL"),
+                true,
                 NOW,
                 MOSCOW);
 
@@ -130,6 +131,7 @@ class TransferEvaluatorTest {
                 List.of(consent(List.of("FIO", "PHONE"), ConsentStatus.ACTIVE, null)),
                 recipient(List.of("FIO", "PHONE"), null, true),
                 List.of("FIO"),
+                true,
                 NOW,
                 MOSCOW);
 
@@ -144,13 +146,36 @@ class TransferEvaluatorTest {
                 List.of(consent(List.of("FIO"), ConsentStatus.ACTIVE, null)),
                 recipient(List.of("FIO"), NOW.minus(1, ChronoUnit.DAYS), true),
                 List.of("FIO"),
+                true,
                 NOW,
                 MOSCOW);
-        var noConsent =
-                TransferEvaluator.check(List.of(), recipient(List.of("FIO"), null, true), List.of("FIO"), NOW, MOSCOW);
+        var noConsent = TransferEvaluator.check(
+                List.of(), recipient(List.of("FIO"), null, true), List.of("FIO"), true, NOW, MOSCOW);
 
         assertThat(expiredContract.allowed()).isFalse();
         assertThat(expiredContract.reason()).contains("Договор");
         assertThat(noConsent.reason()).contains("Нет действующего согласия");
+    }
+
+    /** §8.3 п.3: без живого базового согласия передача запрещена, как и канал. */
+    @Test
+    void transfer_is_denied_without_a_live_base_consent() {
+        var permissions = TransferEvaluator.evaluate(
+                List.of(consent(List.of("FIO"), ConsentStatus.ACTIVE, null)),
+                Map.of(MOMENTO, recipient(List.of("FIO"), null, true)),
+                false,
+                NOW,
+                MOSCOW);
+        var check = TransferEvaluator.check(
+                List.of(consent(List.of("FIO"), ConsentStatus.ACTIVE, null)),
+                recipient(List.of("FIO"), null, true),
+                List.of("FIO"),
+                false,
+                NOW,
+                MOSCOW);
+
+        assertThat(permissions).isEmpty();
+        assertThat(check.allowed()).isFalse();
+        assertThat(check.reason()).contains("обработку ПДн");
     }
 }

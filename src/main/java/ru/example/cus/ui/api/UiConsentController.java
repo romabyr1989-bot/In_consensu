@@ -10,7 +10,8 @@ import ru.example.cus.registry.application.ConsentEvidenceService;
 
 /** UI-4a: досье согласия — точный текст версии, доказательства и цепочка событий. */
 @Controller
-@PreAuthorize("isAuthenticated()")
+// FR-12.2: досье показывает доказательства и цепочку событий — роли те же, что и у API-аналога.
+@PreAuthorize("hasAnyRole('AUDITOR','DPO','ADMIN','MANAGER')")
 public class UiConsentController {
 
     private final ConsentEvidenceService evidence;

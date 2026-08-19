@@ -25,6 +25,16 @@ public class RegistryTransferConsentProvider implements SubjectTransferPort {
 
     @Override
     @Transactional(readOnly = true)
+    public boolean baseConsentUsable(UUID subjectId) {
+        return consents.effectiveConsentsOf(subjectId).stream()
+                .filter(view -> ru.example.cus.channels.domain.ChannelEvaluator.BASE_CONSENT_TYPE_CODE.equals(
+                        types.get(view.consent().getConsentTypeId()).getCode()))
+                .anyMatch(view -> view.status() == ru.example.cus.common.domain.ConsentStatus.ACTIVE
+                        || view.status() == ru.example.cus.common.domain.ConsentStatus.EXPIRING);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<TransferSnapshots.TransferConsent> transferConsentsOf(UUID subjectId) {
         Map<UUID, ConsentType> typeCache = new HashMap<>();
         return consents.currentConsentsOf(subjectId).stream()

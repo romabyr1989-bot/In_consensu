@@ -64,6 +64,37 @@ public class SelfServiceService {
         }
     }
 
+    /**
+     * Имеет ли вызывающий право обращаться к самообслуживанию (FR-8.1).
+     *
+     * <p>В режиме SERVICE_TOKEN это делает личный кабинет сервисным токеном роли INTEGRATION, в режиме
+     * SUBJECT_JWT — сам клиент токеном со своим внешним идентификатором. Обычный сотрудник не должен
+     * попадать сюда ни в одном из режимов: отзыв от имени клиента — не его операция.
+     */
+    public boolean callerAllowed() {
+        return switch (authMode()) {
+            case SUBJECT_JWT -> subjectExternalIdFromToken().isPresent();
+            case SERVICE_TOKEN -> ru.example.cus.common.security.CurrentUser.roles().stream()
+                    .anyMatch(role -> ru.example.cus.common.domain.RoleCode.INTEGRATION
+                                    .name()
+                                    .equals(role)
+                            || ru.example.cus.common.domain.RoleCode.ADMIN
+                                    .name()
+                                    .equals(role));
+        };
+    }
+
+    private java.util.Optional<String> subjectExternalIdFromToken() {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof Jwt jwt) {
+            String externalId = jwt.getClaimAsString(CLAIM_SUBJECT_EXTERNAL_ID);
+            if (externalId != null && !externalId.isBlank()) {
+                return java.util.Optional.of(externalId);
+            }
+        }
+        return java.util.Optional.empty();
+    }
+
     /** Кто именно обращается: определяется режимом, а не желанием вызывающего (FR-8.1). */
     @Transactional(readOnly = true)
     public Subject currentSubject(String externalIdFromRequest) {
@@ -121,16 +152,10 @@ public class SelfServiceService {
     }
 
     private String externalIdFromToken() {
-        var authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof Jwt jwt) {
-            String externalId = jwt.getClaimAsString(CLAIM_SUBJECT_EXTERNAL_ID);
-            if (externalId != null && !externalId.isBlank()) {
-                return externalId;
-            }
-        }
-        throw new ApiException(
-                ErrorCode.UNAUTHORIZED,
-                "В токене нет идентификатора клиента (claim " + CLAIM_SUBJECT_EXTERNAL_ID + ")");
+        return subjectExternalIdFromToken()
+                .orElseThrow(() -> new ApiException(
+                        ErrorCode.UNAUTHORIZED,
+                        "В токене нет идентификатора клиента (claim " + CLAIM_SUBJECT_EXTERNAL_ID + ")"));
     }
 
     private String requireServiceProvidedId(String externalId) {

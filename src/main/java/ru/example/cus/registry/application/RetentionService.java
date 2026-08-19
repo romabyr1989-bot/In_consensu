@@ -144,6 +144,14 @@ public class RetentionService {
                 where consent_id in (select id from consent where revoked_at is not null and revoked_at < ?)
                 """,
                 threshold);
+        // Замещённое согласие ссылается на своего преемника: если преемник уезжает в архив, ссылка
+        // должна погаснуть, иначе внешний ключ откатит весь прогон ретенции.
+        jdbc.update(
+                """
+                update consent set superseded_by_id = null
+                where superseded_by_id in (select id from consent where revoked_at is not null and revoked_at < ?)
+                """,
+                threshold);
         jdbc.update("delete from consent where revoked_at is not null and revoked_at < ?", threshold);
     }
 

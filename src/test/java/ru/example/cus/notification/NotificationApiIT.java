@@ -18,7 +18,7 @@ import ru.example.cus.support.AbstractIntegrationTest;
 import ru.example.cus.support.TestAccounts;
 import ru.example.cus.support.WebhookStub;
 
-/** §9, Приложение E: правилами уведомлений управляют ADMIN и DPO, подписками — ADMIN и INTEGRATION. */
+/** §9, Приложение E: правилами уведомлений управляют ADMIN и DPO, подписками — только ADMIN. */
 class NotificationApiIT extends AbstractIntegrationTest {
 
     @Autowired
@@ -95,7 +95,7 @@ class NotificationApiIT extends AbstractIntegrationTest {
                     "eventTypes", List.of("consent.revoked"));
 
             ResponseEntity<Map> created = restTemplate.exchange(
-                    "/api/v1/webhooks", HttpMethod.POST, as(RoleCode.INTEGRATION.name(), body), Map.class);
+                    "/api/v1/webhooks", HttpMethod.POST, as(RoleCode.ADMIN.name(), body), Map.class);
             assertThat(created.getStatusCode()).isEqualTo(HttpStatus.CREATED);
             assertThat(created.getBody().get("secret").toString()).isNotBlank();
 
@@ -103,22 +103,19 @@ class NotificationApiIT extends AbstractIntegrationTest {
                     .get("id")
                     .toString();
             ResponseEntity<String> fetched = restTemplate.exchange(
-                    "/api/v1/webhooks/" + id, HttpMethod.GET, as(RoleCode.INTEGRATION.name(), null), String.class);
+                    "/api/v1/webhooks/" + id, HttpMethod.GET, as(RoleCode.ADMIN.name(), null), String.class);
             assertThat(fetched.getBody())
                     .doesNotContain(created.getBody().get("secret").toString());
 
             ResponseEntity<Map> test = restTemplate.exchange(
-                    "/api/v1/webhooks/" + id + "/test",
-                    HttpMethod.POST,
-                    as(RoleCode.INTEGRATION.name(), null),
-                    Map.class);
+                    "/api/v1/webhooks/" + id + "/test", HttpMethod.POST, as(RoleCode.ADMIN.name(), null), Map.class);
             assertThat(test.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(test.getBody()).containsEntry("successful", true);
 
             ResponseEntity<Map> deliveries = restTemplate.exchange(
                     "/api/v1/webhooks/" + id + "/deliveries",
                     HttpMethod.GET,
-                    as(RoleCode.INTEGRATION.name(), null),
+                    as(RoleCode.ADMIN.name(), null),
                     Map.class);
             assertThat((List<?>) deliveries.getBody().get("content")).hasSize(1);
         }

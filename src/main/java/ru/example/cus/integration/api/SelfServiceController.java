@@ -28,7 +28,9 @@ import ru.example.cus.registry.domain.Subject;
  */
 @RestController
 @RequestMapping("/api/v1/self")
-@PreAuthorize("isAuthenticated()")
+// FR-8.1: сюда ходит либо личный кабинет сервисным токеном, либо сам клиент своим JWT. Обычный сотрудник
+// с ролью MARKETING или LAWYER не должен иметь возможности отозвать согласие от имени клиента.
+@PreAuthorize("isAuthenticated() and @selfServiceService.callerAllowed()")
 public class SelfServiceController {
 
     public record SelfConsentResponse(

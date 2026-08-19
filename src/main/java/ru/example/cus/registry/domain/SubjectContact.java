@@ -33,11 +33,12 @@ public class SubjectContact extends AuditableEntity {
 
     // NFR-3: при включённом cus.crypto.enabled в колонке лежит шифртекст, конвертер прячет это от домена.
     @jakarta.persistence.Convert(converter = ru.example.cus.common.application.EncryptedStringConverter.class)
-    @Column(name = "value", nullable = false, length = 512)
+    // NFR-3: под шифртекст нужно вдвое больше места, чем под открытое значение (V202608250000).
+    @Column(name = "value", nullable = false, length = 2048)
     private String value;
 
     @jakarta.persistence.Convert(converter = ru.example.cus.common.application.EncryptedStringConverter.class)
-    @Column(name = "value_normalized", nullable = false, length = 512)
+    @Column(name = "value_normalized", nullable = false, length = 2048)
     private String valueNormalized;
 
     /** HMAC нормализованного значения: по нему ищут, когда точное сравнение по шифртексту невозможно. */

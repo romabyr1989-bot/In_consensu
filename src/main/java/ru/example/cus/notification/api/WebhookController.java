@@ -26,7 +26,8 @@ import ru.example.cus.notification.application.WebhookSubscriptionService;
 /** §9: подписки внешних систем на события. Управление — ADMIN и INTEGRATION (Приложение E). */
 @RestController
 @RequestMapping("/api/v1/webhooks")
-@PreAuthorize("hasAnyRole('ADMIN','INTEGRATION')")
+// §9 и Приложение E: подписками управляет только ADMIN — адрес подписки определяет, куда уходят события.
+@PreAuthorize("hasRole('ADMIN')")
 public class WebhookController {
 
     public record SubscriptionRequest(
