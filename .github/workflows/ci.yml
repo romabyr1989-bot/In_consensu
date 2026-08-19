@@ -66,8 +66,11 @@ jobs:
 
       # §4, NFR-3: контроль уязвимостей зависимостей. Trivy выбран вместо OWASP dependency-check,
       # потому что не требует ключа NVD и не ходит в закрытые для контура сервисы (см. docs/DECISIONS.md).
+      #
+      # Версия не ниже v0.33: более ранние релизы ссылаются на aquasecurity/setup-trivy по тегу
+      # (v0.2.x), а эти теги удалены из репозитория — job падает на Set up job, не начав работу.
       - name: Trivy — уязвимости в зависимостях
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .

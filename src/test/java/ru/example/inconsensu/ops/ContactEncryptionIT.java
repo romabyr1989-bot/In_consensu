@@ -4,11 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.TestPropertySource;
+import ru.example.inconsensu.common.application.CryptoService;
 import ru.example.inconsensu.common.domain.ContactType;
 import ru.example.inconsensu.registry.application.ContactMaintenanceService;
 import ru.example.inconsensu.registry.application.SubjectService;
@@ -36,6 +38,9 @@ class ContactEncryptionIT extends AbstractIntegrationTest {
     @Autowired
     private JdbcTemplate jdbc;
 
+    @Autowired
+    private CryptoService crypto;
+
     @Test
     void contact_is_stored_encrypted_and_still_searchable() {
         String phone = "+7 916 000-01-" + (10 + (int) (Math.random() * 80));
@@ -46,7 +51,7 @@ class ContactEncryptionIT extends AbstractIntegrationTest {
                 List.of("ADMIN"),
                 () -> subjects.upsert(new SubjectService.SubjectForm(
                         externalId,
-                        "Бондаренко",
+                        "Заозёрная",
                         "Мария",
                         "Олеговна",
                         null,
@@ -78,5 +83,25 @@ class ContactEncryptionIT extends AbstractIntegrationTest {
 
         assertThat(first.encryptionEnabled()).isTrue();
         assertThat(second.processed()).isEqualTo(first.processed());
+    }
+
+    /**
+     * Возврат базы в исходное состояние.
+     *
+     * <p>Проход перешифрования затрагивает все контакты общей базы, а не только созданные здесь. Классы,
+     * идущие следом, работают с выключенным флагом и на зашифрованном значении падают в конвертере — так
+     * ломался DemoDataIT, когда порядок классов на Linux оказался иным, чем на macOS.
+     */
+    @AfterEach
+    void restore_plaintext_contacts() {
+        List<Object[]> restored = jdbc
+                .query(
+                        "select id, value from subject_contact where value like ?",
+                        (row, index) -> new Object[] {row.getObject("id"), row.getString("value")},
+                        CryptoService.PREFIX + "%")
+                .stream()
+                .map(row -> new Object[] {crypto.decrypt((String) row[1]), row[0]})
+                .toList();
+        jdbc.batchUpdate("update subject_contact set value = ?, search_hmac = null where id = ?", restored);
     }
 }
