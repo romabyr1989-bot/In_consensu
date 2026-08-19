@@ -1,0 +1,25 @@
+target/
+
+# .mvn/wrapper/maven-wrapper.jar is committed on purpose (NFR-4): without it a clean checkout in a
+# closed perimeter cannot start the build at all. Its checksum is pinned in maven-wrapper.properties.
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.classpath
+.project
+nbproject/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local runtime
+*.log
+logs/
+.env
+.env.local

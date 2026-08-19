@@ -1,0 +1,58 @@
+name: cus
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cus-postgres
+    environment:
+      POSTGRES_DB: cus
+      POSTGRES_USER: cus
+      POSTGRES_PASSWORD: ${CUS_DB_PASSWORD:-cus}
+      TZ: UTC
+      PGTZ: UTC
+    ports:
+      - "${CUS_DB_PORT:-5432}:5432"
+    volumes:
+      - cus-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cus -d cus"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # §4: local SMTP sink; the web UI on 8025 shows the notification e-mails of §7.9.
+  mailpit:
+    image: axllent/mailpit:v1.21
+    container_name: cus-mailpit
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    ports:
+      - "${CUS_SMTP_PORT:-1025}:1025"
+      - "${CUS_MAILPIT_UI_PORT:-8025}:8025"
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cus-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    environment:
+      SPRING_PROFILES_ACTIVE: ${CUS_PROFILES:-demo}
+      CUS_DB_URL: jdbc:postgresql://postgres:5432/cus
+      CUS_DB_USER: cus
+      CUS_DB_PASSWORD: ${CUS_DB_PASSWORD:-cus}
+      CUS_TIMEZONE: ${CUS_TIMEZONE:-Europe/Moscow}
+      CUS_SMTP_HOST: mailpit
+      CUS_SMTP_PORT: 1025
+      # Адрес, по которому получатель письма откроет карточку клиента (FR-9.2).
+      CUS_BASE_URL: ${CUS_BASE_URL:-http://localhost:8080}
+    ports:
+      - "${CUS_PORT:-8080}:8080"
+
+volumes:
+  cus-pgdata:
