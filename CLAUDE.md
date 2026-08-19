@@ -5,7 +5,7 @@
 
 ## Стек
 
-Java 21, Spring Boot 3.4, Maven (`./mvnw`), PostgreSQL 16, Flyway (чистый SQL), MapStruct, Lombok,
+Java 21, Spring Boot 3.5, Maven (`./mvnw`), PostgreSQL 16, Flyway (чистый SQL), MapStruct, Lombok,
 springdoc-openapi, Testcontainers, ArchUnit, JaCoCo, Thymeleaf + HTMX (этап 7).
 
 ## Команды

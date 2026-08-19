@@ -1,5 +1,6 @@
 package ru.example.inconsensu.common.application;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -17,7 +18,9 @@ public class AfterCommitExecutor {
 
     private final TaskExecutor taskExecutor;
 
-    public AfterCommitExecutor(TaskExecutor taskExecutor) {
+    // Начиная со Spring Boot 3.5 планировщик тоже TaskExecutor, и внедрение по типу неоднозначно:
+    // фоновая работа должна уходить в пул приложения, а не в пул расписаний.
+    public AfterCommitExecutor(@Qualifier("applicationTaskExecutor") TaskExecutor taskExecutor) {
         this.taskExecutor = taskExecutor;
     }
 

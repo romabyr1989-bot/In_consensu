@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.4.1</version>
+        <version>3.5.16</version>
         <relativePath/>
     </parent>
 
@@ -40,6 +40,9 @@
         <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
         <checkstyle.version>10.21.1</checkstyle.version>
         <jacoco-maven-plugin.version>0.8.12</jacoco-maven-plugin.version>
+
+        <!-- NFR-3: версия драйвера выше управляемой Spring Boot — в 42.7.11 известна уязвимость -->
+        <postgresql.version>42.7.13</postgresql.version>
 
         <!-- §11: coverage threshold for domain + application layers -->
         <jacoco.coverage.minimum>0.80</jacoco.coverage.minimum>
