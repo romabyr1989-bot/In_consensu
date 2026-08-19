@@ -49,7 +49,7 @@ logs: ## Логи приложения
 	docker compose logs -f app
 
 psql: ## Консоль PostgreSQL
-	docker compose exec postgres psql -U inconsensu -d cus
+	docker compose exec postgres psql -U inconsensu -d inconsensu
 
 mail: ## Открыть Mailpit
 	@echo "http://localhost:8025"

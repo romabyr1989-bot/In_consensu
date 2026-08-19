@@ -15,7 +15,7 @@ services:
     volumes:
       - inconsensu-pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U inconsensu -d cus"]
+      test: ["CMD-SHELL", "pg_isready -U inconsensu -d inconsensu"]
       interval: 5s
       timeout: 3s
       retries: 20
