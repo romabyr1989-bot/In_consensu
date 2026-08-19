@@ -4,9 +4,9 @@
 <head th:replace="~{ui/fragments/layout :: head('Согласование формы')}"></head>
 <body>
 <nav th:replace="~{ui/fragments/layout :: topbar}"></nav>
-<div class="cus-layout">
+<div class="ic-layout">
     <aside th:replace="~{ui/fragments/layout :: sidebar('forms')}"></aside>
-    <main class="cus-content">
+    <main class="ic-content">
         <div th:replace="~{ui/fragments/layout :: flash}"></div>
         <h1 class="h4 mb-1">Согласование формы</h1>
         <p class="text-muted">
@@ -82,18 +82,22 @@
                 </form>
 
                 <div class="card mt-3">
-                    <div class="card-header">История решений</div>
+                    <div class="card-header">История формы</div>
                     <ul class="list-group list-group-flush">
-                        <li class="list-group-item" th:each="approval : ${approvals}">
+                        <li class="list-group-item" th:each="entry : ${history}">
                             <div>
-                                <span th:text="${approval.roleRequired}">DPO</span> —
-                                <span th:text="${approval.decision.nameRu()}">одобрено</span>
+                                <span th:text="${entry.eventTypeRu()}">Форма опубликована</span>
+                                <span class="text-muted small"
+                                      th:if="${entry.fromStatus() != null and entry.toStatus() != null}"
+                                      th:text="'(' + ${entry.fromStatus()} + ' → ' + ${entry.toStatus()} + ')'"></span>
+                                <span class="text-muted small" th:if="${entry.role() != null}"
+                                      th:text="'роль ' + ${entry.role()}"></span>
                             </div>
                             <div class="small text-muted">
-                                <span th:text="${approval.userLogin}">dpo</span>,
-                                <span th:text="${#temporals.format(approval.decidedAt, 'dd.MM.yyyy HH:mm')}">15.08.2026 11:20</span>
+                                <span th:text="${entry.actor()}">dpo</span>,
+                                <span th:text="${#temporals.format(entry.at(), 'dd.MM.yyyy HH:mm')}">15.08.2026 11:20</span>
                             </div>
-                            <div class="small" th:text="${approval.comment}">ок</div>
+                            <div class="small" th:text="${entry.comment()}">ок</div>
                         </li>
                     </ul>
                 </div>
@@ -102,6 +106,6 @@
     </main>
 </div>
 <script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
-<script th:src="@{/assets/js/cus.js}"></script>
+<script th:src="@{/assets/js/inconsensu.js}"></script>
 </body>
 </html>

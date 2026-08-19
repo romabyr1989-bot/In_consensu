@@ -1,4 +1,4 @@
-# ЦУС — Центр управления согласиями
+# In consensu — центр управления согласиями
 
 Серверное приложение для учёта согласий субъектов персональных данных: единый каталог типов и форм
 согласий, база выданных согласий, ответ «можно / нельзя» по каналам коммуникации и передачам третьим
@@ -23,7 +23,7 @@
 
 ```bash
 git clone <репозиторий> cus && cd cus
-CUS_PROFILES=demo docker compose up -d --build   # postgres + mailpit + приложение с демо-данными
+INCONSENSU_PROFILES=demo docker compose up -d --build   # postgres + mailpit + приложение с демо-данными
 ./scripts/demo.sh                                # сквозная проверка реализованного объёма
 ```
 
@@ -80,23 +80,23 @@ export TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock
 
 | Переменная | По умолчанию | Назначение |
 |---|---|---|
-| `CUS_DB_URL` | `jdbc:postgresql://localhost:5432/cus` | JDBC-адрес PostgreSQL 15/16 или Postgres Pro |
-| `CUS_DB_USER` / `CUS_DB_PASSWORD` | `cus` / `cus` | учётные данные БД |
-| `CUS_DB_POOL_SIZE` | `10` | размер пула соединений |
-| `CUS_PORT` | `8080` | порт HTTP |
-| `CUS_TIMEZONE` | `Europe/Moscow` | таймзона оператора для бизнес-дат (§8.7) |
-| `CUS_BASE_URL` | `http://localhost:8080` | адрес установки для ссылок в письмах |
-| `CUS_SMTP_HOST` / `CUS_SMTP_PORT` | `localhost` / `1025` | почтовый сервер для уведомлений |
-| `CUS_SMTP_USER` / `CUS_SMTP_PASSWORD` | — | учётные данные SMTP, если требуется аутентификация |
-| `CUS_MAIL_FROM` | `cus@example.ru` | адрес отправителя уведомлений |
-| `CUS_MAIL_ENABLED` | `true` | выключает отправку писем, не трогая очередь уведомлений |
-| `CUS_NOTIFICATION_CRON` | `0 0 6 * * *` | время ежедневного отбора истекающих согласий (FR-9.1) |
-| `CUS_OUTBOX_DELAY` | `PT30S` | период доставки событий из outbox в webhooks |
-| `CUS_WEBHOOK_ALLOWED_HOSTS` | — | список разрешённых хостов подписок; пусто — без ограничений (NFR-4) |
-| `CUS_WEBHOOK_REQUIRE_HTTPS` | `false` | запретить подписки по http:// |
-| `CUS_CRYPTO_ENABLED` | `false` | шифрование контактов в базе (NFR-3) |
-| `CUS_CRYPTO_KEY` | — | ключ AES-256 в base64; обязателен при включённом шифровании |
-| `CUS_CRYPTO_PREVIOUS_KEY` | — | предыдущий ключ на время ротации |
+| `INCONSENSU_DB_URL` | `jdbc:postgresql://localhost:5432/inconsensu` | JDBC-адрес PostgreSQL 15/16 или Postgres Pro |
+| `INCONSENSU_DB_USER` / `INCONSENSU_DB_PASSWORD` | `inconsensu` / `inconsensu` | учётные данные БД |
+| `INCONSENSU_DB_POOL_SIZE` | `10` | размер пула соединений |
+| `INCONSENSU_PORT` | `8080` | порт HTTP |
+| `INCONSENSU_TIMEZONE` | `Europe/Moscow` | таймзона оператора для бизнес-дат (§8.7) |
+| `INCONSENSU_BASE_URL` | `http://localhost:8080` | адрес установки для ссылок в письмах |
+| `INCONSENSU_SMTP_HOST` / `INCONSENSU_SMTP_PORT` | `localhost` / `1025` | почтовый сервер для уведомлений |
+| `INCONSENSU_SMTP_USER` / `INCONSENSU_SMTP_PASSWORD` | — | учётные данные SMTP, если требуется аутентификация |
+| `INCONSENSU_MAIL_FROM` | `noreply@example.ru` | адрес отправителя уведомлений |
+| `INCONSENSU_MAIL_ENABLED` | `true` | выключает отправку писем, не трогая очередь уведомлений |
+| `INCONSENSU_NOTIFICATION_CRON` | `0 0 6 * * *` | время ежедневного отбора истекающих согласий (FR-9.1) |
+| `INCONSENSU_OUTBOX_DELAY` | `PT30S` | период доставки событий из outbox в webhooks |
+| `INCONSENSU_WEBHOOK_ALLOWED_HOSTS` | — | список разрешённых хостов подписок; пусто — без ограничений (NFR-4) |
+| `INCONSENSU_WEBHOOK_REQUIRE_HTTPS` | `false` | запретить подписки по http:// |
+| `INCONSENSU_CRYPTO_ENABLED` | `false` | шифрование контактов в базе (NFR-3) |
+| `INCONSENSU_CRYPTO_KEY` | — | ключ AES-256 в base64; обязателен при включённом шифровании |
+| `INCONSENSU_CRYPTO_PREVIOUS_KEY` | — | предыдущий ключ на время ротации |
 | `SPRING_PROFILES_ACTIVE` | — | профиль при запуске напрямую: `dev`, `demo`, `oidc`, `kafka` |
 
 Профили: `dev` — читаемые логи и подробный health; `demo` — демонстрационные (вымышленные) данные;
@@ -106,9 +106,9 @@ export TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock
 
 | Переменная | По умолчанию | Назначение |
 |---|---|---|
-| `CUS_PROFILES` | `demo` | профиль приложения в контейнере (передаётся как `SPRING_PROFILES_ACTIVE`) |
-| `CUS_DB_PORT` | `5432` | порт PostgreSQL на хосте |
-| `CUS_SMTP_PORT` / `CUS_MAILPIT_UI_PORT` | `1025` / `8025` | порты Mailpit на хосте |
+| `INCONSENSU_PROFILES` | `demo` | профиль приложения в контейнере (передаётся как `SPRING_PROFILES_ACTIVE`) |
+| `INCONSENSU_DB_PORT` | `5432` | порт PostgreSQL на хосте |
+| `INCONSENSU_SMTP_PORT` / `INCONSENSU_MAILPIT_UI_PORT` | `1025` / `8025` | порты Mailpit на хосте |
 
 Сборка образа требует BuildKit (входит в Docker 23+ и в `docker buildx`); `make docker-build`
 включает его явно.

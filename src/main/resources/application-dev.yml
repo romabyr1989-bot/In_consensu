@@ -4,7 +4,7 @@ logging:
     format:
       console: ""
   level:
-    ru.example.cus: DEBUG
+    ru.example.inconsensu: DEBUG
     org.flywaydb: DEBUG
 
 management:

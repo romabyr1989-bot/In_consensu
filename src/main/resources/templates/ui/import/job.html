@@ -3,9 +3,9 @@
 <head th:replace="~{ui/fragments/layout :: head('Задача импорта')}"></head>
 <body>
 <nav th:replace="~{ui/fragments/layout :: topbar}"></nav>
-<div class="cus-layout">
+<div class="ic-layout">
     <aside th:replace="~{ui/fragments/layout :: sidebar('import')}"></aside>
-    <main class="cus-content">
+    <main class="ic-content">
         <div th:replace="~{ui/fragments/layout :: flash}"></div>
         <h1 class="h4 mb-3" th:text="'Импорт: ' + ${job.job().fileName}">Импорт</h1>
 

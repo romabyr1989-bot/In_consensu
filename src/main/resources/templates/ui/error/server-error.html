@@ -3,9 +3,9 @@
 <head th:replace="~{ui/fragments/layout :: head('Произошла ошибка')}"></head>
 <body>
 <nav th:replace="~{ui/fragments/layout :: topbar}"></nav>
-<div class="cus-layout">
+<div class="ic-layout">
     <aside th:replace="~{ui/fragments/layout :: sidebar('')}"></aside>
-    <main class="cus-content">
+    <main class="ic-content">
         <h1 class="h4">Произошла ошибка</h1>
         <!-- UI-0.6: наружу отдаётся только код обращения, без технических деталей и ПДн -->
         <p>Сообщите администратору код обращения: <code th:text="${requestId}">—</code></p>

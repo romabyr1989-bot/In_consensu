@@ -4,11 +4,34 @@
 <head th:replace="~{ui/fragments/layout :: head('Типы согласий')}"></head>
 <body>
 <nav th:replace="~{ui/fragments/layout :: topbar}"></nav>
-<div class="cus-layout">
+<div class="ic-layout">
     <aside th:replace="~{ui/fragments/layout :: sidebar('types')}"></aside>
-    <main class="cus-content">
+    <main class="ic-content">
         <h1 class="h4 mb-3">Типы согласий</h1>
         <div th:replace="~{ui/fragments/layout :: flash}"></div>
+
+        <form class="row g-2 mb-3" th:action="@{/ui/catalog/types}" method="get">
+            <div class="col-md-3">
+                <label class="form-label" for="filter-category">Категория</label>
+                <select class="form-select" id="filter-category" name="category">
+                    <option value="">любая</option>
+                    <option th:each="value : ${categories}" th:value="${value}" th:text="${value.nameRu()}"
+                            th:selected="${value == selectedCategory}">Базовое</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="filter-active">Активность</label>
+                <select class="form-select" id="filter-active" name="active">
+                    <option value="">любая</option>
+                    <option value="true" th:selected="${selectedActive != null and selectedActive}">только активные</option>
+                    <option value="false" th:selected="${selectedActive != null and !selectedActive}">только выключенные</option>
+                </select>
+            </div>
+            <div class="col-md-3 align-self-end">
+                <button class="btn btn-primary" type="submit">Показать</button>
+                <a class="btn btn-link" th:href="@{/ui/catalog/types}">Сбросить фильтры</a>
+            </div>
+        </form>
 
         <div class="table-responsive mb-4">
             <table class="table bg-white align-middle">
@@ -112,6 +135,6 @@
         </div>
     </main>
 </div>
-<script th:src="@{/assets/js/cus.js}"></script>
+<script th:src="@{/assets/js/inconsensu.js}"></script>
 </body>
 </html>

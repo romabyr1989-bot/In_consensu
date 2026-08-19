@@ -5,24 +5,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <!-- UI-0.10: ФИО клиента в заголовок окна не выводится -->
-    <title th:text="${title} + ' · ЦУС'">ЦУС</title>
+    <title th:text="${title} + ' · In consensu'">In consensu</title>
     <meta name="_csrf" th:content="${_csrf != null} ? ${_csrf.token} : ''">
     <meta name="_csrf_header" th:content="${_csrf != null} ? ${_csrf.headerName} : ''">
     <link rel="stylesheet" th:href="@{/webjars/bootstrap/css/bootstrap.min.css}">
     <link rel="stylesheet" th:href="@{/webjars/bootstrap-icons/font/bootstrap-icons.css}">
-    <link rel="stylesheet" th:href="@{/assets/css/cus.css}">
+    <link rel="stylesheet" th:href="@{/assets/css/inconsensu.css}">
     <script th:src="@{/webjars/htmx.org/dist/htmx.min.js}" defer></script>
     <style th:inline="css">
-        :root { --cus-primary: [[${branding.color}]]; }
+        :root { --ic-primary: [[${branding.color}]]; }
     </style>
 </head>
 <body>
 
-<nav th:fragment="topbar" class="navbar navbar-expand cus-topbar px-3">
+<nav th:fragment="topbar" class="navbar navbar-expand ic-topbar px-3">
     <a class="navbar-brand d-flex align-items-center gap-2" th:href="@{/ui/}">
         <img th:if="${branding.logoUrl != null and !branding.logoUrl.isEmpty()}" th:src="${branding.logoUrl}"
              alt="" height="24">
-        <span>ЦУС · <span th:text="${branding.operatorName}">Центр управления согласиями</span></span>
+        <span>In consensu · <span th:text="${branding.operatorName}">Центр управления согласиями</span></span>
     </a>
     <form class="d-flex ms-4 flex-grow-1" style="max-width: 520px" th:action="@{/ui/subjects}" method="get"
           role="search">
@@ -41,7 +41,7 @@
     </div>
 </nav>
 
-<aside th:fragment="sidebar(active)" class="cus-sidebar">
+<aside th:fragment="sidebar(active)" class="ic-sidebar">
     <ul class="nav flex-column">
         <li class="nav-item">
             <a class="nav-link" th:href="@{/ui/}" th:classappend="${active == 'home'} ? 'active'">

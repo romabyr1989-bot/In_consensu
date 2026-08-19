@@ -1,7 +1,7 @@
 # Commands are kept here so that CI (GitHub Actions today, GitLab CI later) stays a thin wrapper (§11).
 SHELL := /bin/bash
 # MVN_ARGS позволяет CI дописать флаги, не переписывая команды: например версию Docker API,
-# которую поддерживает движок конкретного раннера (см. cus.docker.api-version в pom.xml).
+# которую поддерживает движок конкретного раннера (см. inconsensu.docker.api-version в pom.xml).
 MVN_ARGS ?=
 MVN   := ./mvnw -B -ntp $(MVN_ARGS)
 BASE_URL ?= http://localhost:8080
@@ -28,7 +28,7 @@ lint: ## Только статические проверки
 	$(MVN) spotless:check checkstyle:check
 
 openapi: ## Перегенерировать docs/openapi.yaml из кода
-	$(MVN) verify -Dcus.openapi.update=true
+	$(MVN) verify -Dinconsensu.openapi.update=true
 	@echo "docs/openapi.yaml обновлён — не забудьте закоммитить"
 
 run: ## Запустить приложение локально (профиль dev)
@@ -49,7 +49,7 @@ logs: ## Логи приложения
 	docker compose logs -f app
 
 psql: ## Консоль PostgreSQL
-	docker compose exec postgres psql -U cus -d cus
+	docker compose exec postgres psql -U inconsensu -d cus
 
 mail: ## Открыть Mailpit
 	@echo "http://localhost:8025"
@@ -58,7 +58,7 @@ demo: ## Сквозной сценарий §11 через curl
 	BASE_URL=$(BASE_URL) ./scripts/demo.sh
 
 docker-build: ## Собрать Docker-образ приложения (нужен BuildKit)
-	DOCKER_BUILDKIT=1 docker build -t cus:local .
+	DOCKER_BUILDKIT=1 docker build -t inconsensu:local .
 
 deps: ## Собрать артефакт для сканирования зависимостей (используется в CI)
 	$(MVN) -DskipTests -Dspotless.check.skip=true -Dcheckstyle.skip=true package

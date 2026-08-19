@@ -4,9 +4,9 @@
 <head th:replace="~{ui/fragments/layout :: head('Досье согласия')}"></head>
 <body>
 <nav th:replace="~{ui/fragments/layout :: topbar}"></nav>
-<div class="cus-layout">
+<div class="ic-layout">
     <aside th:replace="~{ui/fragments/layout :: sidebar('subjects')}"></aside>
-    <main class="cus-content">
+    <main class="ic-content">
         <nav aria-label="Хлебные крошки">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a th:href="@{/ui/}">Главная</a></li>
@@ -83,16 +83,16 @@
         <button class="btn btn-outline-danger" sec:authorize="hasAnyRole('MANAGER','DPO','ADMIN')"
                 th:if="${dossier.consent().status.name() == 'ACTIVE' or dossier.consent().status.name() == 'EXPIRING'}"
                 th:hx-get="@{/ui/consents/{id}/revocation-dialog(id=${dossier.consent().id})}"
-                hx-target="#cus-modal-content" hx-swap="innerHTML">Отозвать</button>
+                hx-target="#ic-modal-content" hx-swap="innerHTML">Отозвать</button>
 
-        <div class="modal fade" id="cus-modal" tabindex="-1" aria-hidden="true">
+        <div class="modal fade" id="ic-modal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-lg">
-                <div class="modal-content" id="cus-modal-content"></div>
+                <div class="modal-content" id="ic-modal-content"></div>
             </div>
         </div>
     </main>
 </div>
 <script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
-<script th:src="@{/assets/js/cus.js}"></script>
+<script th:src="@{/assets/js/inconsensu.js}"></script>
 </body>
 </html>

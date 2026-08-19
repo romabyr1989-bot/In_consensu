@@ -4,46 +4,46 @@
 <head th:replace="~{ui/fragments/layout :: head('Главная')}"></head>
 <body>
 <nav th:replace="~{ui/fragments/layout :: topbar}"></nav>
-<div class="cus-layout">
+<div class="ic-layout">
     <aside th:replace="~{ui/fragments/layout :: sidebar('home')}"></aside>
-    <main class="cus-content">
+    <main class="ic-content">
         <h1 class="h4 mb-4">Главная</h1>
 
         <div class="row g-3 mb-4">
             <div class="col-6 col-xl-3">
-                <a class="cus-tile" th:href="@{/ui/subjects}">
-                    <div class="cus-tile-value" th:text="${stats.activeConsents()}">0</div>
+                <a class="ic-tile" th:href="@{/ui/subjects}">
+                    <div class="ic-tile-value" th:text="${stats.activeConsents()}">0</div>
                     <div class="text-muted">Действующих согласий</div>
                 </a>
             </div>
             <div class="col-6 col-xl-3">
-                <a class="cus-tile" th:href="@{/ui/subjects(status='EXPIRING')}">
-                    <div class="cus-tile-value text-warning" th:text="${stats.expiringConsents()}">0</div>
+                <a class="ic-tile" th:href="@{/ui/subjects(status='EXPIRING')}">
+                    <div class="ic-tile-value text-warning" th:text="${stats.expiringConsents()}">0</div>
                     <div class="text-muted">Истекают за 30 дней</div>
                 </a>
             </div>
             <div class="col-6 col-xl-3">
-                <a class="cus-tile" th:href="@{/ui/subjects(status='REVOKED')}">
-                    <div class="cus-tile-value text-danger" th:text="${stats.revokedConsents()}">0</div>
+                <a class="ic-tile" th:href="@{/ui/subjects(status='REVOKED')}">
+                    <div class="ic-tile-value text-danger" th:text="${stats.revokedConsents()}">0</div>
                     <div class="text-muted">Отозвано за 30 дней</div>
                 </a>
             </div>
             <div class="col-6 col-xl-3">
-                <a class="cus-tile" th:href="@{/ui/catalog/forms(status='ON_REVIEW')}">
-                    <div class="cus-tile-value" th:text="${stats.awaitingApproval()}">0</div>
+                <a class="ic-tile" th:href="@{/ui/catalog/forms(status='ON_REVIEW')}">
+                    <div class="ic-tile-value" th:text="${stats.awaitingApproval()}">0</div>
                     <div class="text-muted" sec:authorize="hasAnyRole('LAWYER','DPO')">Ждут вашего решения</div>
                     <div class="text-muted" sec:authorize="!hasAnyRole('LAWYER','DPO')">Форм на согласовании</div>
                 </a>
             </div>
             <div class="col-6 col-xl-3">
-                <a class="cus-tile" th:href="@{/ui/third-parties}">
-                    <div class="cus-tile-value" th:text="${stats.expiringContracts()}">0</div>
+                <a class="ic-tile" th:href="@{/ui/third-parties}">
+                    <div class="ic-tile-value" th:text="${stats.expiringContracts()}">0</div>
                     <div class="text-muted">Договоров истекает за 30 дней</div>
                 </a>
             </div>
             <div class="col-6 col-xl-3">
-                <a class="cus-tile" th:href="@{/ui/catalog/forms(status='PUBLISHED')}">
-                    <div class="cus-tile-value" th:text="${stats.publishedForms()}">0</div>
+                <a class="ic-tile" th:href="@{/ui/catalog/forms(status='PUBLISHED')}">
+                    <div class="ic-tile-value" th:text="${stats.publishedForms()}">0</div>
                     <div class="text-muted">Опубликованных форм</div>
                 </a>
             </div>
@@ -63,7 +63,7 @@
                             <tbody>
                             <tr th:each="notification : ${recentNotifications}">
                                 <td th:text="${notification.recipient}">dpo@example.ru</td>
-                                <td th:text="${notification.subjectLine}">ЦУС: заканчивается срок согласия</td>
+                                <td th:text="${notification.subjectLine}">In consensu: заканчивается срок согласия</td>
                                 <td th:text="${notification.status.nameRu()}">отправлено</td>
                             </tr>
                             </tbody>

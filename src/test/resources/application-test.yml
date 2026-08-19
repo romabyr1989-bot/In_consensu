@@ -13,7 +13,7 @@ management:
     health:
       show-details: always
 
-cus:
+inconsensu:
   jobs:
     # Фоновая доставка не должна опережать сценарий теста: события отправляются явным вызовом.
     outbox:

@@ -3,9 +3,9 @@
 <head th:replace="~{ui/fragments/layout :: head('Недостаточно прав')}"></head>
 <body>
 <nav th:replace="~{ui/fragments/layout :: topbar}"></nav>
-<div class="cus-layout">
+<div class="ic-layout">
     <aside th:replace="~{ui/fragments/layout :: sidebar('')}"></aside>
-    <main class="cus-content">
+    <main class="ic-content">
         <h1 class="h4">Недостаточно прав</h1>
         <p>У вашей роли нет доступа к этому разделу. Обратитесь к администратору.</p>
         <a class="btn btn-primary" th:href="@{/ui/}">На главную</a>

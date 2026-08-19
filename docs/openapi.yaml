@@ -6,7 +6,7 @@ info:
     х. Идентификаторы — на английском, пользовательские тексты — на русском (NFR-8)."
   license:
     name: Proprietary
-  title: ЦУС — Центр управления согласиями
+  title: In consensu — центр управления согласиями
   version: v1
 servers:
 - description: Текущий хост
@@ -327,6 +327,22 @@ paths:
     get:
       operationId: list_7
       parameters:
+      - in: query
+        name: category
+        required: false
+        schema:
+          type: string
+          enum:
+          - PROCESSING
+          - ADVERTISING
+          - TRANSFER
+          - DISTRIBUTION
+          - OTHER
+      - in: query
+        name: active
+        required: false
+        schema:
+          type: boolean
       - in: query
         name: pageable
         required: true
@@ -658,6 +674,49 @@ paths:
       operationId: list_5
       parameters:
       - in: query
+        name: status
+        required: false
+        schema:
+          type: string
+          enum:
+          - DRAFT
+          - ON_REVIEW
+          - APPROVED
+          - PUBLISHED
+          - ARCHIVED
+      - in: query
+        name: source
+        required: false
+        schema:
+          type: string
+          enum:
+          - CLIENT_BASE_IMPORT
+          - CONTRACT
+          - SUPPLEMENTARY_AGREEMENT
+          - PERSONAL_ACCOUNT_REGISTRATION
+          - WEBSITE_APPLICATION
+          - LOYALTY_PROGRAM
+          - MOBILE_APP
+          - CALL_CENTER
+          - OFFICE
+          - OTHER
+      - in: query
+        name: consentTypeCode
+        required: false
+        schema:
+          type: string
+      - in: query
+        name: thirdPartyId
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: text
+        required: false
+        schema:
+          type: string
+      - in: query
         name: pageable
         required: true
         schema:
@@ -844,7 +903,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/ApprovalResponse"
+                  $ref: "#/components/schemas/HistoryResponse"
           description: OK
       tags:
       - consent-form-controller
@@ -1085,8 +1144,8 @@ paths:
       - import-controller
   /api/v1/maintenance/contacts/reencrypt:
     post:
-      description: Первичное шифрование при включении cus.crypto.enabled и ротация
-        ключа (NFR-3)
+      description: Первичное шифрование при включении inconsensu.crypto.enabled и
+        ротация ключа (NFR-3)
       operationId: reencrypt
       responses:
         "200":
@@ -2023,21 +2082,6 @@ paths:
       - webhook-controller
 components:
   schemas:
-    ApprovalResponse:
-      type: object
-      properties:
-        comment:
-          type: string
-        decidedAt:
-          type: string
-        decision:
-          type: string
-        decisionRu:
-          type: string
-        roleRequired:
-          type: string
-        userLogin:
-          type: string
     AuditEventResponse:
       type: object
       properties:
@@ -2681,6 +2725,28 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Finding"
+    HistoryResponse:
+      type: object
+      properties:
+        actor:
+          type: string
+        at:
+          type: string
+          format: date-time
+        comment:
+          type: string
+        decision:
+          type: string
+        eventType:
+          type: string
+        eventTypeRu:
+          type: string
+        fromStatus:
+          type: string
+        role:
+          type: string
+        toStatus:
+          type: string
     ImportJobResponse:
       type: object
       properties:

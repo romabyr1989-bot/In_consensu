@@ -14,23 +14,23 @@ COPY src/ src/
 # Tests, formatting and coverage run in CI (./mvnw verify); the image build only packages.
 RUN --mount=type=cache,target=/root/.m2 \
     ./mvnw -B -ntp -DskipTests -Dspotless.check.skip=true -Dcheckstyle.skip=true -Djacoco.skip=true package \
-    && cp target/cus.jar /workspace/app.jar
+    && cp target/inconsensu.jar /workspace/app.jar
 
 FROM eclipse-temurin:21-jre AS runtime
 
 RUN apt-get update \
     && apt-get install --no-install-recommends -y curl tzdata \
     && rm -rf /var/lib/apt/lists/* \
-    && groupadd --system cus \
-    && useradd --system --gid cus --create-home --home-dir /app cus
+    && groupadd --system inconsensu \
+    && useradd --system --gid inconsensu --create-home --home-dir /app inconsensu
 
 WORKDIR /app
-COPY --from=build --chown=cus:cus /workspace/app.jar /app/app.jar
+COPY --from=build --chown=inconsensu:inconsensu /workspace/app.jar /app/app.jar
 
-USER cus
+USER inconsensu
 EXPOSE 8080
 
-# §8.7: the JVM works in UTC, business dates are converted using cus.timezone.
+# §8.7: the JVM works in UTC, business dates are converted using inconsensu.timezone.
 ENV JAVA_OPTS="-XX:MaxRAMPercentage=75.0 -Duser.timezone=UTC -Dfile.encoding=UTF-8"
 
 HEALTHCHECK --interval=10s --timeout=3s --start-period=60s --retries=12 \

@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 #
-# Сквозной демонстрационный сценарий ЦУС (§11 ТЗ).
+# Сквозной демонстрационный сценарий In consensu (§11 ТЗ).
 #
 # Скрипт покрывает все этапы §13: сквозной сценарий §11 (канал разрешён -> отзыв -> канал запрещён ->
 # событие в outbox -> письмо), веб-интерфейс §16 и эксплуатационные возможности этапа 8.
 #
-# Нужен профиль demo: CUS_PROFILES=demo docker compose up -d
+# Нужен профиль demo: INCONSENSU_PROFILES=demo docker compose up -d
 # Использование:  BASE_URL=http://localhost:8080 ./scripts/demo.sh
 
 set -euo pipefail
@@ -94,8 +94,8 @@ fi
 
 step "Проверка формата ошибок (RFC 9457 ProblemDetail)"
 PROBLEM="$(curl --silent "${BASE_URL}/api/v1/does-not-exist")"
-if grep -q 'urn:cus:error:' <<<"$PROBLEM"; then
-  ok "ошибки в формате ProblemDetail с type=urn:cus:error:*"
+if grep -q 'urn:inconsensu:error:' <<<"$PROBLEM"; then
+  ok "ошибки в формате ProblemDetail с type=urn:inconsensu:error:*"
 else
   fail "неожиданный ответ: ${PROBLEM}"
 fi
@@ -119,7 +119,7 @@ TOKEN="$(curl --fail --silent -X POST "${BASE_URL}/api/v1/auth/login" \
 if [ -n "$TOKEN" ]; then
   ok "получен токен для пользователя ${DEMO_LOGIN}"
 else
-  fail "не удалось войти: запустите с профилем demo (CUS_PROFILES=demo docker compose up -d)"
+  fail "не удалось войти: запустите с профилем demo (INCONSENSU_PROFILES=demo docker compose up -d)"
   exit 1
 fi
 AUTH="Authorization: Bearer ${TOKEN}"

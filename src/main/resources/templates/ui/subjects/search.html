@@ -3,9 +3,9 @@
 <head th:replace="~{ui/fragments/layout :: head('Клиенты')}"></head>
 <body>
 <nav th:replace="~{ui/fragments/layout :: topbar}"></nav>
-<div class="cus-layout">
+<div class="ic-layout">
     <aside th:replace="~{ui/fragments/layout :: sidebar('subjects')}"></aside>
-    <main class="cus-content">
+    <main class="ic-content">
         <h1 class="h4 mb-3">Клиенты</h1>
 
         <form class="row g-2 mb-4" th:action="@{/ui/subjects}" method="get">

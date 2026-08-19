@@ -4,14 +4,25 @@
 <head th:replace="~{ui/fragments/layout :: head('Формы согласий')}"></head>
 <body>
 <nav th:replace="~{ui/fragments/layout :: topbar}"></nav>
-<div class="cus-layout">
+<div class="ic-layout">
     <aside th:replace="~{ui/fragments/layout :: sidebar('forms')}"></aside>
-    <main class="cus-content">
+    <main class="ic-content">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h1 class="h4 mb-0">Формы согласий</h1>
             <a class="btn btn-outline-secondary btn-sm" th:href="@{/api/v1/catalog/export(format='csv')}">Экспорт каталога</a>
         </div>
         <div th:replace="~{ui/fragments/layout :: flash}"></div>
+
+        <form class="row g-2 mb-3" th:action="@{/ui/catalog/forms}" method="get">
+            <div class="col-md-4">
+                <label class="form-label" for="text">Поиск по коду, названию и тексту</label>
+                <input class="form-control" id="text" name="text" th:value="${text}">
+            </div>
+            <div class="col-md-3 align-self-end">
+                <button class="btn btn-primary" type="submit">Найти</button>
+                <a class="btn btn-link" th:href="@{/ui/catalog/forms}">Сбросить фильтры</a>
+            </div>
+        </form>
 
         <div class="mb-3">
             <a class="btn btn-sm" th:classappend="${status == null} ? 'btn-primary' : 'btn-outline-primary'"
@@ -89,6 +100,6 @@
         </div>
     </main>
 </div>
-<script th:src="@{/assets/js/cus.js}"></script>
+<script th:src="@{/assets/js/inconsensu.js}"></script>
 </body>
 </html>

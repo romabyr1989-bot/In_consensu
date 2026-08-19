@@ -29,7 +29,7 @@ CREATE TABLE webhook_subscription (
     id          UUID         NOT NULL,
     name        VARCHAR(255) NOT NULL,
     url         VARCHAR(1024) NOT NULL,
-    -- Секрет подписи HMAC. Шифрование на уровне приложения — этап 8 (NFR-3, флаг cus.crypto.enabled)
+    -- Секрет подписи HMAC. Шифрование на уровне приложения — этап 8 (NFR-3, флаг inconsensu.crypto.enabled)
     secret      VARCHAR(255) NOT NULL,
     event_types TEXT[]       NOT NULL DEFAULT '{}',
     headers     JSONB        NOT NULL DEFAULT '{}'::jsonb,

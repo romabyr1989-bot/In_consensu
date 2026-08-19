@@ -12,10 +12,10 @@
     </parent>
 
     <groupId>ru.example</groupId>
-    <artifactId>cus</artifactId>
+    <artifactId>inconsensu</artifactId>
     <version>0.1.0-SNAPSHOT</version>
-    <name>cus</name>
-    <description>CUS - Consent Management Center (Центр управления согласиями)</description>
+    <name>In consensu</name>
+    <description>In consensu - центр управления согласиями (Consent Management Center)</description>
 
     <properties>
         <java.version>21</java.version>
@@ -45,12 +45,12 @@
         <jacoco.coverage.minimum>0.80</jacoco.coverage.minimum>
 
         <!-- Set to true to rewrite docs/openapi.yaml from the running application (§11) -->
-        <cus.openapi.update>false</cus.openapi.update>
+        <inconsensu.openapi.update>false</inconsensu.openapi.update>
 
         <!-- Docker Engine API version used by Testcontainers. The docker-java default (1.32) is
              rejected by Docker Engine 29+, which requires at least 1.44. Lower it for an older
-             engine or for Podman: ./mvnw verify -Dcus.docker.api-version=1.41 -->
-        <cus.docker.api-version>1.44</cus.docker.api-version>
+             engine or for Podman: ./mvnw verify -Dinconsensu.docker.api-version=1.41 -->
+        <inconsensu.docker.api-version>1.44</inconsensu.docker.api-version>
     </properties>
 
     <dependencies>
@@ -350,10 +350,10 @@
                         <include>**/*ITCase.java</include>
                     </includes>
                     <systemPropertyVariables>
-                        <!-- ./mvnw verify -Dcus.openapi.update=true regenerates docs/openapi.yaml (§11) -->
-                        <cus.openapi.update>${cus.openapi.update}</cus.openapi.update>
-                        <!-- Read by docker-java inside Testcontainers, see cus.docker.api-version above -->
-                        <api.version>${cus.docker.api-version}</api.version>
+                        <!-- ./mvnw verify -Dinconsensu.openapi.update=true regenerates docs/openapi.yaml (§11) -->
+                        <inconsensu.openapi.update>${inconsensu.openapi.update}</inconsensu.openapi.update>
+                        <!-- Read by docker-java inside Testcontainers, see inconsensu.docker.api-version above -->
+                        <api.version>${inconsensu.docker.api-version}</api.version>
                     </systemPropertyVariables>
                 </configuration>
                 <executions>
@@ -395,8 +395,8 @@
                         <configuration>
                             <haltOnFailure>true</haltOnFailure>
                             <includes>
-                                <include>ru/example/cus/**/domain/**</include>
-                                <include>ru/example/cus/**/application/**</include>
+                                <include>ru/example/inconsensu/**/domain/**</include>
+                                <include>ru/example/inconsensu/**/application/**</include>
                             </includes>
                             <rules>
                                 <rule>

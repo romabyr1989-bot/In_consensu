@@ -3,9 +3,9 @@
 <head th:replace="~{ui/fragments/layout :: head('Конструктор формы')}"></head>
 <body>
 <nav th:replace="~{ui/fragments/layout :: topbar}"></nav>
-<div class="cus-layout">
+<div class="ic-layout">
     <aside th:replace="~{ui/fragments/layout :: sidebar('forms')}"></aside>
-    <main class="cus-content">
+    <main class="ic-content">
         <h1 class="h4 mb-3">
             Конструктор формы
             <small class="text-muted" th:text="${form.form().code} + ' · версия ' + ${form.form().versionNumber}">CODE · версия 1</small>
@@ -62,7 +62,7 @@
                             <button class="btn btn-sm btn-outline-primary" type="button" onclick="cusAddItem()">Добавить пункт</button>
                         </div>
                         <div class="card-body" id="items">
-                            <fieldset class="border rounded p-3 mb-3 cus-item"
+                            <fieldset class="border rounded p-3 mb-3 ic-item"
                                       th:each="item, iter : ${form.form().items}">
                                 <legend class="h6">Пункт <span th:text="${iter.index + 1}">1</span></legend>
                                 <div class="row g-2">
@@ -144,13 +144,13 @@
     </main>
 </div>
 <script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
-<script th:src="@{/assets/js/cus.js}"></script>
+<script th:src="@{/assets/js/inconsensu.js}"></script>
 <script th:inline="javascript">
     // Новый пункт добавляется копией разметки: без сборщика и без шаблонизатора на клиенте (UI-0.2).
     function cusAddItem() {
         var container = document.getElementById('items');
-        var index = container.querySelectorAll('.cus-item').length;
-        var first = container.querySelector('.cus-item');
+        var index = container.querySelectorAll('.ic-item').length;
+        var first = container.querySelector('.ic-item');
         if (!first) {
             return;
         }

@@ -22,7 +22,7 @@ CREATE TABLE partner_export_log (
 CREATE INDEX partner_export_log_third_party_idx ON partner_export_log (third_party_id, requested_at DESC);
 CREATE INDEX partner_export_log_expires_idx ON partner_export_log (expires_at);
 
-COMMENT ON COLUMN partner_export_log.content IS 'Тело выгрузки; удаляется по истечении cus.export.ttl (FR-7.4)';
+COMMENT ON COLUMN partner_export_log.content IS 'Тело выгрузки; удаляется по истечении inconsensu.export.ttl (FR-7.4)';
 
 CREATE TRIGGER partner_export_log_append_only
     BEFORE DELETE ON partner_export_log

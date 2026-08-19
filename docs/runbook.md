@@ -1,4 +1,4 @@
-# Runbook: эксплуатация ЦУС
+# Runbook: эксплуатация In consensu
 
 Документ для дежурного и администратора: что проверять, как восстанавливать и как выполнять регламентные
 операции. Требования: NFR-2, NFR-3, NFR-5, NFR-6.
@@ -32,7 +32,7 @@
 ### Не уходят письма
 
 1. `POST /api/v1/notifications/test-email` — тестовое письмо на свой адрес; ответ содержит причину отказа.
-2. Проверьте `CUS_SMTP_HOST`, `CUS_SMTP_PORT`, учётные данные и сетевой доступ.
+2. Проверьте `INCONSENSU_SMTP_HOST`, `INCONSENSU_SMTP_PORT`, учётные данные и сетевой доступ.
 3. После починки: экран «Уведомления» → «Повторить» у записей со статусом «не отправлено».
 
 ### Планировщик простоял (сбой, регламентные работы)
@@ -54,7 +54,7 @@
 
 ```bash
 # снимок
-pg_dump --format=custom --file=cus-$(date +%F).dump "$CUS_DB_URL"
+pg_dump --format=custom --file=cus-$(date +%F).dump "$INCONSENSU_DB_URL"
 
 # восстановление в чистую базу
 createdb cus && pg_restore --dbname=cus --no-owner cus-2026-08-19.dump
@@ -65,10 +65,10 @@ createdb cus && pg_restore --dbname=cus --no-owner cus-2026-08-19.dump
 1. Поднимите приложение — Flyway проверит совпадение схемы (`ddl-auto=validate`, миграции неизменяемы).
 2. Запустите проверку целостности журнала (см. выше): она подтверждает, что цепочки хешей не пострадали.
 3. Проверьте `cus_outbox_queue`: события, не доставленные до момента снимка, уйдут повторно — потребители
-   обязаны быть идемпотентными по `X-Cus-Delivery-Id` (`docs/webhooks.md`).
+   обязаны быть идемпотентными по `X-InConsensu-Delivery-Id` (`docs/webhooks.md`).
 
 **Важно про ключ шифрования.** Если включён `cus.crypto.enabled`, дамп базы бесполезен без ключа
-`CUS_CRYPTO_KEY`: контакты в нём зашифрованы. Ключ хранится в хранилище секретов и резервируется отдельно
+`INCONSENSU_CRYPTO_KEY`: контакты в нём зашифрованы. Ключ хранится в хранилище секретов и резервируется отдельно
 от базы — иначе утечка одного носителя раскрывает и данные, и ключ.
 
 ## 4. Шифрование контактов: включение и ротация ключа
@@ -80,8 +80,8 @@ createdb cus && pg_restore --dbname=cus --no-owner cus-2026-08-19.dump
 openssl rand -base64 32
 
 # 2. Задать переменные окружения и перезапустить экземпляры
-CUS_CRYPTO_ENABLED=true
-CUS_CRYPTO_KEY=<ключ>
+INCONSENSU_CRYPTO_ENABLED=true
+INCONSENSU_CRYPTO_KEY=<ключ>
 
 # 3. Перешифровать уже накопленные контакты
 curl -X POST -H "Authorization: Bearer $ADMIN_TOKEN" \
@@ -94,15 +94,15 @@ curl -X POST -H "Authorization: Bearer $ADMIN_TOKEN" \
 ### Ротация ключа
 
 ```bash
-CUS_CRYPTO_PREVIOUS_KEY=<старый ключ>
-CUS_CRYPTO_KEY=<новый ключ>
+INCONSENSU_CRYPTO_PREVIOUS_KEY=<старый ключ>
+INCONSENSU_CRYPTO_KEY=<новый ключ>
 # перезапуск, затем
 curl -X POST -H "Authorization: Bearer $ADMIN_TOKEN" \
   https://cus.example.ru/api/v1/maintenance/contacts/reencrypt
 ```
 
 Пока идёт перешифрование, часть записей ещё зашифрована старым ключом — поэтому он и остаётся в
-`CUS_CRYPTO_PREVIOUS_KEY`. После успешного прогона переменную нужно убрать и перезапустить экземпляры:
+`INCONSENSU_CRYPTO_PREVIOUS_KEY`. После успешного прогона переменную нужно убрать и перезапустить экземпляры:
 старый ключ больше не должен быть доступен процессу.
 
 Проверка результата:
@@ -147,7 +147,7 @@ insert into audit_event_archive select e.*, now() from audit_event e where e.occ
 | Обновление версии | `docker compose pull && docker compose up -d` | Flyway применит новые миграции при старте |
 | Плановая остановка | `docker compose stop app` | `server.shutdown=graceful`, запросы дорабатываются |
 | Масштабирование | увеличить число реплик | приложение stateless; фоновые задачи защищены ShedLock (NFR-2) |
-| Смена секрета JWT | `CUS_JWT_SECRET` + перезапуск | все выданные токены станут недействительными, пользователи войдут заново |
+| Смена секрета JWT | `INCONSENSU_JWT_SECRET` + перезапуск | все выданные токены станут недействительными, пользователи войдут заново |
 | Смена секрета подписки | экран «Webhooks» → «Новый секрет» | секрет показывается один раз, сообщите его потребителю до отключения старого |
 
 ## 7. Чего в системе намеренно нет

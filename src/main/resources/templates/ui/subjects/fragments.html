@@ -33,7 +33,7 @@
             <button class="btn btn-outline-danger" type="button"
                     sec:authorize="hasAnyRole('MANAGER','DPO','ADMIN')"
                     th:hx-get="@{/ui/subjects/{id}/revocation-dialog(id=${card.subject.id})}"
-                    hx-target="#cus-modal-content" hx-swap="innerHTML">Отозвать согласие</button>
+                    hx-target="#ic-modal-content" hx-swap="innerHTML">Отозвать согласие</button>
         </div>
     </div>
 
@@ -74,9 +74,9 @@
 <section th:fragment="channels" id="card-channels">
     <div class="row g-2">
         <div class="col-6 col-md-4 col-xl-2" th:each="tile : ${card.channels}">
-            <div class="cus-channel" th:classappend="${tile.allowed} ? 'allowed' : 'denied'"
+            <div class="ic-channel" th:classappend="${tile.allowed} ? 'allowed' : 'denied'"
                  th:aria-label="${tile.nameRu} + ': ' + (${tile.allowed} ? 'можно' : 'нельзя')">
-                <div class="cus-channel-name" th:text="${tile.nameRu}">Телефонный звонок</div>
+                <div class="ic-channel-name" th:text="${tile.nameRu}">Телефонный звонок</div>
                 <div th:if="${tile.allowed}">
                     <span class="badge bg-success">можно</span>
                     <div class="small text-muted" th:text="${tile.validUntil}">бессрочно / до отзыва</div>
@@ -128,7 +128,7 @@
                 <button class="btn btn-sm btn-outline-danger" th:if="${row.revocable}"
                         sec:authorize="hasAnyRole('MANAGER','DPO','ADMIN')"
                         th:hx-get="@{/ui/consents/{id}/revocation-dialog(id=${row.view.consent.id})}"
-                        hx-target="#cus-modal-content" hx-swap="innerHTML">Отозвать</button>
+                        hx-target="#ic-modal-content" hx-swap="innerHTML">Отозвать</button>
             </td>
         </tr>
         </tbody>

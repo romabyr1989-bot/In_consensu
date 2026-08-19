@@ -34,7 +34,7 @@ jobs:
         run: |
           API_VERSION="$(docker version --format '{{.Server.APIVersion}}')"
           echo "Docker Engine API: ${API_VERSION}"
-          make verify MVN_ARGS="-Dcus.docker.api-version=${API_VERSION}"
+          make verify MVN_ARGS="-Dinconsensu.docker.api-version=${API_VERSION}"
 
       - name: Отчёты тестов и покрытия
         if: always()
@@ -89,6 +89,6 @@ jobs:
         with:
           context: .
           push: false
-          tags: cus:ci
+          tags: inconsensu:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max

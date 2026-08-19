@@ -9,4 +9,4 @@ ALTER TABLE subject_contact ADD COLUMN search_hmac VARCHAR(64);
 CREATE INDEX subject_contact_search_hmac_idx ON subject_contact (type, search_hmac)
     WHERE search_hmac IS NOT NULL;
 
-COMMENT ON COLUMN subject_contact.search_hmac IS 'HMAC-SHA256 нормализованного значения для поиска при cus.crypto.enabled (NFR-3)';
+COMMENT ON COLUMN subject_contact.search_hmac IS 'HMAC-SHA256 нормализованного значения для поиска при inconsensu.crypto.enabled (NFR-3)';

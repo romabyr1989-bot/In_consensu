@@ -4,9 +4,9 @@
 <head th:replace="~{ui/fragments/layout :: head('Версия формы')}"></head>
 <body>
 <nav th:replace="~{ui/fragments/layout :: topbar}"></nav>
-<div class="cus-layout">
+<div class="ic-layout">
     <aside th:replace="~{ui/fragments/layout :: sidebar('forms')}"></aside>
-    <main class="cus-content">
+    <main class="ic-content">
         <div th:replace="~{ui/fragments/layout :: flash}"></div>
         <h1 class="h4 mb-1" th:text="${form.form().title}">Согласие на обработку ПДн</h1>
         <p class="text-muted">
@@ -70,6 +70,6 @@
         </div>
     </main>
 </div>
-<script th:src="@{/assets/js/cus.js}"></script>
+<script th:src="@{/assets/js/inconsensu.js}"></script>
 </body>
 </html>

@@ -3,9 +3,9 @@
 <head th:replace="~{ui/fragments/layout :: head('Пользователи')}"></head>
 <body>
 <nav th:replace="~{ui/fragments/layout :: topbar}"></nav>
-<div class="cus-layout">
+<div class="ic-layout">
     <aside th:replace="~{ui/fragments/layout :: sidebar('users')}"></aside>
-    <main class="cus-content">
+    <main class="ic-content">
         <h1 class="h4 mb-3">Пользователи</h1>
         <div th:replace="~{ui/fragments/layout :: flash}"></div>
 
@@ -88,6 +88,6 @@
         </div>
     </main>
 </div>
-<script th:src="@{/assets/js/cus.js}"></script>
+<script th:src="@{/assets/js/inconsensu.js}"></script>
 </body>
 </html>

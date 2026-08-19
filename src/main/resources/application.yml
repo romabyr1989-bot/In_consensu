@@ -1,14 +1,14 @@
 spring:
   application:
-    name: cus
+    name: inconsensu
   datasource:
-    url: ${CUS_DB_URL:jdbc:postgresql://localhost:5432/cus}
-    username: ${CUS_DB_USER:cus}
+    url: ${INCONSENSU_DB_URL:jdbc:postgresql://localhost:5432/inconsensu}
+    username: ${INCONSENSU_DB_USER:inconsensu}
     # NFR-3: secrets come from the environment; the fallback exists only for a local dev database.
-    password: ${CUS_DB_PASSWORD:cus}
+    password: ${INCONSENSU_DB_PASSWORD:inconsensu}
     hikari:
-      maximum-pool-size: ${CUS_DB_POOL_SIZE:10}
-      pool-name: cus-pool
+      maximum-pool-size: ${INCONSENSU_DB_POOL_SIZE:10}
+      pool-name: inconsensu-pool
   jpa:
     open-in-view: false
     hibernate:
@@ -24,12 +24,12 @@ spring:
     placeholders:
       # FR-10.2: имя роли, под которой приложение ходит в БД. Если задано и отличается от роли миграций,
       # у неё отзываются права UPDATE и DELETE на журналы. Пусто — журналы защищены только триггером.
-      appRole: ${CUS_DB_APP_ROLE:}
+      appRole: ${INCONSENSU_DB_APP_ROLE:}
   servlet:
     multipart:
       # FR-4.5: лимит размера файла импорта настраивается
-      max-file-size: ${CUS_IMPORT_MAX_FILE_SIZE:64MB}
-      max-request-size: ${CUS_IMPORT_MAX_FILE_SIZE:64MB}
+      max-file-size: ${INCONSENSU_IMPORT_MAX_FILE_SIZE:64MB}
+      max-request-size: ${INCONSENSU_IMPORT_MAX_FILE_SIZE:64MB}
   jackson:
     # No global null exclusion on purpose: the card contract of Приложение A carries explicit
     # "validUntil": null ("бессрочно"), so nulls are hidden per DTO with @JsonInclude, never globally.
@@ -39,13 +39,13 @@ spring:
   mail:
     # FR-9.2: почтовый транспорт. Без указанного хоста JavaMailSender не создаётся, и уведомления
     # остаются в очереди со статусом «не отправлено» — приложение при этом стартует и работает.
-    host: ${CUS_SMTP_HOST:localhost}
-    port: ${CUS_SMTP_PORT:1025}
-    username: ${CUS_SMTP_USER:}
-    password: ${CUS_SMTP_PASSWORD:}
+    host: ${INCONSENSU_SMTP_HOST:localhost}
+    port: ${INCONSENSU_SMTP_PORT:1025}
+    username: ${INCONSENSU_SMTP_USER:}
+    password: ${INCONSENSU_SMTP_PASSWORD:}
     properties:
-      mail.smtp.auth: ${CUS_SMTP_AUTH:false}
-      mail.smtp.starttls.enable: ${CUS_SMTP_STARTTLS:false}
+      mail.smtp.auth: ${INCONSENSU_SMTP_AUTH:false}
+      mail.smtp.starttls.enable: ${INCONSENSU_SMTP_STARTTLS:false}
       mail.smtp.connectiontimeout: 5000
       mail.smtp.timeout: 10000
       mail.smtp.writetimeout: 10000
@@ -56,7 +56,7 @@ spring:
       enabled: false
 
 server:
-  port: ${CUS_PORT:8080}
+  port: ${INCONSENSU_PORT:8080}
   shutdown: graceful
   forward-headers-strategy: framework
   error:
@@ -105,36 +105,36 @@ logging:
       console: logstash
   level:
     root: INFO
-    ru.example.cus: INFO
+    ru.example.inconsensu: INFO
 
-cus:
+inconsensu:
   # §6, §8.7: business dates and calendar arithmetic use the operator timezone.
-  timezone: ${CUS_TIMEZONE:Europe/Moscow}
+  timezone: ${INCONSENSU_TIMEZONE:Europe/Moscow}
   notifications:
     # Абсолютный адрес установки: из него собираются ссылки в письмах (FR-9.2).
-    base-url: ${CUS_BASE_URL:http://localhost:8080}
-    batch-size: ${CUS_OUTBOX_BATCH_SIZE:50}
+    base-url: ${INCONSENSU_BASE_URL:http://localhost:8080}
+    batch-size: ${INCONSENSU_OUTBOX_BATCH_SIZE:50}
     mail:
-      from: ${CUS_MAIL_FROM:cus@example.ru}
-      enabled: ${CUS_MAIL_ENABLED:true}
+      from: ${INCONSENSU_MAIL_FROM:noreply@example.ru}
+      enabled: ${INCONSENSU_MAIL_ENABLED:true}
     webhook:
-      connect-timeout: ${CUS_WEBHOOK_CONNECT_TIMEOUT:PT5S}
-      read-timeout: ${CUS_WEBHOOK_READ_TIMEOUT:PT10S}
-      signature-header: X-Cus-Signature
+      connect-timeout: ${INCONSENSU_WEBHOOK_CONNECT_TIMEOUT:PT5S}
+      read-timeout: ${INCONSENSU_WEBHOOK_READ_TIMEOUT:PT10S}
+      signature-header: X-InConsensu-Signature
       # NFR-4: список разрешённых хостов подписок. Пусто — без ограничений (только для разработки);
       # запись вида «.example.ru» разрешает поддомены.
-      allowed-hosts: ${CUS_WEBHOOK_ALLOWED_HOSTS:}
-      require-https: ${CUS_WEBHOOK_REQUIRE_HTTPS:false}
+      allowed-hosts: ${INCONSENSU_WEBHOOK_ALLOWED_HOSTS:}
+      require-https: ${INCONSENSU_WEBHOOK_REQUIRE_HTTPS:false}
   metrics:
     # NFR-6: бизнес-счётчики снимаются по расписанию, а не на каждый скрейп Prometheus.
-    refresh: ${CUS_METRICS_REFRESH:PT1M}
+    refresh: ${INCONSENSU_METRICS_REFRESH:PT1M}
   jobs:
     notification:
       # FR-9.1: ежедневный отбор согласий на переподписание.
-      cron: ${CUS_NOTIFICATION_CRON:0 0 6 * * *}
+      cron: ${INCONSENSU_NOTIFICATION_CRON:0 0 6 * * *}
     notification-dispatch:
-      delay: ${CUS_NOTIFICATION_DISPATCH_DELAY:PT1M}
-      initial-delay: ${CUS_NOTIFICATION_DISPATCH_INITIAL_DELAY:PT1M}
+      delay: ${INCONSENSU_NOTIFICATION_DISPATCH_DELAY:PT1M}
+      initial-delay: ${INCONSENSU_NOTIFICATION_DISPATCH_INITIAL_DELAY:PT1M}
     outbox:
-      delay: ${CUS_OUTBOX_DELAY:PT30S}
-      initial-delay: ${CUS_OUTBOX_INITIAL_DELAY:PT30S}
+      delay: ${INCONSENSU_OUTBOX_DELAY:PT30S}
+      initial-delay: ${INCONSENSU_OUTBOX_INITIAL_DELAY:PT30S}

@@ -1,4 +1,4 @@
-# Webhooks: подписка на события ЦУС
+# Webhooks: подписка на события In consensu
 
 Документ для разработчиков систем-потребителей: CRM, колл-центра, маркетинговой платформы. Описывает,
 как подписаться на события, как проверить подпись и что делать с повторами.
@@ -39,7 +39,7 @@ curl -X POST https://cus.example.ru/api/v1/webhooks \
 }
 ```
 
-Пустой список `eventTypes` означает «все события»: подписка не сломается, когда в ЦУС появится новый тип.
+Пустой список `eventTypes` означает «все события»: подписка не сломается, когда в In consensu появится новый тип.
 Управление подписками доступно ролям ADMIN и INTEGRATION.
 
 ## Формат запроса
@@ -48,9 +48,9 @@ curl -X POST https://cus.example.ru/api/v1/webhooks \
 
 | Заголовок | Значение |
 |---|---|
-| `X-Cus-Event` | тип события, например `consent.revoked` |
-| `X-Cus-Delivery-Id` | идентификатор доставки; **не меняется между повторами** — по нему выполняется дедупликация на стороне потребителя |
-| `X-Cus-Signature` | `sha256=<hex>` — HMAC-SHA256 тела запроса на секрете подписки |
+| `X-InConsensu-Event` | тип события, например `consent.revoked` |
+| `X-InConsensu-Delivery-Id` | идентификатор доставки; **не меняется между повторами** — по нему выполняется дедупликация на стороне потребителя |
+| `X-InConsensu-Signature` | `sha256=<hex>` — HMAC-SHA256 тела запроса на секрете подписки |
 
 Плюс произвольные заголовки, заданные в подписке.
 
@@ -91,7 +91,7 @@ curl -X POST https://cus.example.ru/api/v1/webhooks \
 ## Проверка подписи
 
 Считайте HMAC-SHA256 **сырого тела запроса** (до разбора JSON) на секрете подписки и сравните с
-`X-Cus-Signature`. Сравнение — константное по времени.
+`X-InConsensu-Signature`. Сравнение — константное по времени.
 
 ```java
 String expected = "sha256=" + HexFormat.of().formatHex(hmacSha256(secret, rawBody));
@@ -103,7 +103,7 @@ if (!MessageDigest.isEqual(expected.getBytes(UTF_8), signature.getBytes(UTF_8)))
 ```python
 import hashlib, hmac
 expected = "sha256=" + hmac.new(secret.encode(), raw_body, hashlib.sha256).hexdigest()
-if not hmac.compare_digest(expected, request.headers["X-Cus-Signature"]):
+if not hmac.compare_digest(expected, request.headers["X-InConsensu-Signature"]):
     return Response(status=401)
 ```
 
@@ -116,9 +116,9 @@ if not hmac.compare_digest(expected, request.headers["X-Cus-Signature"]):
 10 с на ответ.
 
 Обработчик обязан быть идемпотентным: одно и то же событие может прийти повторно после сетевого сбоя,
-когда ЦУС не получил ответ, но получатель его уже обработал. Дедуплицируйте по `X-Cus-Delivery-Id`.
+когда In consensu не получил ответ, но получатель его уже обработал. Дедуплицируйте по `X-InConsensu-Delivery-Id`.
 
-Отвечайте быстро: тяжёлую работу выносите в свою очередь, иначе ЦУС посчитает доставку неудачной по
+Отвечайте быстро: тяжёлую работу выносите в свою очередь, иначе In consensu посчитает доставку неудачной по
 таймауту и повторит её.
 
 ## Проверка настройки

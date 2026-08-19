@@ -1,11 +1,11 @@
-# Архитектура ЦУС
+# Архитектура In consensu
 
 Документ соответствует NFR-7 и описывает систему на уровнях C4 1–2. Детальные требования — в
 [`TZ.md`](TZ.md), принятые решения — в [`DECISIONS.md`](DECISIONS.md).
 
 ## 1. Контекст (C4 уровень 1)
 
-ЦУС — внутренняя система оператора персональных данных. Она не рассылает сообщения и не хранит
+In consensu — внутренняя система оператора персональных данных. Она не рассылает сообщения и не хранит
 клиентскую базу: она отвечает на вопрос «можно ли», доказывает наличие согласия и уведомляет
 ответственных.
 
@@ -18,7 +18,7 @@ flowchart TB
     Client["Субъект ПДн (клиент)"]
   end
 
-  CUS["<b>ЦУС</b><br/>Центр управления согласиями<br/>Java 21, Spring Boot, PostgreSQL"]
+  CUS["<b>In consensu</b><br/>Центр управления согласиями<br/>Java 21, Spring Boot, PostgreSQL"]
 
   subgraph Системы оператора
     CRM["CRM / мастер-система клиентов"]
@@ -115,14 +115,14 @@ flowchart TB
 
 | Тема | Решение | Где |
 |---|---|---|
-| Ошибки | RFC 9457 `ProblemDetail`, `type = urn:cus:error:<code>`, поле `errors[]` | `common/error` |
+| Ошибки | RFC 9457 `ProblemDetail`, `type = urn:inconsensu:error:<code>`, поле `errors[]` | `common/error` |
 | Корреляция | заголовок `X-Request-Id`, тот же идентификатор в MDC, логах и теле ошибки | `common/web` |
 | Логи | JSON (structured logging Spring Boot), без ПДн (NFR-3) | `application.yml` |
 | Время | в БД UTC, в API ISO-8601 с зоной, бизнес-даты в таймзоне оператора | `common/config` |
 | Схема БД | Flyway, чистый SQL, `ddl-auto=validate`, миграции неизменяемы | `db/migration` |
 | Фоновые задачи | `@Scheduled` + ShedLock (таблица в PostgreSQL) | этапы 3, 6 |
 | Внешние эффекты | только через транзакционный outbox в одной транзакции с изменением данных | `notification/application` |
-| Подпись событий | HMAC-SHA256 тела на секрете подписки, заголовок `X-Cus-Signature` | [`webhooks.md`](webhooks.md) |
+| Подпись событий | HMAC-SHA256 тела на секрете подписки, заголовок `X-InConsensu-Signature` | [`webhooks.md`](webhooks.md) |
 | Шифрование контактов | AES-256-GCM под флагом `cus.crypto.enabled`, поиск по HMAC | `common/application`, [`runbook.md`](runbook.md) |
 | Хранение | архивация отозванных согласий, журналы остаются append-only | [`runbook.md`](runbook.md) |
 | Фоновые запуски | задача ставится после коммита транзакции, а не внутри неё | `common/application/AfterCommitExecutor` |
@@ -140,7 +140,7 @@ sequenceDiagram
   S->>DB: изменение данных + запись в outbox (одна транзакция)
   Note over S,DB: слушатель события работает с propagation=MANDATORY:<br/>событие не может уйти по откатившейся транзакции
   P->>DB: выбрать готовые события (по одному агрегату — строго по порядку)
-  P->>C: POST с X-Cus-Event, X-Cus-Delivery-Id, X-Cus-Signature
+  P->>C: POST с X-InConsensu-Event, X-InConsensu-Delivery-Id, X-InConsensu-Signature
   alt 2xx
     P->>DB: SENT + запись в журнал доставок
   else ошибка
@@ -159,7 +159,7 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-  subgraph CUS["ЦУС"]
+  subgraph CUS["In consensu"]
     C[Конструктор согласий] --> A[Согласование: юрист, DPO]
     A --> K[Каталог согласий и форм]
     K --> S[Подписание / регистрация согласия]
