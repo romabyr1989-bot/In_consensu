@@ -216,7 +216,7 @@ paths:
       - auth-controller
   /api/v1/catalog/export:
     get:
-      description: Типы согласий со счётчиками в формате csv или json
+      description: "Типы, формы и пункты форм в формате csv или json"
       operationId: export
       parameters:
       - in: query
@@ -225,6 +225,12 @@ paths:
         schema:
           type: string
           default: csv
+      - in: query
+        name: part
+        required: false
+        schema:
+          type: string
+          default: types
       responses:
         "200":
           content:
@@ -237,7 +243,8 @@ paths:
       - catalog-controller
   /api/v1/catalog/stats:
     get:
-      description: Плитки дашборда UI-2 и счётчики по типам согласий
+      description: Плитки дашборда UI-2 и разрезы по типам согласий и третьим лицам
+        (FR-3.4)
       operationId: stats
       responses:
         "200":
@@ -2201,6 +2208,10 @@ components:
         awaitingApproval:
           type: integer
           format: int64
+        byThirdParty:
+          type: array
+          items:
+            $ref: "#/components/schemas/ThirdPartyStats"
         byType:
           type: array
           items:
@@ -3660,6 +3671,34 @@ components:
           type: string
         shortName:
           type: string
+    ThirdPartyStats:
+      type: object
+      properties:
+        active:
+          type: integer
+          format: int64
+        expired:
+          type: integer
+          format: int64
+        expiring:
+          type: integer
+          format: int64
+        expiringSoon:
+          type: integer
+          format: int64
+        id:
+          type: string
+          format: uuid
+        inn:
+          type: string
+        name:
+          type: string
+        revoked:
+          type: integer
+          format: int64
+        superseded:
+          type: integer
+          format: int64
     TokenResponse:
       type: object
       properties:
@@ -3736,9 +3775,21 @@ components:
           format: int64
         code:
           type: string
+        expired:
+          type: integer
+          format: int64
+        expiring:
+          type: integer
+          format: int64
+        expiringSoon:
+          type: integer
+          format: int64
         nameRu:
           type: string
         revoked:
+          type: integer
+          format: int64
+        superseded:
           type: integer
           format: int64
     UiSessionRequest:

@@ -4,12 +4,16 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.example.inconsensu.catalog.application.CatalogStatsService;
 import ru.example.inconsensu.catalog.application.ConsentFormService;
 import ru.example.inconsensu.catalog.application.ConsentTypeService;
 import ru.example.inconsensu.catalog.application.FormWorkflowService;
@@ -27,8 +31,8 @@ import ru.example.inconsensu.thirdparty.domain.ThirdParty;
 @Service
 public class UiCatalogViewService {
 
-    /** @param counts счётчики согласий по типу — колонка таблицы UI-6 */
-    public record TypeRow(ConsentType type, long active, long revoked) {}
+    /** @param expiringSoon согласия типа, срок которых истекает в ближайшие 30 дней (FR-3.4) */
+    public record TypeRow(ConsentType type, long active, long expiringSoon, long revoked) {}
 
     /** @param validation чек-лист реквизитов и нарушения для панели конструктора (UI-8) */
     public record FormView(
@@ -41,7 +45,7 @@ public class UiCatalogViewService {
     private final ConsentTypeService types;
     private final ConsentFormService forms;
     private final FormWorkflowService workflow;
-    private final ru.example.inconsensu.catalog.application.CatalogStatsService stats;
+    private final CatalogStatsService stats;
     private final PdnCategoryService pdnCategories;
     private final ThirdPartyService thirdParties;
 
@@ -49,7 +53,7 @@ public class UiCatalogViewService {
             ConsentTypeService types,
             ConsentFormService forms,
             FormWorkflowService workflow,
-            ru.example.inconsensu.catalog.application.CatalogStatsService stats,
+            CatalogStatsService stats,
             PdnCategoryService pdnCategories,
             ThirdPartyService thirdParties) {
         this.types = types;
@@ -63,26 +67,25 @@ public class UiCatalogViewService {
     /** UI-6: фильтры по категории и активности. */
     @Transactional(readOnly = true)
     public List<TypeRow> types(ru.example.inconsensu.common.domain.ConsentCategory category, Boolean active) {
-        var counts = stats.stats().byType();
+        var counts = stats.byType().stream()
+                .collect(Collectors.toMap(CatalogStatsService.TypeStats::code, Function.identity()));
         return types.list(category, active, Pageable.unpaged()).getContent().stream()
                 .map(type -> {
-                    var typeStats = counts.stream()
-                            .filter(candidate -> candidate.code().equals(type.getCode()))
-                            .findFirst();
+                    var typeStats = counts.get(type.getCode());
                     return new TypeRow(
                             type,
-                            typeStats
-                                    .map(
-                                            ru.example.inconsensu.catalog.application.CatalogStatsService.TypeStats
-                                                    ::active)
-                                    .orElse(0L),
-                            typeStats
-                                    .map(
-                                            ru.example.inconsensu.catalog.application.CatalogStatsService.TypeStats
-                                                    ::revoked)
-                                    .orElse(0L));
+                            typeStats == null ? 0L : typeStats.active(),
+                            typeStats == null ? 0L : typeStats.expiringSoon(),
+                            typeStats == null ? 0L : typeStats.revoked());
                 })
                 .toList();
+    }
+
+    /** UI-11: счётчики согласий по третьим лицам для списка партнёров (FR-3.4). */
+    @Transactional(readOnly = true)
+    public Map<UUID, CatalogStatsService.ThirdPartyStats> consentCountsByThirdParty() {
+        return stats.byThirdParty().stream()
+                .collect(Collectors.toMap(CatalogStatsService.ThirdPartyStats::id, Function.identity()));
     }
 
     /** UI-7: фильтры выполняются запросом — иначе пагинация и счётчик страниц врут. */

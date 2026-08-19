@@ -19,6 +19,7 @@
                     <th scope="col">Роль</th>
                     <th scope="col">Договор</th>
                     <th scope="col">Категории ПДн</th>
+                    <th scope="col">Согласий: действует / истекает / отозвано</th>
                     <th scope="col">Активно</th>
                 </tr>
                 </thead>
@@ -35,6 +36,15 @@
                               th:text="'истекает через ' + ${party.daysUntilContractEnds(today)} + ' дн.'">истекает</span>
                     </td>
                     <td th:text="${#strings.arrayJoin(party.allowedPdnCategories, ', ')}">ФИО, телефон</td>
+                    <td th:with="counts=${consentCounts.get(party.id)}">
+                        <span class="badge bg-success" th:text="${counts != null} ? ${counts.active} : 0"
+                              title="Действующие">10</span>
+                        <span class="badge bg-warning text-dark"
+                              th:text="${counts != null} ? ${counts.expiringSoon} : 0"
+                              title="Истекают в ближайшие 30 дней">1</span>
+                        <span class="badge bg-danger" th:text="${counts != null} ? ${counts.revoked} : 0"
+                              title="Отозванные">2</span>
+                    </td>
                     <td>
                         <span class="badge bg-success" th:if="${party.active}">активно</span>
                         <span class="badge bg-secondary" th:unless="${party.active}">выключено</span>

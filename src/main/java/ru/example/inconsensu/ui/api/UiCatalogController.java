@@ -1,10 +1,15 @@
 package ru.example.inconsensu.ui.api;
 
 import jakarta.servlet.http.HttpServletRequest;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -13,6 +18,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import ru.example.inconsensu.catalog.application.CatalogCsvWriter;
+import ru.example.inconsensu.catalog.application.CatalogExportService;
 import ru.example.inconsensu.catalog.application.ConsentFormService;
 import ru.example.inconsensu.catalog.application.ConsentTypeService;
 import ru.example.inconsensu.catalog.application.FormWorkflowService;
@@ -33,16 +40,37 @@ public class UiCatalogController {
     private final ConsentTypeService types;
     private final ConsentFormService forms;
     private final FormWorkflowService workflow;
+    private final CatalogExportService export;
+    private final CatalogCsvWriter csv;
 
     public UiCatalogController(
             UiCatalogViewService view,
             ConsentTypeService types,
             ConsentFormService forms,
-            FormWorkflowService workflow) {
+            FormWorkflowService workflow,
+            CatalogExportService export,
+            CatalogCsvWriter csv) {
         this.view = view;
         this.forms = forms;
         this.types = types;
         this.workflow = workflow;
+        this.export = export;
+        this.csv = csv;
+    }
+
+    /**
+     * Выгрузка каталога из интерфейса (FR-3.3, UI-12).
+     *
+     * <p>Отдельная точка, а не ссылка на `/api/v1/catalog/export`: машинная цепочка §12 требует JWT,
+     * и браузер с сессионной кукой получил бы там 401.
+     */
+    @GetMapping("/ui/catalog/export")
+    public ResponseEntity<String> export(@RequestParam(defaultValue = "types") CatalogExportService.Part part) {
+        String filename = "catalog-" + part.name().toLowerCase(Locale.ROOT) + ".csv";
+        return ResponseEntity.ok()
+                .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .body(csv.write(part, export.snapshot()));
     }
 
     // ---------- UI-6: типы согласий ----------

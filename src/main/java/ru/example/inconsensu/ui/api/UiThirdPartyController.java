@@ -40,6 +40,7 @@ public class UiThirdPartyController {
         model.addAttribute("today", thirdParties.today());
         model.addAttribute("roles", ThirdPartyRole.values());
         model.addAttribute("categories", catalog.pdnCategories());
+        model.addAttribute("consentCounts", catalog.consentCountsByThirdParty());
         return "ui/third-parties/list";
     }
 

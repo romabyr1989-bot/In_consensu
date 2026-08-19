@@ -44,7 +44,7 @@
                     <th scope="col">Третье лицо</th>
                     <th scope="col">Срок</th>
                     <th scope="col">Зависит от</th>
-                    <th scope="col">Согласий</th>
+                    <th scope="col">Согласий: действует / истекает / отозвано</th>
                     <th scope="col">Активен</th>
                     <th scope="col"></th>
                 </tr>
@@ -62,8 +62,10 @@
                     <td th:text="${row.type.defaultValidity} ?: 'до отзыва'">до отзыва</td>
                     <td th:text="${row.type.dependsOn != null} ? ${row.type.dependsOn.code} : '—'">—</td>
                     <td>
-                        <span class="badge bg-success" th:text="${row.active}">10</span>
-                        <span class="badge bg-danger" th:text="${row.revoked}">2</span>
+                        <span class="badge bg-success" th:text="${row.active}" title="Действующие">10</span>
+                        <span class="badge bg-warning text-dark" th:text="${row.expiringSoon}"
+                              title="Истекают в ближайшие 30 дней">1</span>
+                        <span class="badge bg-danger" th:text="${row.revoked}" title="Отозванные">2</span>
                     </td>
                     <td>
                         <span class="badge bg-success" th:if="${row.type.active}">активен</span>

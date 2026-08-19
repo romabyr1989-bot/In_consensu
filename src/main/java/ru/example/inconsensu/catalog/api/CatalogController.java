@@ -1,8 +1,9 @@
 package ru.example.inconsensu.catalog.api;
 
 import io.swagger.v3.oas.annotations.Operation;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Locale;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -11,8 +12,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import ru.example.inconsensu.catalog.application.CatalogCsvWriter;
+import ru.example.inconsensu.catalog.application.CatalogExportService;
 import ru.example.inconsensu.catalog.application.CatalogStatsService;
-import ru.example.inconsensu.catalog.domain.ConsentType;
 import ru.example.inconsensu.common.error.ApiException;
 import ru.example.inconsensu.common.error.ErrorCode;
 
@@ -22,67 +24,58 @@ import ru.example.inconsensu.common.error.ErrorCode;
 @PreAuthorize("isAuthenticated()")
 public class CatalogController {
 
-    private static final String CSV_HEADER =
-            "code,name,category,requiresThirdParty,defaultValidity,active,activeConsents,revokedConsents";
-
     private final CatalogStatsService stats;
+    private final CatalogExportService export;
+    private final CatalogCsvWriter csv;
 
-    public CatalogController(CatalogStatsService stats) {
+    public CatalogController(CatalogStatsService stats, CatalogExportService export, CatalogCsvWriter csv) {
         this.stats = stats;
+        this.export = export;
+        this.csv = csv;
     }
 
     @GetMapping("/stats")
-    @Operation(summary = "Статистика каталога", description = "Плитки дашборда UI-2 и счётчики по типам согласий")
+    @Operation(
+            summary = "Статистика каталога",
+            description = "Плитки дашборда UI-2 и разрезы по типам согласий и третьим лицам (FR-3.4)")
     public CatalogStatsService.CatalogStats stats() {
         return stats.stats();
     }
 
+    /**
+     * Выгрузка каталога (FR-3.3).
+     *
+     * <p>json отдаёт каталог целиком: типы, формы и вложенные пункты. csv — таблицу одной части: у типов,
+     * форм и пунктов разные колонки, и склейка их в один файл нечитаема ни человеком, ни Excel.
+     */
     @GetMapping("/export")
-    @Operation(summary = "Экспорт каталога", description = "Типы согласий со счётчиками в формате csv или json")
-    public ResponseEntity<?> export(@RequestParam(defaultValue = "csv") String format) {
-        String normalized = format.toLowerCase(java.util.Locale.ROOT);
-        if (!List.of("csv", "json").contains(normalized)) {
+    @Operation(summary = "Экспорт каталога", description = "Типы, формы и пункты форм в формате csv или json")
+    public ResponseEntity<?> export(
+            @RequestParam(defaultValue = "csv") String format, @RequestParam(defaultValue = "types") String part) {
+        String normalizedFormat = format.toLowerCase(Locale.ROOT);
+        if (!List.of("csv", "json").contains(normalizedFormat)) {
             throw new ApiException(ErrorCode.VALIDATION_FAILED, "Поддерживаются форматы csv и json");
         }
-        CatalogStatsService.CatalogStats snapshot = stats.stats();
-        if ("json".equals(normalized)) {
+        CatalogExportService.CatalogSnapshot snapshot = export.snapshot();
+        if ("json".equals(normalizedFormat)) {
             return ResponseEntity.ok()
                     .contentType(MediaType.APPLICATION_JSON)
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"catalog.json\"")
-                    .body(snapshot.byType());
+                    .body(snapshot);
         }
+        CatalogExportService.Part normalizedPart = part(part);
+        String filename = "catalog-" + normalizedPart.name().toLowerCase(Locale.ROOT) + ".csv";
         return ResponseEntity.ok()
-                .contentType(new MediaType("text", "csv", java.nio.charset.StandardCharsets.UTF_8))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"catalog.csv\"")
-                .body(toCsv(snapshot));
+                .contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .body(csv.write(normalizedPart, snapshot));
     }
 
-    private String toCsv(CatalogStatsService.CatalogStats snapshot) {
-        var counts =
-                snapshot.byType().stream().collect(Collectors.toMap(CatalogStatsService.TypeStats::code, type -> type));
-        StringBuilder builder = new StringBuilder(CSV_HEADER).append('\n');
-        for (ConsentType type : stats.activeTypes()) {
-            var typeStats = counts.get(type.getCode());
-            builder.append(String.join(
-                            ",",
-                            type.getCode(),
-                            quote(type.getNameRu()),
-                            type.getCategory().name(),
-                            String.valueOf(type.isRequiresThirdParty()),
-                            type.getDefaultValidity() == null ? "" : type.getDefaultValidity(),
-                            String.valueOf(type.isActive()),
-                            String.valueOf(typeStats == null ? 0 : typeStats.active()),
-                            String.valueOf(typeStats == null ? 0 : typeStats.revoked())))
-                    .append('\n');
+    private static CatalogExportService.Part part(String value) {
+        try {
+            return CatalogExportService.Part.valueOf(value.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException notAPart) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, "Поддерживаются части выгрузки types, forms и items");
         }
-        return builder.toString();
-    }
-
-    /** Названия типов содержат запятые: без экранирования файл развалится у получателя. */
-    private static String quote(String value) {
-        if (value == null) {
-            return "";
-        }
-        return value.contains(",") || value.contains("\"") ? "\"" + value.replace("\"", "\"\"") + "\"" : value;
     }
 }

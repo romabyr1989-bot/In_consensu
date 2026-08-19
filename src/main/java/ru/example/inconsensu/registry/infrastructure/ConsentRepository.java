@@ -99,6 +99,63 @@ public interface ConsentRepository extends JpaRepository<Consent, UUID>, JpaSpec
 
     long countByConsentTypeIdAndStatus(UUID consentTypeId, ConsentStatus status);
 
+    /**
+     * Разрез статистики каталога по типам согласий (FR-3.4).
+     *
+     * <p>Один групповой запрос вместо счётчика на каждый тип: типов в справочнике десятки, а вызывается
+     * статистика на каждой отрисовке дашборда.
+     */
+    @Query(
+            """
+            select c.consentTypeId as groupId, c.status as status, count(c) as total from Consent c
+            group by c.consentTypeId, c.status
+            """)
+    List<StatusCountRow> countGroupedByType();
+
+    /** Тот же разрез по третьим лицам; согласия без третьего лица в выборку не попадают (FR-3.4). */
+    @Query(
+            """
+            select c.thirdPartyId as groupId, c.status as status, count(c) as total from Consent c
+            where c.thirdPartyId is not null
+            group by c.thirdPartyId, c.status
+            """)
+    List<StatusCountRow> countGroupedByThirdParty();
+
+    /** Сколько согласий каждого типа истекает в окне — колонка «истекают за 30 дней» (FR-3.4). */
+    @Query(
+            """
+            select c.consentTypeId as groupId, count(c) as total from Consent c
+            where c.supersededById is null and c.revokedAt is null
+              and c.validUntil is not null and c.validUntil between :from and :to
+            group by c.consentTypeId
+            """)
+    List<GroupCountRow> countExpiringGroupedByType(@Param("from") Instant from, @Param("to") Instant to);
+
+    @Query(
+            """
+            select c.thirdPartyId as groupId, count(c) as total from Consent c
+            where c.thirdPartyId is not null and c.supersededById is null and c.revokedAt is null
+              and c.validUntil is not null and c.validUntil between :from and :to
+            group by c.thirdPartyId
+            """)
+    List<GroupCountRow> countExpiringGroupedByThirdParty(@Param("from") Instant from, @Param("to") Instant to);
+
+    /** Проекция группового счётчика по статусам (FR-3.4). */
+    interface StatusCountRow {
+        UUID getGroupId();
+
+        ConsentStatus getStatus();
+
+        long getTotal();
+    }
+
+    /** Проекция группового счётчика без разбивки по статусам (FR-3.4). */
+    interface GroupCountRow {
+        UUID getGroupId();
+
+        long getTotal();
+    }
+
     /** Сколько согласий отозвано за период — плитка дашборда и статистика каталога (UI-2). */
     long countByRevokedAtAfter(Instant since);
 

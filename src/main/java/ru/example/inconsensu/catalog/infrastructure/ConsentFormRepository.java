@@ -41,6 +41,20 @@ public interface ConsentFormRepository extends JpaRepository<ConsentForm, UUID>,
     @Query("select f.status, count(f) from ConsentForm f group by f.status")
     List<Object[]> countByStatus();
 
+    /**
+     * Полный каталог форм с пунктами для выгрузки (FR-3.3).
+     *
+     * <p>Тип согласия внутри пункта берётся тем же запросом: без этого выгрузка сотни форм превращается
+     * в сотни отдельных запросов.
+     */
+    @Query(
+            """
+            select distinct f from ConsentForm f
+            left join fetch f.items i
+            left join fetch i.consentType
+            """)
+    List<ConsentForm> findAllWithItems();
+
     @Query("select f from ConsentForm f where f.status = :status order by f.updatedAt desc")
     List<ConsentForm> findAwaitingDecision(@Param("status") FormStatus status);
 }

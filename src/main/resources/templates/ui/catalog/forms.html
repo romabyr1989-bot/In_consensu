@@ -9,7 +9,15 @@
     <main class="ic-content">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h1 class="h4 mb-0">Формы согласий</h1>
-            <a class="btn btn-outline-secondary btn-sm" th:href="@{/api/v1/catalog/export(format='csv')}">Экспорт каталога</a>
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button"
+                        data-bs-toggle="dropdown" aria-expanded="false">Экспорт каталога</button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" th:href="@{/ui/catalog/export(part='TYPES')}">Типы согласий, CSV</a></li>
+                    <li><a class="dropdown-item" th:href="@{/ui/catalog/export(part='FORMS')}">Формы, CSV</a></li>
+                    <li><a class="dropdown-item" th:href="@{/ui/catalog/export(part='ITEMS')}">Пункты форм, CSV</a></li>
+                </ul>
+            </div>
         </div>
         <div th:replace="~{ui/fragments/layout :: flash}"></div>
 

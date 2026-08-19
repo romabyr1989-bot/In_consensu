@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.example.inconsensu.audit.application.AuditService;
@@ -65,6 +66,12 @@ public class ThirdPartyService {
     @Transactional(readOnly = true)
     public Page<ThirdParty> list(Pageable pageable) {
         return repository.findAll(pageable);
+    }
+
+    /** Все третьи лица для разрезов статистики и экспорта каталога (FR-3.3, FR-3.4). */
+    @Transactional(readOnly = true)
+    public List<ThirdParty> all() {
+        return repository.findAll(Sort.by("name"));
     }
 
     @Transactional(readOnly = true)
