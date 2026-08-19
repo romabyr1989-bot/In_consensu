@@ -27,8 +27,14 @@ jobs:
 
       # §11: команды живут в Makefile, CI — тонкая обёртка, чтобы перенос в GitLab CI был механическим.
       # make verify: тесты, покрытие (JaCoCo), Spotless, Checkstyle, синхронность docs/openapi.yaml
+      #
+      # Версия Docker API спрашивается у движка раннера: жёстко закреплённое число ломает сборку и на
+      # старом движке (не знает новой версии), и на новом (не принимает слишком старую).
       - name: make verify
-        run: make verify
+        run: |
+          API_VERSION="$(docker version --format '{{.Server.APIVersion}}')"
+          echo "Docker Engine API: ${API_VERSION}"
+          make verify MVN_ARGS="-Dcus.docker.api-version=${API_VERSION}"
 
       - name: Отчёты тестов и покрытия
         if: always()

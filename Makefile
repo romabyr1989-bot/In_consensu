@@ -1,6 +1,9 @@
 # Commands are kept here so that CI (GitHub Actions today, GitLab CI later) stays a thin wrapper (§11).
 SHELL := /bin/bash
-MVN   := ./mvnw -B -ntp
+# MVN_ARGS позволяет CI дописать флаги, не переписывая команды: например версию Docker API,
+# которую поддерживает движок конкретного раннера (см. cus.docker.api-version в pom.xml).
+MVN_ARGS ?=
+MVN   := ./mvnw -B -ntp $(MVN_ARGS)
 BASE_URL ?= http://localhost:8080
 
 .DEFAULT_GOAL := help
