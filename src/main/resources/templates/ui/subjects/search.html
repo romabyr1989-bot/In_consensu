@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head th:replace="~{ui/fragments/layout :: head('Клиенты')}"></head>
+<body>
+<nav th:replace="~{ui/fragments/layout :: topbar}"></nav>
+<div class="cus-layout">
+    <aside th:replace="~{ui/fragments/layout :: sidebar('subjects')}"></aside>
+    <main class="cus-content">
+        <h1 class="h4 mb-3">Клиенты</h1>
+
+        <form class="row g-2 mb-4" th:action="@{/ui/subjects}" method="get">
+            <div class="col-12 col-lg-6">
+                <label class="form-label" for="query">Поиск клиента</label>
+                <input class="form-control" id="query" name="query" th:value="${query}"
+                       placeholder="Телефон, email, ФИО или ID клиента">
+                <div class="form-text">
+                    Телефон — начиная с «+» или цифр; email — с «@»; ФИО — не менее трёх букв; иначе ищем по
+                    внешнему идентификатору.
+                </div>
+            </div>
+            <div class="col-6 col-lg-2 align-self-end">
+                <button class="btn btn-primary" type="submit">Найти</button>
+                <a class="btn btn-link" th:href="@{/ui/subjects}">Сбросить</a>
+            </div>
+        </form>
+
+        <div class="alert alert-warning" role="alert" th:if="${searchHint != null}" th:text="${searchHint}"></div>
+
+        <p class="text-muted" th:if="${results == null}">Введите запрос, чтобы найти клиента.</p>
+        <p class="text-muted" th:if="${results != null and results.isEmpty()}">
+            Ничего не найдено. Проверьте формат номера телефона или введите не менее трёх букв фамилии.
+        </p>
+
+        <div class="table-responsive" th:if="${results != null and !results.isEmpty()}">
+            <table class="table table-hover align-middle bg-white">
+                <thead>
+                <tr>
+                    <th scope="col">Клиент</th>
+                    <th scope="col">Внешний ид.</th>
+                    <th scope="col">Контакты</th>
+                    <th scope="col">Согласия</th>
+                    <th scope="col">Каналы</th>
+                    <th scope="col"></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="row : ${results.content}">
+                    <td th:text="${row.subject.fullName}">Травин Иван Сергеевич</td>
+                    <td th:text="${row.subject.externalId}">CRM-1002345</td>
+                    <td>
+                        <div th:each="contact : ${row.contacts}">
+                            <span class="text-muted small" th:text="${contact.typeRu} + ': '">Телефон: </span>
+                            <span th:text="${contact.value}">+7 9** ***-**-41</span>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge bg-success" th:text="'действует ' + ${row.active}">действует 2</span>
+                        <span class="badge bg-warning text-dark" th:if="${row.expiring > 0}"
+                              th:text="'заканчивается ' + ${row.expiring}">заканчивается 1</span>
+                        <span class="badge bg-danger" th:if="${row.revoked > 0}"
+                              th:text="'отозвано ' + ${row.revoked}">отозвано 1</span>
+                    </td>
+                    <td>
+                        <span th:each="entry : ${row.channels}" class="me-1"
+                              th:classappend="${entry.value} ? 'text-success' : 'text-secondary'"
+                              th:title="${entry.key.nameRu()}" th:aria-label="${entry.key.nameRu()}">
+                            <i class="bi" th:classappend="${entry.value} ? 'bi-check-circle' : 'bi-slash-circle'"
+                               aria-hidden="true"></i>
+                        </span>
+                    </td>
+                    <td class="text-end">
+                        <a class="btn btn-sm btn-outline-primary"
+                           th:href="@{/ui/subjects/{id}(id=${row.subject.id})}">Открыть карточку</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <nav th:if="${results != null and results.totalPages > 1}" aria-label="Страницы результатов">
+            <ul class="pagination">
+                <li class="page-item" th:each="index : ${#numbers.sequence(0, results.totalPages - 1)}"
+                    th:classappend="${index == results.number} ? 'active'">
+                    <a class="page-link" th:href="@{/ui/subjects(query=${query},page=${index},size=${size})}"
+                       th:text="${index + 1}">1</a>
+                </li>
+            </ul>
+        </nav>
+    </main>
+</div>
+</body>
+</html>

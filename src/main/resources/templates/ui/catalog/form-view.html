@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="ru">
+<head th:replace="~{ui/fragments/layout :: head('Версия формы')}"></head>
+<body>
+<nav th:replace="~{ui/fragments/layout :: topbar}"></nav>
+<div class="cus-layout">
+    <aside th:replace="~{ui/fragments/layout :: sidebar('forms')}"></aside>
+    <main class="cus-content">
+        <div th:replace="~{ui/fragments/layout :: flash}"></div>
+        <h1 class="h4 mb-1" th:text="${form.form().title}">Согласие на обработку ПДн</h1>
+        <p class="text-muted">
+            <code th:text="${form.form().code}">CODE</code> · версия <span th:text="${form.form().versionNumber}">3</span>
+            · <span th:text="${form.form().status.nameRu()}">опубликовано</span>
+        </p>
+
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Контрольная сумма</span>
+                <button class="btn btn-sm btn-outline-secondary" type="button"
+                        th:data-copy="${form.checksum()}">Скопировать</button>
+            </div>
+            <div class="card-body"><code th:text="${form.checksum()}">sha256:…</code></div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header">Текст версии</div>
+            <div class="card-body"><pre class="small mb-0" th:text="${form.previewHtml()}">Текст</pre></div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header">Пункты</div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item" th:each="item : ${form.form().items}">
+                    <div class="fw-semibold" th:text="${item.consentType.nameRu}">Реклама по email</div>
+                    <div th:text="${item.text}">Формулировка</div>
+                    <div class="small text-muted">
+                        Цели: <span th:text="${#strings.listJoin(item.purposes, ', ')}">информирование</span> ·
+                        Категории: <span th:text="${#strings.listJoin(item.pdnCategories, ', ')}">EMAIL</span> ·
+                        Срок: <span th:text="${item.validity} ?: 'до отзыва'">P1Y</span> ·
+                        <span th:text="${item.mandatory} ? 'обязателен' : 'необязателен'">необязателен</span>
+                    </div>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header">Версии формы</div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between" th:each="version : ${form.versions()}">
+                    <span>Версия <span th:text="${version.versionNumber}">1</span> ·
+                        <span th:text="${version.status.nameRu()}">в архиве</span></span>
+                    <a th:href="@{/ui/catalog/forms/{id}(id=${version.id})}">Открыть</a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="d-flex gap-2">
+            <form th:action="@{/ui/catalog/forms/{id}/new-version(id=${form.form().id})}" method="post"
+                  sec:authorize="hasAnyRole('LAWYER','DPO','ADMIN')"
+                  th:if="${form.form().status.name() == 'PUBLISHED' or form.form().status.name() == 'ARCHIVED'}">
+                <button class="btn btn-primary" type="submit">Новая версия</button>
+            </form>
+            <form th:action="@{/ui/catalog/forms/{id}/archive(id=${form.form().id})}" method="post"
+                  sec:authorize="hasAnyRole('DPO','ADMIN')"
+                  th:if="${form.form().status.name() == 'PUBLISHED'}"
+                  data-confirm="Форма перейдёт в архив. Регистрировать новые согласия по ней будет нельзя, выданные сохранятся. Продолжить?">
+                <button class="btn btn-outline-danger" type="submit">В архив</button>
+            </form>
+        </div>
+    </main>
+</div>
+<script th:src="@{/assets/js/cus.js}"></script>
+</body>
+</html>

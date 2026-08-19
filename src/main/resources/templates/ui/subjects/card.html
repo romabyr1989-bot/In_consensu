@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head th:replace="~{ui/fragments/layout :: head('Карточка клиента')}"></head>
+<body>
+<nav th:replace="~{ui/fragments/layout :: topbar}"></nav>
+<div class="cus-layout">
+    <aside th:replace="~{ui/fragments/layout :: sidebar('subjects')}"></aside>
+    <main class="cus-content">
+        <nav aria-label="Хлебные крошки">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a th:href="@{/ui/}">Главная</a></li>
+                <li class="breadcrumb-item"><a th:href="@{/ui/subjects}">Клиенты</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Карточка</li>
+            </ol>
+        </nav>
+
+        <div id="card-body" th:replace="~{ui/subjects/fragments :: cardBody}"></div>
+    </main>
+</div>
+
+<div class="modal fade" id="cus-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" id="cus-modal-content"></div>
+    </div>
+</div>
+
+<script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/assets/js/cus.js}"></script>
+</body>
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head th:replace="~{ui/fragments/layout :: head('Webhooks')}"></head>
+<body>
+<nav th:replace="~{ui/fragments/layout :: topbar}"></nav>
+<div class="cus-layout">
+    <aside th:replace="~{ui/fragments/layout :: sidebar('webhooks')}"></aside>
+    <main class="cus-content">
+        <h1 class="h4 mb-3">Подписки на события</h1>
+        <div th:replace="~{ui/fragments/layout :: flash}"></div>
+
+        <table class="table bg-white align-middle">
+            <thead>
+            <tr><th scope="col">Название</th><th scope="col">Адрес</th><th scope="col">События</th>
+                <th scope="col">Активна</th><th scope="col"></th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="subscription : ${subscriptions}">
+                <td th:text="${subscription.name}">CRM</td>
+                <td class="text-truncate" style="max-width: 320px" th:text="${subscription.url}">https://…</td>
+                <td>
+                    <span class="badge bg-light text-dark me-1" th:each="type : ${subscription.eventTypes}"
+                          th:text="${type}">consent.revoked</span>
+                    <span class="text-muted small" th:if="${subscription.eventTypes.isEmpty()}">все события</span>
+                </td>
+                <td>
+                    <span class="badge bg-success" th:if="${subscription.active}">активна</span>
+                    <span class="badge bg-secondary" th:unless="${subscription.active}">выключена</span>
+                </td>
+                <td class="text-end">
+                    <a class="btn btn-sm btn-link" th:href="@{/ui/webhooks/{id}/deliveries(id=${subscription.id})}">Доставки</a>
+                    <form class="d-inline" th:action="@{/ui/webhooks/{id}/test(id=${subscription.id})}" method="post">
+                        <button class="btn btn-sm btn-outline-primary" type="submit">Тест</button>
+                    </form>
+                    <form class="d-inline" th:action="@{/ui/webhooks/{id}/rotate-secret(id=${subscription.id})}" method="post"
+                          data-confirm="Старый секрет перестанет работать, потребителю нужно будет прописать новый. Продолжить?">
+                        <button class="btn btn-sm btn-outline-secondary" type="submit">Новый секрет</button>
+                    </form>
+                    <form class="d-inline" th:action="@{/ui/webhooks/{id}/deactivate(id=${subscription.id})}" method="post"
+                          th:if="${subscription.active}">
+                        <button class="btn btn-sm btn-outline-danger" type="submit">Выключить</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+
+        <div class="card mb-4">
+            <div class="card-header">Новая подписка</div>
+            <div class="card-body">
+                <form th:action="@{/ui/webhooks}" method="post" class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label" for="name">Название <span aria-hidden="true">*</span></label>
+                        <input class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label" for="url">Адрес <span aria-hidden="true">*</span></label>
+                        <input class="form-control" id="url" name="url" placeholder="https://crm.example.ru/hooks/cus" required>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="eventTypes">События (пусто — все)</label>
+                        <select class="form-select" id="eventTypes" name="eventTypes" multiple size="5">
+                            <option th:each="type : ${eventTypes}" th:value="${type}" th:text="${type}">consent.revoked</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <button class="btn btn-primary" type="submit">Создать подписку</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card" th:if="${!failed.isEmpty()}">
+            <div class="card-header">Недоставленные события</div>
+            <table class="table table-sm mb-0">
+                <thead>
+                <tr><th scope="col">Событие</th><th scope="col">Создано</th><th scope="col">Попыток</th>
+                    <th scope="col">Ошибка</th><th scope="col"></th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="event : ${failed}">
+                    <td th:text="${event.eventType}">consent.revoked</td>
+                    <td th:text="${#temporals.format(event.createdAt, 'dd.MM.yyyy HH:mm')}">17.08.2026 10:00</td>
+                    <td th:text="${event.attempts}">6</td>
+                    <td class="text-truncate" style="max-width: 260px" th:text="${event.lastError}">HTTP 503</td>
+                    <td class="text-end">
+                        <form th:action="@{/ui/webhooks/events/{id}/retry(id=${event.id})}" method="post">
+                            <button class="btn btn-sm btn-outline-primary" type="submit">Повторить</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+<script th:src="@{/assets/js/cus.js}"></script>
+</body>
+</html>

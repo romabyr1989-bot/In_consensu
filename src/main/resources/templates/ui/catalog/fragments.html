@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<body>
+
+<!-- UI-8: живой предпросмотр рендера с реквизитами оператора и тестовым субъектом -->
+<div th:fragment="preview" id="form-preview">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Предпросмотр</span>
+            <button class="btn btn-sm btn-outline-secondary"
+                    th:hx-get="@{/ui/catalog/forms/{id}/preview(id=${form.form().id})}"
+                    hx-target="#form-preview" hx-swap="outerHTML">Обновить предпросмотр</button>
+        </div>
+        <div class="card-body">
+            <pre class="small mb-0" th:text="${form.previewHtml()}">Текст формы</pre>
+        </div>
+    </div>
+
+    <!-- UI-8: панель «Проверка реквизитов (ч. 4 ст. 9 152-ФЗ)» -->
+    <div class="card mt-3">
+        <div class="card-header">Проверка реквизитов (ч. 4 ст. 9 152-ФЗ)</div>
+        <ul class="list-group list-group-flush">
+            <li class="list-group-item d-flex justify-content-between align-items-center"
+                th:each="requisite : ${form.validation().checklist()}">
+                <span th:text="${requisite.nameRu()}">Реквизиты оператора</span>
+                <span class="badge bg-success" th:if="${requisite.satisfied()}">выполнено</span>
+                <span class="badge bg-secondary" th:unless="${requisite.satisfied()}">не выполнено</span>
+            </li>
+        </ul>
+        <div class="card-body" th:if="${!form.validation().violations().isEmpty()}">
+            <div class="alert alert-danger mb-0">
+                <div class="fw-semibold">Блокирующие нарушения</div>
+                <ul class="mb-0">
+                    <li th:each="finding : ${form.validation().violations()}">
+                        <span th:if="${finding.itemNumber() != null}"
+                              th:text="'Пункт ' + ${finding.itemNumber()} + ': '">Пункт 1: </span>
+                        <span th:text="${finding.messageRu()}">не указана цель</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="card-body" th:if="${!form.validation().warnings().isEmpty()}">
+            <div class="alert alert-warning mb-0">
+                <div class="fw-semibold">Предупреждения</div>
+                <ul class="mb-0">
+                    <li th:each="finding : ${form.validation().warnings()}" th:text="${finding.messageRu()}">
+                        рекламный пункт помечен обязательным
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

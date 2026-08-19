@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<body>
+<!-- UI-12: пока задача идёт, прогресс опрашивается каждые две секунды -->
+<div th:fragment="progress" id="import-progress"
+     th:attr="hx-get=${job.job().status.name() == 'RUNNING' or job.job().status.name() == 'PENDING'} ? @{/ui/import/{id}/progress(id=${job.job().id})} : null"
+     hx-trigger="every 2s" hx-swap="outerHTML">
+    <div class="card">
+        <div class="card-body">
+            <div class="progress mb-3" role="progressbar" th:aria-valuenow="${job.percent()}"
+                 aria-valuemin="0" aria-valuemax="100">
+                <div class="progress-bar" th:style="'width: ' + ${job.percent()} + '%'"
+                     th:text="${job.percent()} + '%'">0%</div>
+            </div>
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Статус</dt>
+                <dd class="col-sm-9" th:text="${job.job().status.nameRu()}">завершено</dd>
+                <dt class="col-sm-3">Режим</dt>
+                <dd class="col-sm-9" th:text="${job.job().dryRun} ? 'пробный запуск' : 'боевой запуск'">пробный запуск</dd>
+                <dt class="col-sm-3">Строк</dt>
+                <dd class="col-sm-9"
+                    th:text="${job.job().total} + ' всего, ' + ${job.job().imported} + ' импортировано, ' + ${job.job().rejected} + ' отклонено'">
+                    10 всего
+                </dd>
+            </dl>
+        </div>
+    </div>
+</div>
+</body>
+</html>

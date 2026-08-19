@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="ru">
+<head th:replace="~{ui/fragments/layout :: head('Главная')}"></head>
+<body>
+<nav th:replace="~{ui/fragments/layout :: topbar}"></nav>
+<div class="cus-layout">
+    <aside th:replace="~{ui/fragments/layout :: sidebar('home')}"></aside>
+    <main class="cus-content">
+        <h1 class="h4 mb-4">Главная</h1>
+
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-xl-3">
+                <a class="cus-tile" th:href="@{/ui/subjects}">
+                    <div class="cus-tile-value" th:text="${stats.activeConsents()}">0</div>
+                    <div class="text-muted">Действующих согласий</div>
+                </a>
+            </div>
+            <div class="col-6 col-xl-3">
+                <a class="cus-tile" th:href="@{/ui/subjects(status='EXPIRING')}">
+                    <div class="cus-tile-value text-warning" th:text="${stats.expiringConsents()}">0</div>
+                    <div class="text-muted">Истекают за 30 дней</div>
+                </a>
+            </div>
+            <div class="col-6 col-xl-3">
+                <a class="cus-tile" th:href="@{/ui/subjects(status='REVOKED')}">
+                    <div class="cus-tile-value text-danger" th:text="${stats.revokedConsents()}">0</div>
+                    <div class="text-muted">Отозвано за 30 дней</div>
+                </a>
+            </div>
+            <div class="col-6 col-xl-3">
+                <a class="cus-tile" th:href="@{/ui/catalog/forms(status='ON_REVIEW')}">
+                    <div class="cus-tile-value" th:text="${stats.awaitingApproval()}">0</div>
+                    <div class="text-muted" sec:authorize="hasAnyRole('LAWYER','DPO')">Ждут вашего решения</div>
+                    <div class="text-muted" sec:authorize="!hasAnyRole('LAWYER','DPO')">Форм на согласовании</div>
+                </a>
+            </div>
+            <div class="col-6 col-xl-3">
+                <a class="cus-tile" th:href="@{/ui/third-parties}">
+                    <div class="cus-tile-value" th:text="${stats.expiringContracts()}">0</div>
+                    <div class="text-muted">Договоров истекает за 30 дней</div>
+                </a>
+            </div>
+            <div class="col-6 col-xl-3">
+                <a class="cus-tile" th:href="@{/ui/catalog/forms(status='PUBLISHED')}">
+                    <div class="cus-tile-value" th:text="${stats.publishedForms()}">0</div>
+                    <div class="text-muted">Опубликованных форм</div>
+                </a>
+            </div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-12 col-xl-6" sec:authorize="hasAnyRole('DPO','ADMIN')">
+                <div class="card h-100">
+                    <div class="card-header">Последние уведомления</div>
+                    <div class="card-body p-0">
+                        <p class="text-muted p-3 mb-0" th:if="${recentNotifications.isEmpty()}">
+                            Ничего не найдено. Уведомления появятся после ближайшего прогона задачи.</p>
+                        <table class="table table-sm mb-0" th:unless="${recentNotifications.isEmpty()}">
+                            <thead>
+                            <tr><th scope="col">Получатель</th><th scope="col">Тема</th><th scope="col">Статус</th></tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="notification : ${recentNotifications}">
+                                <td th:text="${notification.recipient}">dpo@example.ru</td>
+                                <td th:text="${notification.subjectLine}">ЦУС: заканчивается срок согласия</td>
+                                <td th:text="${notification.status.nameRu()}">отправлено</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-xl-6" sec:authorize="hasRole('ADMIN')">
+                <div class="card h-100">
+                    <div class="card-header">Проблемы доставки webhook</div>
+                    <div class="card-body p-0">
+                        <p class="text-muted p-3 mb-0" th:if="${failedDeliveries.isEmpty()}">Недоставленных событий нет.</p>
+                        <table class="table table-sm mb-0" th:unless="${failedDeliveries.isEmpty()}">
+                            <thead>
+                            <tr><th scope="col">Событие</th><th scope="col">Попыток</th><th scope="col">Ошибка</th></tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="event : ${failedDeliveries}">
+                                <td th:text="${event.eventType}">consent.revoked</td>
+                                <td th:text="${event.attempts}">6</td>
+                                <td class="text-truncate" style="max-width: 260px" th:text="${event.lastError}">HTTP 503</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-xl-6" sec:authorize="hasRole('ADMIN')">
+                <div class="card h-100">
+                    <div class="card-header">Ошибки импорта</div>
+                    <div class="card-body p-0">
+                        <p class="text-muted p-3 mb-0" th:if="${failedImports.isEmpty()}">Импорт проходит без ошибок.</p>
+                        <table class="table table-sm mb-0" th:unless="${failedImports.isEmpty()}">
+                            <thead>
+                            <tr><th scope="col">Файл</th><th scope="col">Отклонено</th><th scope="col">Статус</th></tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="job : ${failedImports}">
+                                <td><a th:href="@{/ui/import/{id}(id=${job.id})}" th:text="${job.fileName}">clients.csv</a></td>
+                                <td th:text="${job.rejected}">3</td>
+                                <td th:text="${job.status.nameRu()}">завершено</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+</body>
+</html>

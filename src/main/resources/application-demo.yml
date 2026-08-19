@@ -1,0 +1,10 @@
+# Demo profile (§11): fictional subjects and consents for the walkthrough of §13.
+# Demo data is loaded from db/demo/*.sql starting from stage 3.
+#
+# The profile deliberately changes nothing else: `docker compose up` runs with this profile, and that
+# is the setup the customer will look at, so it must keep the production behaviour of NFR-6 (JSON logs)
+# and NFR-3 (health without internal details). Developer conveniences live in the `dev` profile.
+spring:
+  sql:
+    init:
+      mode: never

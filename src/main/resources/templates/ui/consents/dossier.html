@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="ru">
+<head th:replace="~{ui/fragments/layout :: head('Досье согласия')}"></head>
+<body>
+<nav th:replace="~{ui/fragments/layout :: topbar}"></nav>
+<div class="cus-layout">
+    <aside th:replace="~{ui/fragments/layout :: sidebar('subjects')}"></aside>
+    <main class="cus-content">
+        <nav aria-label="Хлебные крошки">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a th:href="@{/ui/}">Главная</a></li>
+                <li class="breadcrumb-item">
+                    <a th:href="@{/ui/subjects/{id}(id=${dossier.consent().subjectId})}">Карточка клиента</a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">Досье согласия</li>
+            </ol>
+        </nav>
+
+        <h1 class="h4 mb-3">Досье согласия</h1>
+
+        <div class="card mb-3">
+            <div class="card-header">Сведения</div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-3">Идентификатор</dt>
+                    <dd class="col-sm-9"><code th:text="${dossier.consent().id}">—</code></dd>
+                    <dt class="col-sm-3">Статус</dt>
+                    <dd class="col-sm-9" th:text="${dossier.consent().status.nameRu()}">действует</dd>
+                    <dt class="col-sm-3">Получено</dt>
+                    <dd class="col-sm-9" th:text="${#temporals.format(dossier.consent().grantedAt, 'dd.MM.yyyy HH:mm')}">12.03.2025 09:41</dd>
+                    <dt class="col-sm-3">Источник</dt>
+                    <dd class="col-sm-9">
+                        <span th:text="${dossier.consent().source.nameRu()}">Договор</span>
+                        <span th:text="${dossier.consent().sourceRef}">Д-2025/4471</span>
+                    </dd>
+                    <dt class="col-sm-3">Способ подписания</dt>
+                    <dd class="col-sm-9" th:text="${dossier.consent().signatureType.nameRu()}">Простая ЭП по SMS</dd>
+                </dl>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Текст формы</span>
+                <span>
+                    <span class="badge bg-success" th:if="${dossier.checksumMatches()}">контрольная сумма совпадает</span>
+                    <span class="badge bg-danger" th:unless="${dossier.checksumMatches()}">контрольная сумма не совпадает</span>
+                </span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-2">
+                    Версия <span th:text="${dossier.form()?.versionNumber}">3</span>,
+                    checksum <code th:text="${dossier.storedChecksum()}">sha256:…</code>
+                </p>
+                <pre class="bg-light p-3 small" th:text="${dossier.formText()}">Текст согласия</pre>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header">События</div>
+            <div class="card-body p-0">
+                <div class="p-3">
+                    <span class="badge bg-success" th:if="${dossier.integrity().name() == 'OK'}">цепочка цела</span>
+                    <span class="badge bg-danger" th:unless="${dossier.integrity().name() == 'OK'}">цепочка нарушена</span>
+                </div>
+                <table class="table table-sm mb-0">
+                    <thead>
+                    <tr><th scope="col">Когда</th><th scope="col">Событие</th><th scope="col">Актор</th><th scope="col">Хеш</th></tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="event : ${dossier.events()}">
+                        <td th:text="${#temporals.format(event.occurredAt, 'dd.MM.yyyy HH:mm')}">17.08.2026 14:05</td>
+                        <td th:text="${event.eventType.nameRu()}">Согласие получено</td>
+                        <td th:text="${event.actorId}">admin</td>
+                        <td class="text-truncate" style="max-width: 220px"><code th:text="${event.hash}">…</code></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <button class="btn btn-outline-danger" sec:authorize="hasAnyRole('MANAGER','DPO','ADMIN')"
+                th:if="${dossier.consent().status.name() == 'ACTIVE' or dossier.consent().status.name() == 'EXPIRING'}"
+                th:hx-get="@{/ui/consents/{id}/revocation-dialog(id=${dossier.consent().id})}"
+                hx-target="#cus-modal-content" hx-swap="innerHTML">Отозвать</button>
+
+        <div class="modal fade" id="cus-modal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content" id="cus-modal-content"></div>
+            </div>
+        </div>
+    </main>
+</div>
+<script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/assets/js/cus.js}"></script>
+</body>
+</html>

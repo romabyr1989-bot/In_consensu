@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head th:replace="~{ui/fragments/layout :: head('Аудит')}"></head>
+<body>
+<nav th:replace="~{ui/fragments/layout :: topbar}"></nav>
+<div class="cus-layout">
+    <aside th:replace="~{ui/fragments/layout :: sidebar('audit')}"></aside>
+    <main class="cus-content">
+        <h1 class="h4 mb-3">Аудит</h1>
+        <ul class="nav nav-tabs mb-3">
+            <li class="nav-item"><a class="nav-link active" th:href="@{/ui/audit}">События</a></li>
+            <li class="nav-item"><a class="nav-link" th:href="@{/ui/audit/access-log}">Доступ к ПДн</a></li>
+            <li class="nav-item"><a class="nav-link" th:href="@{/ui/audit/integrity}">Целостность</a></li>
+        </ul>
+
+        <form class="row g-2 mb-3" th:action="@{/ui/audit}" method="get">
+            <div class="col-md-3">
+                <label class="form-label" for="aggregateType">Тип агрегата</label>
+                <input class="form-control" id="aggregateType" name="aggregateType" placeholder="consent">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="eventType">Тип события</label>
+                <select class="form-select" id="eventType" name="eventType">
+                    <option value="">любой</option>
+                    <option th:each="type : ${eventTypes}" th:value="${type}" th:text="${type.nameRu()}">Согласие получено</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="actorId">Актор</label>
+                <input class="form-control" id="actorId" name="actorId">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="from">С даты</label>
+                <input class="form-control" type="date" id="from" name="from">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="to">По дату</label>
+                <input class="form-control" type="date" id="to" name="to">
+            </div>
+            <div class="col-12">
+                <button class="btn btn-primary" type="submit">Показать</button>
+                <a class="btn btn-link" th:href="@{/ui/audit}">Сбросить фильтры</a>
+            </div>
+        </form>
+
+        <table class="table bg-white align-middle">
+            <thead>
+            <tr><th scope="col">Когда</th><th scope="col">Агрегат</th><th scope="col">Событие</th>
+                <th scope="col">Актор</th><th scope="col">Payload</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="event : ${events.content}">
+                <td th:text="${#temporals.format(event.occurredAt, 'dd.MM.yyyy HH:mm')}">17.08.2026 14:05</td>
+                <td>
+                    <div th:text="${event.aggregateType}">consent</div>
+                    <code class="small" th:text="${event.aggregateId}">…</code>
+                </td>
+                <td th:text="${event.eventType.nameRu()}">Согласие отозвано</td>
+                <td th:text="${event.actorId}">manager</td>
+                <td><pre class="small mb-0" style="max-width: 420px; white-space: pre-wrap" th:text="${event.payload}">{}</pre></td>
+            </tr>
+            </tbody>
+        </table>
+        <p class="text-muted" th:if="${events.isEmpty()}">Ничего не найдено. Ослабьте фильтры.</p>
+    </main>
+</div>
+</body>
+</html>

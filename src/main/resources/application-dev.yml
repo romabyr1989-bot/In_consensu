@@ -1,0 +1,18 @@
+# Local development: human readable logs and verbose health details.
+logging:
+  structured:
+    format:
+      console: ""
+  level:
+    ru.example.cus: DEBUG
+    org.flywaydb: DEBUG
+
+management:
+  endpoint:
+    health:
+      show-details: always
+
+spring:
+  jpa:
+    properties:
+      hibernate.format_sql: true

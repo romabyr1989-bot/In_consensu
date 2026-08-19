@@ -1,0 +1,9 @@
+# FR-11.1: optional profile that replaces the built-in login with an external IdP
+# (Spring OAuth2 Resource Server + role mapping from an IdP claim).
+# Filled in at stage 1 together with the IAM module; the placeholders below document the contract.
+cus:
+  iam:
+    oidc:
+      # roles-claim: realm_access.roles
+      # issuer-uri: ${CUS_OIDC_ISSUER_URI:}
+      enabled: true

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head th:replace="~{ui/fragments/layout :: head('Страница не найдена')}"></head>
+<body>
+<nav th:replace="~{ui/fragments/layout :: topbar}"></nav>
+<div class="cus-layout">
+    <aside th:replace="~{ui/fragments/layout :: sidebar('')}"></aside>
+    <main class="cus-content">
+        <h1 class="h4">Страница не найдена</h1>
+        <p>Проверьте адрес или вернитесь на главную.</p>
+        <a class="btn btn-primary" th:href="@{/ui/}">На главную</a>
+    </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head th:replace="~{ui/fragments/layout :: head('Настройки оператора')}"></head>
+<body>
+<nav th:replace="~{ui/fragments/layout :: topbar}"></nav>
+<div class="cus-layout">
+    <aside th:replace="~{ui/fragments/layout :: sidebar('settings')}"></aside>
+    <main class="cus-content">
+        <h1 class="h4 mb-3">Настройки оператора</h1>
+        <div th:replace="~{ui/fragments/layout :: flash}"></div>
+
+        <form th:action="@{/ui/admin/settings}" method="post" data-warn-unsaved="true">
+            <div class="card mb-3">
+                <div class="card-header">Значения</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6" th:each="entry : ${settings}">
+                            <label class="form-label" th:for="${entry.key}" th:text="${entry.key}">operator.name</label>
+                            <input class="form-control" th:id="${entry.key}" th:name="${entry.key}"
+                                   th:value="${entry.value}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-primary" type="submit">Сохранить настройки</button>
+        </form>
+
+        <div class="card mt-4">
+            <div class="card-header">История изменений</div>
+            <table class="table table-sm mb-0">
+                <thead>
+                <tr><th scope="col">Когда</th><th scope="col">Кто</th><th scope="col">Что изменено</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="event : ${history}">
+                    <td th:text="${#temporals.format(event.occurredAt, 'dd.MM.yyyy HH:mm')}">17.08.2026 10:00</td>
+                    <td th:text="${event.actorId}">admin</td>
+                    <td><pre class="small mb-0" style="white-space: pre-wrap" th:text="${event.payload}">{}</pre></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+</div>
+<script th:src="@{/assets/js/cus.js}"></script>
+</body>
+</html>

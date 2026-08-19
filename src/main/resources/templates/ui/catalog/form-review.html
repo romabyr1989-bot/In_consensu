@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="ru">
+<head th:replace="~{ui/fragments/layout :: head('Согласование формы')}"></head>
+<body>
+<nav th:replace="~{ui/fragments/layout :: topbar}"></nav>
+<div class="cus-layout">
+    <aside th:replace="~{ui/fragments/layout :: sidebar('forms')}"></aside>
+    <main class="cus-content">
+        <div th:replace="~{ui/fragments/layout :: flash}"></div>
+        <h1 class="h4 mb-1">Согласование формы</h1>
+        <p class="text-muted">
+            <span th:text="${form.form().title}">Форма</span> · версия
+            <span th:text="${form.form().versionNumber}">1</span> ·
+            <span th:text="${form.form().status.nameRu()}">на согласовании</span>
+        </p>
+
+        <div class="row g-3">
+            <div class="col-12 col-xl-7">
+                <div class="card mb-3">
+                    <div class="card-header">Как увидит клиент</div>
+                    <div class="card-body"><pre class="small mb-0" th:text="${form.previewHtml()}">Текст</pre></div>
+                </div>
+                <div class="card mb-3" th:if="${previousVersion != null}">
+                    <div class="card-header">Отличия от версии <span th:text="${previousVersion.versionNumber}">2</span></div>
+                    <div class="card-body">
+                        <pre class="small mb-0"><span th:each="line : ${diff}"
+                             th:classappend="${line.kind().name() == 'ADDED'} ? 'text-success' :
+                                 (${line.kind().name() == 'REMOVED'} ? 'text-danger' : 'text-muted')"
+                             th:text="${line.kind().marker()} + ' ' + ${line.text()} + '&#10;'"> текст</span></pre>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">Пункты</div>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item" th:each="item : ${form.form().items}">
+                            <div class="fw-semibold" th:text="${item.consentType.nameRu}">Тип</div>
+                            <div class="small text-muted">
+                                Категории: <span th:text="${#strings.listJoin(item.pdnCategories, ', ')}">EMAIL</span> ·
+                                Срок: <span th:text="${item.validity} ?: 'до отзыва'">P1Y</span> ·
+                                <span th:text="${item.mandatory} ? 'обязателен' : 'необязателен'">необязателен</span>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="col-12 col-xl-5">
+                <div th:replace="~{ui/catalog/fragments :: preview}"></div>
+
+                <div class="card mt-3">
+                    <div class="card-header">Решения согласующих</div>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between" th:each="role : ${requiredRoles}">
+                            <span th:text="${role}">DPO</span>
+                            <span class="badge bg-success" th:if="${approvedRoles.contains(role)}">одобрено</span>
+                            <span class="badge bg-secondary" th:unless="${approvedRoles.contains(role)}">ожидает</span>
+                        </li>
+                    </ul>
+                    <div class="card-body">
+                        <form th:action="@{/ui/catalog/forms/{id}/approve(id=${form.form().id})}" method="post"
+                              sec:authorize="hasAnyRole('LAWYER','DPO')" class="mb-3">
+                            <label class="form-label" for="approveComment">Комментарий</label>
+                            <textarea class="form-control mb-2" id="approveComment" name="comment" rows="2"></textarea>
+                            <button class="btn btn-success" type="submit">Одобрить</button>
+                        </form>
+                        <form th:action="@{/ui/catalog/forms/{id}/reject(id=${form.form().id})}" method="post"
+                              sec:authorize="hasAnyRole('LAWYER','DPO')">
+                            <label class="form-label" for="rejectComment">Причина возврата <span aria-hidden="true">*</span></label>
+                            <textarea class="form-control mb-2" id="rejectComment" name="comment" rows="2" required></textarea>
+                            <button class="btn btn-outline-danger" type="submit">Вернуть на доработку</button>
+                        </form>
+                    </div>
+                </div>
+
+                <form class="mt-3" th:action="@{/ui/catalog/forms/{id}/publish(id=${form.form().id})}" method="post"
+                      sec:authorize="hasAnyRole('DPO','ADMIN')"
+                      th:if="${form.form().status.name() == 'APPROVED'}"
+                      th:data-confirm="'Версия ' + ${form.form().versionNumber} + ' будет опубликована; предыдущая версия перейдёт в архив, полученные по ней согласия сохранятся. Продолжить?'">
+                    <button class="btn btn-primary w-100" type="submit">Опубликовать</button>
+                </form>
+
+                <div class="card mt-3">
+                    <div class="card-header">История решений</div>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item" th:each="approval : ${approvals}">
+                            <div>
+                                <span th:text="${approval.roleRequired}">DPO</span> —
+                                <span th:text="${approval.decision.nameRu()}">одобрено</span>
+                            </div>
+                            <div class="small text-muted">
+                                <span th:text="${approval.userLogin}">dpo</span>,
+                                <span th:text="${#temporals.format(approval.decidedAt, 'dd.MM.yyyy HH:mm')}">15.08.2026 11:20</span>
+                            </div>
+                            <div class="small" th:text="${approval.comment}">ок</div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+<script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/assets/js/cus.js}"></script>
+</body>
+</html>

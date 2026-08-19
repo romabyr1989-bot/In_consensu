@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="ru">
+<head th:replace="~{ui/fragments/layout :: head('Формы согласий')}"></head>
+<body>
+<nav th:replace="~{ui/fragments/layout :: topbar}"></nav>
+<div class="cus-layout">
+    <aside th:replace="~{ui/fragments/layout :: sidebar('forms')}"></aside>
+    <main class="cus-content">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h1 class="h4 mb-0">Формы согласий</h1>
+            <a class="btn btn-outline-secondary btn-sm" th:href="@{/api/v1/catalog/export(format='csv')}">Экспорт каталога</a>
+        </div>
+        <div th:replace="~{ui/fragments/layout :: flash}"></div>
+
+        <div class="mb-3">
+            <a class="btn btn-sm" th:classappend="${status == null} ? 'btn-primary' : 'btn-outline-primary'"
+               th:href="@{/ui/catalog/forms}">Все</a>
+            <a class="btn btn-sm" th:each="value : ${ {'DRAFT','ON_REVIEW','APPROVED','PUBLISHED','ARCHIVED'} }"
+               th:classappend="${status == value} ? 'btn-primary' : 'btn-outline-primary'"
+               th:href="@{/ui/catalog/forms(status=${value})}" th:text="${value}">DRAFT</a>
+        </div>
+
+        <div class="card mb-4" sec:authorize="hasAnyRole('LAWYER','DPO')" th:if="${!awaiting.isEmpty()}">
+            <div class="card-header">На согласовании — ждут решения</div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between" th:each="form : ${awaiting}">
+                    <span th:text="${form.title} + ' (версия ' + ${form.versionNumber} + ')'">Форма</span>
+                    <a th:href="@{/ui/catalog/forms/{id}/review(id=${form.id})}">Рассмотреть</a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="table-responsive mb-4">
+            <table class="table bg-white align-middle">
+                <thead>
+                <tr>
+                    <th scope="col">Код</th>
+                    <th scope="col">Название</th>
+                    <th scope="col">Версия</th>
+                    <th scope="col">Статус</th>
+                    <th scope="col">Изменено</th>
+                    <th scope="col"></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="form : ${forms.content}">
+                    <td><code th:text="${form.code}">CONTRACT_MAIN</code></td>
+                    <td th:text="${form.title}">Согласие на обработку ПДн</td>
+                    <td th:text="${form.versionNumber}">3</td>
+                    <td>
+                        <span class="badge"
+                              th:classappend="${form.status.name() == 'PUBLISHED'} ? 'bg-success' :
+                                  (${form.status.name() == 'ON_REVIEW'} ? 'bg-primary' :
+                                  (${form.status.name() == 'APPROVED'} ? 'bg-info text-dark' : 'bg-secondary'))"
+                              th:text="${form.status.nameRu()}">опубликовано</span>
+                    </td>
+                    <td th:text="${#temporals.format(form.updatedAt, 'dd.MM.yyyy HH:mm')}">17.08.2026 10:00</td>
+                    <td class="text-end">
+                        <a class="btn btn-sm btn-link" th:href="@{/ui/catalog/forms/{id}(id=${form.id})}">Открыть</a>
+                        <a class="btn btn-sm btn-link" th:if="${form.status.name() == 'DRAFT'}"
+                           th:href="@{/ui/catalog/forms/{id}/edit(id=${form.id})}">Конструктор</a>
+                        <a class="btn btn-sm btn-link" th:if="${form.status.name() == 'ON_REVIEW' or form.status.name() == 'APPROVED'}"
+                           th:href="@{/ui/catalog/forms/{id}/review(id=${form.id})}">Согласование</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <p class="text-muted" th:if="${forms.isEmpty()}">Ничего не найдено. Снимите фильтр статуса.</p>
+        </div>
+
+        <div class="card" sec:authorize="hasAnyRole('LAWYER','DPO','ADMIN')">
+            <div class="card-header">Создать форму</div>
+            <div class="card-body">
+                <form th:action="@{/ui/catalog/forms}" method="post" class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label" for="code">Код формы <span aria-hidden="true">*</span></label>
+                        <input class="form-control" id="code" name="code" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="title">Название <span aria-hidden="true">*</span></label>
+                        <input class="form-control" id="title" name="title" required>
+                    </div>
+                    <div class="col-md-2 align-self-end">
+                        <button class="btn btn-primary" type="submit">Создать</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+</div>
+<script th:src="@{/assets/js/cus.js}"></script>
+</body>
+</html>

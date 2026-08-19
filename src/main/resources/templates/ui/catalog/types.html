@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="ru">
+<head th:replace="~{ui/fragments/layout :: head('Типы согласий')}"></head>
+<body>
+<nav th:replace="~{ui/fragments/layout :: topbar}"></nav>
+<div class="cus-layout">
+    <aside th:replace="~{ui/fragments/layout :: sidebar('types')}"></aside>
+    <main class="cus-content">
+        <h1 class="h4 mb-3">Типы согласий</h1>
+        <div th:replace="~{ui/fragments/layout :: flash}"></div>
+
+        <div class="table-responsive mb-4">
+            <table class="table bg-white align-middle">
+                <thead>
+                <tr>
+                    <th scope="col">Код</th>
+                    <th scope="col">Название</th>
+                    <th scope="col">Категория</th>
+                    <th scope="col">Каналы</th>
+                    <th scope="col">Третье лицо</th>
+                    <th scope="col">Срок</th>
+                    <th scope="col">Зависит от</th>
+                    <th scope="col">Согласий</th>
+                    <th scope="col">Активен</th>
+                    <th scope="col"></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="row : ${types}">
+                    <td><code th:text="${row.type.code}">PDN_PROCESSING</code></td>
+                    <td th:text="${row.type.nameRu}">Обработка ПДн</td>
+                    <td th:text="${row.type.category.nameRu()}">Базовое</td>
+                    <td>
+                        <span class="badge bg-light text-dark me-1" th:each="channel : ${row.type.channels}"
+                              th:text="${channel}">EMAIL</span>
+                    </td>
+                    <td th:text="${row.type.requiresThirdParty} ? 'нужно' : '—'">—</td>
+                    <td th:text="${row.type.defaultValidity} ?: 'до отзыва'">до отзыва</td>
+                    <td th:text="${row.type.dependsOn != null} ? ${row.type.dependsOn.code} : '—'">—</td>
+                    <td>
+                        <span class="badge bg-success" th:text="${row.active}">10</span>
+                        <span class="badge bg-danger" th:text="${row.revoked}">2</span>
+                    </td>
+                    <td>
+                        <span class="badge bg-success" th:if="${row.type.active}">активен</span>
+                        <span class="badge bg-secondary" th:unless="${row.type.active}">выключен</span>
+                    </td>
+                    <td class="text-end" sec:authorize="hasAnyRole('LAWYER','DPO','ADMIN')">
+                        <form th:action="@{/ui/catalog/types/{code}/deactivate(code=${row.type.code})}" method="post"
+                              th:if="${row.type.active}"
+                              data-confirm="Тип будет деактивирован. Новые согласия по нему регистрировать нельзя, уже выданные сохранятся. Продолжить?">
+                            <button class="btn btn-sm btn-outline-danger" type="submit">Деактивировать</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card" sec:authorize="hasAnyRole('LAWYER','DPO','ADMIN')">
+            <div class="card-header">Новый тип согласия</div>
+            <div class="card-body">
+                <form th:action="@{/ui/catalog/types}" method="post" class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label" for="code">Код <span aria-hidden="true">*</span></label>
+                        <input class="form-control" id="code" name="code" required>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label" for="nameRu">Название <span aria-hidden="true">*</span></label>
+                        <input class="form-control" id="nameRu" name="nameRu" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="category">Категория <span aria-hidden="true">*</span></label>
+                        <select class="form-select" id="category" name="category" required>
+                            <option th:each="category : ${categories}" th:value="${category}"
+                                    th:text="${category.nameRu()}">Базовое</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="channels">Каналы</label>
+                        <select class="form-select" id="channels" name="channels" multiple size="4">
+                            <option th:each="channel : ${channels}" th:value="${channel}"
+                                    th:text="${channel.nameRu()}">Телефонный звонок</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="defaultValidity">Срок по умолчанию (ISO-8601)</label>
+                        <input class="form-control" id="defaultValidity" name="defaultValidity" placeholder="P1Y">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="dependsOnCode">Зависит от типа</label>
+                        <input class="form-control" id="dependsOnCode" name="dependsOnCode" placeholder="PDN_PROCESSING">
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" id="requiresThirdParty"
+                                   name="requiresThirdParty" value="true">
+                            <label class="form-check-label" for="requiresThirdParty">Требует третье лицо</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" id="businessSignificant"
+                                   name="businessSignificant" value="true">
+                            <label class="form-check-label" for="businessSignificant">Значим для бизнеса</label>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <button class="btn btn-primary" type="submit">Создать тип</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+</div>
+<script th:src="@{/assets/js/cus.js}"></script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<body>
+<div th:fragment="consentText">
+    <div class="modal-header">
+        <h2 class="modal-title h6">Текст согласия</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+    </div>
+    <div class="modal-body">
+        <pre class="small mb-0" style="white-space: pre-wrap" th:text="${text}">Текст согласия</pre>
+    </div>
+</div>
+</body>
+</html>

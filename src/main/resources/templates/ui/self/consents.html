@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="_csrf" th:content="${_csrf != null} ? ${_csrf.token} : ''">
+    <meta name="_csrf_header" th:content="${_csrf != null} ? ${_csrf.headerName} : ''">
+    <title>Мои согласия</title>
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/assets/css/cus.css}">
+    <script th:src="@{/webjars/htmx.org/dist/htmx.min.js}" defer></script>
+    <style th:inline="css">
+        :root { --cus-primary: [[${branding != null} ? ${branding.color} : '#0d6efd']]; }
+    </style>
+</head>
+<body>
+<main class="cus-self">
+    <h1 class="h4 mb-1" th:text="${page.greeting()}">Здравствуйте, Иван Сергеевич!</h1>
+    <p class="text-muted">Здесь собраны согласия, которые вы давали. Любое из них можно отозвать.</p>
+
+    <div class="alert alert-success" role="alert" th:if="${receipt != null}">
+        <div th:text="${receipt.message()}">Согласие отозвано</div>
+        <ul class="mb-0" th:if="${!receipt.revokedTitles().isEmpty()}">
+            <li th:each="title : ${receipt.revokedTitles()}" th:text="${title}">Реклама по телефону</li>
+        </ul>
+    </div>
+
+    <form th:action="@{/self/ui/consents/revoke-all-advertising}" method="post" class="mb-3"
+          data-confirm="Мы перестанем присылать вам рекламные предложения по всем каналам. Отозвать все рекламные согласия?">
+        <button class="btn btn-outline-danger w-100" type="submit">Отказаться от всей рекламы</button>
+    </form>
+
+    <div class="card" th:each="consent : ${page.consents()}">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h2 class="h6 mb-1" th:text="${consent.title()}">Реклама по телефону</h2>
+                    <div class="small text-muted">
+                        <span th:text="'с ' + ${consent.grantedAt()}">с 12.03.2025</span> ·
+                        <span th:text="${consent.validUntil()}">бессрочно / до отзыва</span>
+                    </div>
+                </div>
+                <span class="badge"
+                      th:classappend="${consent.status() == 'ACTIVE'} ? 'bg-success' :
+                          (${consent.status() == 'EXPIRING'} ? 'bg-warning text-dark' : 'bg-secondary')"
+                      th:text="${consent.statusText()}">действует</span>
+            </div>
+            <p class="small mt-2 mb-2" th:text="${consent.consequence()}">Мы перестанем звонить вам с предложениями.</p>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-link p-0" type="button"
+                        th:hx-get="@{/self/ui/consents/{id}/text(id=${consent.id()})}"
+                        hx-target="#self-modal-content" hx-swap="innerHTML">Текст согласия</button>
+                <form th:action="@{/self/ui/consents/{id}/revoke(id=${consent.id()})}" method="post"
+                      th:if="${consent.revocable()}" class="ms-auto"
+                      th:data-confirm="${consent.consequence()} + ' Отзыв необратим. Отозвать согласие?'">
+                    <button class="btn btn-sm btn-outline-danger" type="submit">Отозвать</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="h6 mt-4" th:if="${!page.revoked().isEmpty()}">История ваших отзывов</h2>
+    <div class="card" th:each="consent : ${page.revoked()}">
+        <div class="card-body py-2">
+            <div class="d-flex justify-content-between">
+                <span th:text="${consent.title()}">Реклама по email</span>
+                <span class="badge bg-secondary" th:text="${consent.statusText()}">отозвано</span>
+            </div>
+        </div>
+    </div>
+</main>
+
+<div class="modal fade" id="self-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content" id="self-modal-content"></div>
+    </div>
+</div>
+
+<script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
+<script th:src="@{/assets/js/cus.js}"></script>
+<script>
+    document.body.addEventListener('htmx:configRequest', function (event) {
+        var token = document.querySelector('meta[name="_csrf"]');
+        var header = document.querySelector('meta[name="_csrf_header"]');
+        if (token && header && header.content) {
+            event.detail.headers[header.content] = token.content;
+        }
+    });
+    document.body.addEventListener('htmx:afterSwap', function (event) {
+        if (event.detail.target && event.detail.target.id === 'self-modal-content') {
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('self-modal')).show();
+        }
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+# §4: Kafka is an optional event transport in addition to the transactional outbox.
+# Not required for the MVP; implemented at stage 8 only after the mandatory scope is done (§14.11).
+cus:
+  events:
+    kafka:
+      enabled: true
+      # topic-prefix: cus.

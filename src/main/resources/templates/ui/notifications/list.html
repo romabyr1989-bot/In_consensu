@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head th:replace="~{ui/fragments/layout :: head('Уведомления')}"></head>
+<body>
+<nav th:replace="~{ui/fragments/layout :: topbar}"></nav>
+<div class="cus-layout">
+    <aside th:replace="~{ui/fragments/layout :: sidebar('notifications')}"></aside>
+    <main class="cus-content">
+        <h1 class="h4 mb-3">Уведомления</h1>
+        <div th:replace="~{ui/fragments/layout :: flash}"></div>
+
+        <h2 class="h5 mt-4">Правила</h2>
+        <table class="table bg-white align-middle">
+            <thead>
+            <tr>
+                <th scope="col">Название</th><th scope="col">Повод</th><th scope="col">Пороги, дней</th>
+                <th scope="col">Получатели</th><th scope="col">Каналы</th><th scope="col">Активно</th><th scope="col"></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="rule : ${rules}">
+                <td th:text="${rule.name}">Истекающие согласия</td>
+                <td th:text="${rule.triggerType.nameRu()}">заканчивается срок согласия</td>
+                <td th:text="${#strings.listJoin(rule.daysBefore, ', ')}">30, 15, 7, 1</td>
+                <td>
+                    <span th:text="${#strings.setJoin(rule.recipientRoles, ', ')}">DPO</span>
+                    <span th:text="${#strings.setJoin(rule.recipientEmails, ', ')}"></span>
+                </td>
+                <td><span class="badge bg-light text-dark me-1" th:each="channel : ${rule.channels}"
+                          th:text="${channel.nameRu()}">письмо</span></td>
+                <td>
+                    <span class="badge bg-success" th:if="${rule.active}">включено</span>
+                    <span class="badge bg-secondary" th:unless="${rule.active}">выключено</span>
+                </td>
+                <td class="text-end">
+                    <form th:action="@{/ui/notifications/rules/{id}/deactivate(id=${rule.id})}" method="post"
+                          th:if="${rule.active}">
+                        <button class="btn btn-sm btn-outline-danger" type="submit">Выключить</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+
+        <div class="row g-3 mt-1">
+            <div class="col-12 col-xl-8">
+                <div class="card">
+                    <div class="card-header">Новое правило</div>
+                    <div class="card-body">
+                        <form th:action="@{/ui/notifications/rules}" method="post" class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label" for="name">Название <span aria-hidden="true">*</span></label>
+                                <input class="form-control" id="name" name="name" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="triggerType">Повод <span aria-hidden="true">*</span></label>
+                                <select class="form-select" id="triggerType" name="triggerType" required>
+                                    <option th:each="trigger : ${triggers}" th:value="${trigger}"
+                                            th:text="${trigger.nameRu()}">заканчивается срок</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="daysBefore">Пороги, дней</label>
+                                <input class="form-control" id="daysBefore" name="daysBefore" placeholder="30, 15, 7, 1">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="recipientRoles">Роли-получатели</label>
+                                <select class="form-select" id="recipientRoles" name="recipientRoles" multiple size="4">
+                                    <option th:each="role : ${roles}" th:value="${role}" th:text="${role.nameRu()}">DPO</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="channels">Каналы <span aria-hidden="true">*</span></label>
+                                <select class="form-select" id="channels" name="channels" multiple size="4" required>
+                                    <option th:each="channel : ${channels}" th:value="${channel}"
+                                            th:text="${channel.nameRu()}">письмо</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="recipientEmails">Адреса получателей (через запятую)</label>
+                                <input class="form-control" id="recipientEmails" name="recipientEmails">
+                            </div>
+                            <div class="col-12">
+                                <button class="btn btn-primary" type="submit">Создать правило</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-xl-4">
+                <div class="card">
+                    <div class="card-header">Тестовое письмо</div>
+                    <div class="card-body">
+                        <form th:action="@{/ui/notifications/test-email}" method="post">
+                            <label class="form-label" for="email">Адрес</label>
+                            <input class="form-control mb-2" id="email" name="email" type="email" required>
+                            <button class="btn btn-outline-primary" type="submit">Отправить</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h2 class="h5 mt-4">Журнал</h2>
+        <table class="table bg-white align-middle">
+            <thead>
+            <tr>
+                <th scope="col">Создано</th><th scope="col">Получатель</th><th scope="col">Тема</th>
+                <th scope="col">Канал</th><th scope="col">Статус</th><th scope="col">Ошибка</th><th scope="col"></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="notification : ${notifications.content}">
+                <td th:text="${#temporals.format(notification.createdAt, 'dd.MM.yyyy HH:mm')}">17.08.2026 06:00</td>
+                <td th:text="${notification.recipient}">dpo@example.ru</td>
+                <td th:text="${notification.subjectLine}">ЦУС: заканчивается срок согласия</td>
+                <td th:text="${notification.channel.nameRu()}">письмо</td>
+                <td th:text="${notification.status.nameRu()}">отправлено</td>
+                <td class="text-truncate" style="max-width: 220px" th:text="${notification.lastError}"></td>
+                <td class="text-end">
+                    <form th:action="@{/ui/notifications/{id}/retry(id=${notification.id})}" method="post"
+                          th:if="${notification.status.name() == 'FAILED'}">
+                        <button class="btn btn-sm btn-outline-primary" type="submit">Повторить</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        <p class="text-muted" th:if="${notifications.isEmpty()}">Уведомлений пока нет.</p>
+    </main>
+</div>
+<script th:src="@{/assets/js/cus.js}"></script>
+</body>
+</html>

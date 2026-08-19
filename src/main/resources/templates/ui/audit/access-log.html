@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head th:replace="~{ui/fragments/layout :: head('Доступ к ПДн')}"></head>
+<body>
+<nav th:replace="~{ui/fragments/layout :: topbar}"></nav>
+<div class="cus-layout">
+    <aside th:replace="~{ui/fragments/layout :: sidebar('audit')}"></aside>
+    <main class="cus-content">
+        <h1 class="h4 mb-3">Аудит</h1>
+        <ul class="nav nav-tabs mb-3">
+            <li class="nav-item"><a class="nav-link" th:href="@{/ui/audit}">События</a></li>
+            <li class="nav-item"><a class="nav-link active" th:href="@{/ui/audit/access-log}">Доступ к ПДн</a></li>
+            <li class="nav-item"><a class="nav-link" th:href="@{/ui/audit/integrity}">Целостность</a></li>
+        </ul>
+
+        <form class="row g-2 mb-3" th:action="@{/ui/audit/access-log}" method="get">
+            <div class="col-md-4">
+                <label class="form-label" for="endpoint">Экран или эндпоинт</label>
+                <input class="form-control" id="endpoint" name="endpoint" placeholder="/api/v1/subjects">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="subjectId">Идентификатор клиента</label>
+                <input class="form-control" id="subjectId" name="subjectId">
+            </div>
+            <div class="col-md-4 align-self-end">
+                <button class="btn btn-primary" type="submit">Показать</button>
+            </div>
+        </form>
+
+        <table class="table bg-white align-middle">
+            <thead>
+            <tr><th scope="col">Когда</th><th scope="col">Пользователь</th><th scope="col">Экран или эндпоинт</th>
+                <th scope="col">Клиент</th><th scope="col">Request id</th></tr>
+            </thead>
+            <tbody>
+            <tr th:each="entry : ${entries.content}">
+                <td th:text="${#temporals.format(entry.occurredAt, 'dd.MM.yyyy HH:mm')}">17.08.2026 14:05</td>
+                <td><code class="small" th:text="${entry.userId}"></code></td>
+                <td th:text="${entry.endpoint}">/api/v1/subjects/{id}/card</td>
+                <td><code class="small" th:text="${entry.subjectId}"></code></td>
+                <td><code class="small" th:text="${entry.requestId}"></code></td>
+            </tr>
+            </tbody>
+        </table>
+        <p class="text-muted" th:if="${entries.isEmpty()}">Ничего не найдено.</p>
+    </main>
+</div>
+</body>
+</html>

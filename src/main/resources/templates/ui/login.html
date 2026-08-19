@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head th:replace="~{ui/fragments/layout :: head('Вход')}"></head>
+<body>
+<main class="cus-login">
+    <div class="card">
+        <div class="card-body">
+            <h1 class="h4 mb-3" th:text="${branding.operatorName}">Центр управления согласиями</h1>
+            <p class="text-muted small mb-4">Рабочее место сотрудника</p>
+
+            <div class="alert alert-danger" role="alert" th:if="${param.error != null}">
+                <span th:if="${param.locked == null}">Неверный логин или пароль</span>
+                <span th:if="${param.locked != null}">Слишком много попыток. Повторите позже</span>
+            </div>
+            <div class="alert alert-success" role="alert" th:if="${param.logout != null}">Вы вышли из системы</div>
+
+            <form th:action="@{/ui/login}" method="post">
+                <div class="mb-3">
+                    <label class="form-label" for="username">Логин</label>
+                    <input class="form-control" id="username" name="username" autocomplete="username" required
+                           autofocus>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="password">Пароль</label>
+                    <input class="form-control" id="password" name="password" type="password"
+                           autocomplete="current-password" required>
+                </div>
+                <button class="btn btn-primary w-100" type="submit">Войти</button>
+            </form>
+
+            <form th:if="${oidcEnabled}" th:action="@{/oauth2/authorization/corporate}" method="get" class="mt-2">
+                <button class="btn btn-outline-secondary w-100" type="submit">Войти через корпоративный аккаунт</button>
+            </form>
+        </div>
+    </div>
+</main>
+</body>
+</html>

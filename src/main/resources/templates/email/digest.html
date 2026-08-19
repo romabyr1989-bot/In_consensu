@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Сводка уведомлений</title>
+</head>
+<body style="margin:0;padding:24px;background:#f5f6f8;font-family:Arial,Helvetica,sans-serif;color:#1f2328;">
+<div style="max-width:840px;margin:0 auto;background:#ffffff;border-radius:8px;padding:24px;">
+    <h2 style="margin:0 0 8px;font-size:18px;" th:text="${title}">Истекающие согласия</h2>
+    <p style="margin:0 0 16px;">
+        Уведомлений за сегодня: <b th:text="${total}">42</b>. Полный список — во вложении
+        <code>notifications.csv</code>.
+    </p>
+    <table style="border-collapse:collapse;width:100%;font-size:13px;">
+        <thead>
+        <tr style="background:#f3f4f6;text-align:left;">
+            <th style="padding:8px;border-bottom:1px solid #e5e7eb;">Клиент</th>
+            <th style="padding:8px;border-bottom:1px solid #e5e7eb;">Внешний ид.</th>
+            <th style="padding:8px;border-bottom:1px solid #e5e7eb;">Тип согласия</th>
+            <th style="padding:8px;border-bottom:1px solid #e5e7eb;">Третье лицо</th>
+            <th style="padding:8px;border-bottom:1px solid #e5e7eb;">Действует до</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="row : ${rows}">
+            <td style="padding:8px;border-bottom:1px solid #f3f4f6;" th:text="${row.subjectFullName}">Травин Игорь Петрович</td>
+            <td style="padding:8px;border-bottom:1px solid #f3f4f6;" th:text="${row.subjectExternalId}">CRM-1002345</td>
+            <td style="padding:8px;border-bottom:1px solid #f3f4f6;" th:text="${row.consentTypeName}">Реклама по email</td>
+            <td style="padding:8px;border-bottom:1px solid #f3f4f6;" th:text="${row.thirdPartyName}"></td>
+            <td style="padding:8px;border-bottom:1px solid #f3f4f6;" th:text="${row.validUntil}">01.09.2026</td>
+        </tr>
+        </tbody>
+    </table>
+    <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 12px;">
+    <p style="font-size:12px;color:#6b7280;margin:0;">
+        Письмо отправлено автоматически Центром управления согласиями. Отвечать на него не нужно.
+    </p>
+</div>
+</body>
+</html>

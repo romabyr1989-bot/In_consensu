@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="ru">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- UI-0.10: ФИО клиента в заголовок окна не выводится -->
+    <title th:text="${title} + ' · ЦУС'">ЦУС</title>
+    <meta name="_csrf" th:content="${_csrf != null} ? ${_csrf.token} : ''">
+    <meta name="_csrf_header" th:content="${_csrf != null} ? ${_csrf.headerName} : ''">
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap-icons/font/bootstrap-icons.css}">
+    <link rel="stylesheet" th:href="@{/assets/css/cus.css}">
+    <script th:src="@{/webjars/htmx.org/dist/htmx.min.js}" defer></script>
+    <style th:inline="css">
+        :root { --cus-primary: [[${branding.color}]]; }
+    </style>
+</head>
+<body>
+
+<nav th:fragment="topbar" class="navbar navbar-expand cus-topbar px-3">
+    <a class="navbar-brand d-flex align-items-center gap-2" th:href="@{/ui/}">
+        <img th:if="${branding.logoUrl != null and !branding.logoUrl.isEmpty()}" th:src="${branding.logoUrl}"
+             alt="" height="24">
+        <span>ЦУС · <span th:text="${branding.operatorName}">Центр управления согласиями</span></span>
+    </a>
+    <form class="d-flex ms-4 flex-grow-1" style="max-width: 520px" th:action="@{/ui/subjects}" method="get"
+          role="search">
+        <label class="visually-hidden" for="global-search">Поиск клиента</label>
+        <input class="form-control" type="search" id="global-search" name="query"
+               placeholder="Телефон, email, ФИО или ID клиента" aria-label="Поиск клиента">
+    </form>
+    <div class="ms-auto d-flex align-items-center gap-3">
+        <span class="text-white-50 small">
+            <span th:text="${currentUserLogin}">admin</span> ·
+            <span th:text="${currentUserRolesRu}">Администратор</span>
+        </span>
+        <form th:action="@{/ui/logout}" method="post" class="m-0">
+            <button class="btn btn-sm btn-outline-light" type="submit">Выйти</button>
+        </form>
+    </div>
+</nav>
+
+<aside th:fragment="sidebar(active)" class="cus-sidebar">
+    <ul class="nav flex-column">
+        <li class="nav-item">
+            <a class="nav-link" th:href="@{/ui/}" th:classappend="${active == 'home'} ? 'active'">
+                <i class="bi bi-house" aria-hidden="true"></i> Главная</a>
+        </li>
+        <li class="nav-item" sec:authorize="hasAnyRole('MANAGER','DPO','ADMIN','MARKETING','LAWYER','AUDITOR')">
+            <a class="nav-link" th:href="@{/ui/subjects}" th:classappend="${active == 'subjects'} ? 'active'">
+                <i class="bi bi-people" aria-hidden="true"></i> Клиенты</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" th:href="@{/ui/catalog/types}" th:classappend="${active == 'types'} ? 'active'">
+                <i class="bi bi-list-check" aria-hidden="true"></i> Типы согласий</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link d-flex align-items-center" th:href="@{/ui/catalog/forms}"
+               th:classappend="${active == 'forms'} ? 'active'">
+                <i class="bi bi-file-text" aria-hidden="true"></i>&nbsp;Формы
+                <span class="badge bg-primary ms-auto" th:if="${awaitingFormsCount > 0}"
+                      th:text="${awaitingFormsCount}"
+                      th:aria-label="'Форм ждут вашего решения: ' + ${awaitingFormsCount}">2</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" th:href="@{/ui/third-parties}" th:classappend="${active == 'third-parties'} ? 'active'">
+                <i class="bi bi-building" aria-hidden="true"></i> Третьи лица</a>
+        </li>
+        <li class="nav-item" sec:authorize="hasAnyRole('DPO','ADMIN')">
+            <a class="nav-link" th:href="@{/ui/import}" th:classappend="${active == 'import'} ? 'active'">
+                <i class="bi bi-upload" aria-hidden="true"></i> Импорт</a>
+        </li>
+        <li class="nav-item" sec:authorize="hasAnyRole('DPO','ADMIN')">
+            <a class="nav-link" th:href="@{/ui/notifications}" th:classappend="${active == 'notifications'} ? 'active'">
+                <i class="bi bi-envelope" aria-hidden="true"></i> Уведомления</a>
+        </li>
+        <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+            <a class="nav-link" th:href="@{/ui/webhooks}" th:classappend="${active == 'webhooks'} ? 'active'">
+                <i class="bi bi-broadcast" aria-hidden="true"></i> Webhooks</a>
+        </li>
+        <li class="nav-item" sec:authorize="hasAnyRole('AUDITOR','DPO','ADMIN')">
+            <a class="nav-link" th:href="@{/ui/audit}" th:classappend="${active == 'audit'} ? 'active'">
+                <i class="bi bi-shield-check" aria-hidden="true"></i> Аудит</a>
+        </li>
+        <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+            <a class="nav-link" th:href="@{/ui/admin/users}" th:classappend="${active == 'users'} ? 'active'">
+                <i class="bi bi-person-gear" aria-hidden="true"></i> Пользователи</a>
+        </li>
+        <li class="nav-item" sec:authorize="hasAnyRole('ADMIN','DPO')">
+            <a class="nav-link" th:href="@{/ui/admin/settings}" th:classappend="${active == 'settings'} ? 'active'">
+                <i class="bi bi-sliders" aria-hidden="true"></i> Настройки оператора</a>
+        </li>
+    </ul>
+</aside>
+
+<div th:fragment="flash" th:if="${flashMessage != null or flashError != null}">
+    <div class="alert alert-success" role="alert" th:if="${flashMessage != null}" th:text="${flashMessage}"></div>
+    <div class="alert alert-danger" role="alert" th:if="${flashError != null}">
+        <span th:text="${flashError}">Ошибка</span>
+        <span class="text-muted small" th:if="${requestId != null}">Код обращения: <span th:text="${requestId}"></span></span>
+    </div>
+</div>
+
+</body>
+</html>

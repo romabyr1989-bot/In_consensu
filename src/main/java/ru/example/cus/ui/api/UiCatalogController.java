@@ -1,0 +1,266 @@
+package ru.example.cus.ui.api;
+
+import jakarta.servlet.http.HttpServletRequest;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import ru.example.cus.catalog.application.ConsentFormService;
+import ru.example.cus.catalog.application.ConsentTypeService;
+import ru.example.cus.catalog.application.FormWorkflowService;
+import ru.example.cus.common.domain.CommunicationChannel;
+import ru.example.cus.common.domain.ConsentCategory;
+import ru.example.cus.common.domain.ConsentSource;
+import ru.example.cus.common.error.ApiException;
+import ru.example.cus.ui.application.UiCatalogViewService;
+
+/** UI-6 … UI-10: типы согласий, список форм, конструктор, согласование и просмотр версии. */
+@Controller
+@PreAuthorize("isAuthenticated()")
+public class UiCatalogController {
+
+    private static final int PAGE_SIZE = 50;
+
+    private final UiCatalogViewService view;
+    private final ConsentTypeService types;
+    private final ConsentFormService forms;
+    private final FormWorkflowService workflow;
+
+    public UiCatalogController(
+            UiCatalogViewService view,
+            ConsentTypeService types,
+            ConsentFormService forms,
+            FormWorkflowService workflow) {
+        this.view = view;
+        this.forms = forms;
+        this.types = types;
+        this.workflow = workflow;
+    }
+
+    // ---------- UI-6: типы согласий ----------
+
+    @GetMapping("/ui/catalog/types")
+    public String types(Model model) {
+        model.addAttribute("types", view.types());
+        model.addAttribute("categories", ConsentCategory.values());
+        model.addAttribute("channels", CommunicationChannel.values());
+        return "ui/catalog/types";
+    }
+
+    @PostMapping("/ui/catalog/types")
+    @PreAuthorize("hasAnyRole('LAWYER','DPO','ADMIN')")
+    public String saveType(
+            @RequestParam String code,
+            @RequestParam String nameRu,
+            @RequestParam(required = false) String description,
+            @RequestParam ConsentCategory category,
+            @RequestParam(required = false) Set<CommunicationChannel> channels,
+            @RequestParam(defaultValue = "false") boolean requiresThirdParty,
+            @RequestParam(required = false) String defaultValidity,
+            @RequestParam(required = false) String dependsOnCode,
+            @RequestParam(defaultValue = "false") boolean businessSignificant,
+            @RequestParam(defaultValue = "false") boolean update,
+            RedirectAttributes redirect) {
+        ConsentTypeService.ConsentTypeForm form = new ConsentTypeService.ConsentTypeForm(
+                nameRu,
+                description,
+                category,
+                channels == null ? Set.of() : channels,
+                requiresThirdParty,
+                blankToNull(defaultValidity),
+                blankToNull(dependsOnCode),
+                businessSignificant,
+                0);
+        try {
+            if (update) {
+                types.update(code, form);
+                redirect.addFlashAttribute("flashMessage", "Тип согласия обновлён");
+            } else {
+                types.create(code, form);
+                redirect.addFlashAttribute("flashMessage", "Тип согласия создан");
+            }
+        } catch (ApiException e) {
+            redirect.addFlashAttribute("flashError", e.getMessage());
+        }
+        return "redirect:/ui/catalog/types";
+    }
+
+    @PostMapping("/ui/catalog/types/{code}/deactivate")
+    @PreAuthorize("hasAnyRole('LAWYER','DPO','ADMIN')")
+    public String deactivateType(@PathVariable String code, RedirectAttributes redirect) {
+        types.deactivate(code);
+        redirect.addFlashAttribute("flashMessage", "Тип согласия деактивирован");
+        return "redirect:/ui/catalog/types";
+    }
+
+    // ---------- UI-7: список форм ----------
+
+    @GetMapping("/ui/catalog/forms")
+    public String forms(
+            @RequestParam(required = false) String status, @RequestParam(defaultValue = "0") int page, Model model) {
+        model.addAttribute("forms", view.forms(status, PageRequest.of(page, PAGE_SIZE)));
+        model.addAttribute("status", status);
+        model.addAttribute("awaiting", view.awaitingDecision());
+        return "ui/catalog/forms";
+    }
+
+    @PostMapping("/ui/catalog/forms")
+    @PreAuthorize("hasAnyRole('LAWYER','DPO','ADMIN')")
+    public String createForm(@RequestParam String code, @RequestParam String title, RedirectAttributes redirect) {
+        try {
+            var draft = forms.createDraft(
+                    code,
+                    new ConsentFormService.FormDraft(
+                            title, "", "", "", Set.of(ConsentSource.WEBSITE_APPLICATION), List.of()));
+            return "redirect:/ui/catalog/forms/" + draft.getId() + "/edit";
+        } catch (ApiException e) {
+            redirect.addFlashAttribute("flashError", e.getMessage());
+            return "redirect:/ui/catalog/forms";
+        }
+    }
+
+    // ---------- UI-10: просмотр версии ----------
+
+    @GetMapping("/ui/catalog/forms/{id}")
+    public String form(@PathVariable UUID id, Model model) {
+        model.addAttribute("form", view.form(id));
+        return "ui/catalog/form-view";
+    }
+
+    // ---------- UI-8: конструктор ----------
+
+    @GetMapping("/ui/catalog/forms/{id}/edit")
+    @PreAuthorize("hasAnyRole('LAWYER','DPO','ADMIN')")
+    public String editForm(@PathVariable UUID id, Model model) {
+        model.addAttribute("form", view.form(id));
+        model.addAttribute("activeTypes", types.activeTypes());
+        model.addAttribute("sources", ConsentSource.values());
+        model.addAttribute("pdnCategories", view.pdnCategories());
+        model.addAttribute("thirdParties", view.thirdParties());
+        return "ui/catalog/form-edit";
+    }
+
+    @PostMapping("/ui/catalog/forms/{id}/edit")
+    @PreAuthorize("hasAnyRole('LAWYER','DPO','ADMIN')")
+    public String saveDraft(@PathVariable UUID id, HttpServletRequest request, RedirectAttributes redirect) {
+        try {
+            view.saveDraft(id, request);
+            redirect.addFlashAttribute("flashMessage", "Черновик сохранён");
+        } catch (ApiException e) {
+            redirect.addFlashAttribute("flashError", e.getMessage());
+        }
+        return "redirect:/ui/catalog/forms/" + id + "/edit";
+    }
+
+    @GetMapping("/ui/catalog/forms/{id}/preview")
+    @PreAuthorize("hasAnyRole('LAWYER','DPO','ADMIN')")
+    public String preview(@PathVariable UUID id, Model model) {
+        model.addAttribute("form", view.form(id));
+        return "ui/catalog/fragments :: preview";
+    }
+
+    @PostMapping("/ui/catalog/forms/{id}/submit")
+    @PreAuthorize("hasAnyRole('LAWYER','DPO','ADMIN')")
+    public String submit(@PathVariable UUID id, RedirectAttributes redirect) {
+        try {
+            workflow.submit(id);
+            redirect.addFlashAttribute("flashMessage", "Форма отправлена на согласование");
+        } catch (ApiException e) {
+            redirect.addFlashAttribute("flashError", e.getMessage());
+        }
+        return "redirect:/ui/catalog/forms/" + id + "/review";
+    }
+
+    @PostMapping("/ui/catalog/forms/{id}/delete")
+    @PreAuthorize("hasAnyRole('LAWYER','DPO','ADMIN')")
+    public String deleteDraft(@PathVariable UUID id, RedirectAttributes redirect) {
+        forms.deleteDraft(id);
+        redirect.addFlashAttribute("flashMessage", "Черновик удалён");
+        return "redirect:/ui/catalog/forms";
+    }
+
+    // ---------- UI-9: согласование ----------
+
+    @GetMapping("/ui/catalog/forms/{id}/review")
+    public String review(@PathVariable UUID id, Model model) {
+        model.addAttribute("form", view.form(id));
+        model.addAttribute("approvals", workflow.historyOf(id));
+        model.addAttribute("requiredRoles", workflow.requiredRoles());
+        model.addAttribute("approvedRoles", view.approvedRoles(id));
+        // Этап 8: юрист видит, что изменилось по сравнению с предыдущей опубликованной версией (FR-3.2).
+        view.previousVersion(id).ifPresent(previous -> {
+            model.addAttribute("previousVersion", previous);
+            model.addAttribute("diff", view.diff(previous.getId(), id));
+        });
+        return "ui/catalog/form-review";
+    }
+
+    @PostMapping("/ui/catalog/forms/{id}/approve")
+    @PreAuthorize("hasAnyRole('LAWYER','DPO')")
+    public String approve(
+            @PathVariable UUID id, @RequestParam(required = false) String comment, RedirectAttributes redirect) {
+        try {
+            workflow.approve(id, comment);
+            redirect.addFlashAttribute("flashMessage", "Форма одобрена");
+        } catch (ApiException e) {
+            redirect.addFlashAttribute("flashError", e.getMessage());
+        }
+        return "redirect:/ui/catalog/forms/" + id + "/review";
+    }
+
+    @PostMapping("/ui/catalog/forms/{id}/reject")
+    @PreAuthorize("hasAnyRole('LAWYER','DPO')")
+    public String reject(@PathVariable UUID id, @RequestParam String comment, RedirectAttributes redirect) {
+        try {
+            workflow.reject(id, comment);
+            redirect.addFlashAttribute("flashMessage", "Форма возвращена на доработку");
+        } catch (ApiException e) {
+            redirect.addFlashAttribute("flashError", e.getMessage());
+        }
+        return "redirect:/ui/catalog/forms/" + id + "/review";
+    }
+
+    @PostMapping("/ui/catalog/forms/{id}/publish")
+    @PreAuthorize("hasAnyRole('DPO','ADMIN')")
+    public String publish(@PathVariable UUID id, RedirectAttributes redirect) {
+        try {
+            workflow.publish(id);
+            redirect.addFlashAttribute("flashMessage", "Версия опубликована");
+        } catch (ApiException e) {
+            redirect.addFlashAttribute("flashError", e.getMessage());
+        }
+        return "redirect:/ui/catalog/forms/" + id;
+    }
+
+    @PostMapping("/ui/catalog/forms/{id}/archive")
+    @PreAuthorize("hasAnyRole('DPO','ADMIN')")
+    public String archive(@PathVariable UUID id, RedirectAttributes redirect) {
+        workflow.archive(id);
+        redirect.addFlashAttribute("flashMessage", "Форма отправлена в архив");
+        return "redirect:/ui/catalog/forms/" + id;
+    }
+
+    @PostMapping("/ui/catalog/forms/{id}/new-version")
+    @PreAuthorize("hasAnyRole('LAWYER','DPO','ADMIN')")
+    public String newVersion(@PathVariable UUID id, RedirectAttributes redirect) {
+        try {
+            var created = forms.createNewVersion(id);
+            return "redirect:/ui/catalog/forms/" + created.getId() + "/edit";
+        } catch (ApiException e) {
+            redirect.addFlashAttribute("flashError", e.getMessage());
+            return "redirect:/ui/catalog/forms/" + id;
+        }
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value;
+    }
+}

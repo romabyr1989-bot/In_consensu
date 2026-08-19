@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="ru">
+<head th:replace="~{ui/fragments/layout :: head('Третье лицо')}"></head>
+<body>
+<nav th:replace="~{ui/fragments/layout :: topbar}"></nav>
+<div class="cus-layout">
+    <aside th:replace="~{ui/fragments/layout :: sidebar('third-parties')}"></aside>
+    <main class="cus-content">
+        <div th:replace="~{ui/fragments/layout :: flash}"></div>
+        <h1 class="h4 mb-3" th:text="${thirdParty.name}">ООО «Моменто»</h1>
+
+        <div class="card mb-3" sec:authorize="hasAnyRole('LAWYER','DPO','ADMIN')">
+            <div class="card-header">Реквизиты и договор</div>
+            <div class="card-body">
+                <form th:action="@{/ui/third-parties/{id}(id=${thirdParty.id})}" method="post" class="row g-3"
+                      data-warn-unsaved="true">
+                    <div class="col-md-6">
+                        <label class="form-label" for="name">Наименование</label>
+                        <input class="form-control" id="name" name="name" th:value="${thirdParty.name}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="address">Адрес</label>
+                        <input class="form-control" id="address" name="address" th:value="${thirdParty.address}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="role">Роль</label>
+                        <select class="form-select" id="role" name="role">
+                            <option th:each="role : ${roles}" th:value="${role}" th:text="${role.nameRu()}"
+                                    th:selected="${role == thirdParty.role}">Обработчик</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="contractNumber">Договор</label>
+                        <input class="form-control" id="contractNumber" name="contractNumber"
+                               th:value="${thirdParty.contractNumber}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="contractValidUntil">Действует до</label>
+                        <input class="form-control" type="date" id="contractValidUntil" name="contractValidUntil"
+                               th:value="${thirdParty.contractValidUntil}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="allowedPdnCategories">Разрешённые категории ПДн</label>
+                        <select class="form-select" id="allowedPdnCategories" name="allowedPdnCategories" multiple size="5">
+                            <option th:each="category : ${categories}" th:value="${category.code}"
+                                    th:text="${category.nameRu}"
+                                    th:selected="${#arrays.contains(thirdParty.allowedPdnCategories, category.code)}">ФИО</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="contactEmail">Контактный email</label>
+                        <input class="form-control" id="contactEmail" name="contactEmail"
+                               th:value="${thirdParty.contactEmail}">
+                    </div>
+                    <div class="col-12">
+                        <button class="btn btn-primary" type="submit">Сохранить</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Выгрузки партнёру</span>
+                <form th:action="@{/ui/third-parties/{id}/exports(id=${thirdParty.id})}" method="post"
+                      sec:authorize="hasAnyRole('DPO','ADMIN')" class="d-flex gap-2"
+                      data-confirm="В файл попадут только разрешённые договором категории ПДн субъектов с действующим согласием на передачу. Сформировать выгрузку?">
+                    <select class="form-select form-select-sm" name="format" aria-label="Формат выгрузки">
+                        <option value="csv">CSV</option>
+                        <option value="json">JSON</option>
+                    </select>
+                    <button class="btn btn-sm btn-primary" type="submit">Сформировать выгрузку</button>
+                </form>
+            </div>
+            <table class="table table-sm mb-0">
+                <thead>
+                <tr><th scope="col">Когда</th><th scope="col">Кто</th><th scope="col">Формат</th>
+                    <th scope="col">Записей</th><th scope="col">Ссылка действует до</th><th scope="col"></th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="export : ${exports}">
+                    <td th:text="${#temporals.format(export.requestedAt, 'dd.MM.yyyy HH:mm')}">17.08.2026 10:00</td>
+                    <td th:text="${export.requestedBy}">dpo</td>
+                    <td th:text="${export.format}">csv</td>
+                    <td th:text="${export.recordsCount}">42</td>
+                    <td th:text="${#temporals.format(export.expiresAt, 'dd.MM.yyyy HH:mm')}">18.08.2026 10:00</td>
+                    <td class="text-end">
+                        <a class="btn btn-sm btn-link" th:href="@{/api/v1/exports/{id}/download(id=${export.id})}">Скачать</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+            <p class="text-muted p-3 mb-0" th:if="${exports.isEmpty()}">Выгрузок ещё не было.</p>
+        </div>
+
+        <form th:action="@{/ui/third-parties/{id}/deactivate(id=${thirdParty.id})}" method="post"
+              sec:authorize="hasAnyRole('LAWYER','DPO','ADMIN')" th:if="${thirdParty.active}"
+              data-confirm="Третье лицо будет деактивировано: новые согласия на передачу зарегистрировать нельзя, действующие сохранятся. Продолжить?">
+            <button class="btn btn-outline-danger" type="submit">Деактивировать</button>
+        </form>
+    </main>
+</div>
+<script th:src="@{/assets/js/cus.js}"></script>
+</body>
+</html>
