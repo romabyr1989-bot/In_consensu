@@ -6,6 +6,7 @@ import static org.springframework.security.test.web.servlet.response.SecurityMoc
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
@@ -117,6 +118,29 @@ class UiAccessIT extends AbstractIntegrationTest {
         mockMvc.perform(formLogin("/ui/login").user(user.getLogin()).password("не тот пароль"))
                 .andExpect(unauthenticated())
                 .andExpect(redirectedUrl("/ui/login?error"));
+    }
+
+    /**
+     * FR-11.1, UI-1: перебор пароля через форму приводит к блокировке.
+     *
+     * <p>Счётчик неудач наращивал только REST-вход, а форму обрабатывает стандартный провайдер, который
+     * лишь читает признак блокировки. Через `/ui/login` пароль можно было подбирать без ограничений, а
+     * ветка страницы «слишком много попыток» была недостижима.
+     */
+    @Test
+    void repeated_wrong_passwords_lock_the_account_and_the_page_says_for_how_long() throws Exception {
+        AppUser user = accounts.create(RoleCode.MANAGER.name());
+        int allowed = 5;
+
+        for (int attempt = 0; attempt < allowed; attempt++) {
+            mockMvc.perform(formLogin("/ui/login").user(user.getLogin()).password("не тот пароль"))
+                    .andExpect(unauthenticated());
+        }
+
+        // Учётная запись заблокирована: даже верный пароль теперь не пускает, а страница сообщает срок.
+        mockMvc.perform(formLogin("/ui/login").user(user.getLogin()).password(TestAccounts.PASSWORD))
+                .andExpect(unauthenticated())
+                .andExpect(redirectedUrlPattern("/ui/login?error&locked&minutes=*"));
     }
 
     @Test

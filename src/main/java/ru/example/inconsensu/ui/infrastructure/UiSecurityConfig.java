@@ -27,6 +27,12 @@ public class UiSecurityConfig {
 
     public static final String LOGIN_PATH = "/ui/login";
 
+    private final ru.example.inconsensu.iam.application.AuthService authService;
+
+    public UiSecurityConfig(ru.example.inconsensu.iam.application.AuthService authService) {
+        this.authService = authService;
+    }
+
     @Bean
     @Order(2)
     public SecurityFilterChain uiSecurityFilterChain(HttpSecurity http) throws Exception {
@@ -54,7 +60,7 @@ public class UiSecurityConfig {
                 .formLogin(form -> form.loginPage(LOGIN_PATH)
                         .loginProcessingUrl(LOGIN_PATH)
                         .successHandler(successHandler)
-                        .failureUrl(LOGIN_PATH + "?error")
+                        .failureHandler(failureHandler())
                         .permitAll())
                 .logout(logout -> logout.logoutRequestMatcher(new AntPathRequestMatcher("/ui/logout"))
                         .logoutSuccessUrl(LOGIN_PATH + "?logout")
@@ -65,6 +71,23 @@ public class UiSecurityConfig {
                 .exceptionHandling(handling -> handling.accessDeniedPage("/ui/forbidden"));
 
         return http.build();
+    }
+
+    /**
+     * UI-1: заблокированной учётной записи сообщается, через сколько можно повторить.
+     *
+     * <p>Раньше стоял фиксированный переход на `?error`, поэтому ветка «слишком много попыток» на странице
+     * входа была недостижима, а сотрудник видел «неверный логин или пароль» и продолжал подбирать.
+     */
+    private org.springframework.security.web.authentication.AuthenticationFailureHandler failureHandler() {
+        return (request, response, exception) -> {
+            String target = LOGIN_PATH + "?error";
+            if (exception instanceof org.springframework.security.authentication.LockedException) {
+                target = LOGIN_PATH + "?error&locked&minutes="
+                        + authService.lockMinutesLeft(request.getParameter("username"));
+            }
+            new org.springframework.security.web.DefaultRedirectStrategy().sendRedirect(request, response, target);
+        };
     }
 
     /** UI-0.3: cookie сессии не должна уезжать на сторонние сайты. */

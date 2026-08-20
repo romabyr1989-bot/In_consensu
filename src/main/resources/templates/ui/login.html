@@ -10,7 +10,8 @@
 
             <div class="alert alert-danger" role="alert" th:if="${param.error != null}">
                 <span th:if="${param.locked == null}">Неверный логин или пароль</span>
-                <span th:if="${param.locked != null}">Слишком много попыток. Повторите позже</span>
+                <span th:if="${param.locked != null}"
+                      th:text="'Слишком много попыток. Повторите через ' + ${param.minutes} + ' мин.'">Слишком много попыток</span>
             </div>
             <div class="alert alert-success" role="alert" th:if="${param.logout != null}">Вы вышли из системы</div>
 

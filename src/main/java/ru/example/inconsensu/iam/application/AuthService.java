@@ -101,6 +101,25 @@ public class AuthService {
         return tokens(user);
     }
 
+    /**
+     * Сколько минут осталось до конца блокировки учётной записи; ноль — не заблокирована (FR-11.1, UI-1).
+     *
+     * <p>Нужна странице входа, чтобы сказать сотруднику срок. Модуль `ui` спрашивает через
+     * application-сервис: смотреть в репозиторий чужого модуля запрещено §5.
+     */
+    @Transactional(readOnly = true)
+    public long lockMinutesLeft(String login) {
+        if (login == null || login.isBlank()) {
+            return 0;
+        }
+        Instant now = clock.instant();
+        return users.findByLoginIgnoreCase(login)
+                .filter(user -> user.isLocked(now))
+                .map(user -> Math.max(
+                        1L, Duration.between(now, user.getLockedUntil()).toMinutes()))
+                .orElse(0L);
+    }
+
     @Transactional
     public AuthTokens refresh(String refreshToken) {
         String login;
