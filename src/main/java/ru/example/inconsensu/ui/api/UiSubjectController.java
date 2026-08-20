@@ -47,6 +47,7 @@ public class UiSubjectController {
     private final RevocationService revocation;
     private final UiSearchCriteria searchCriteria;
     private final ConsentTypeService types;
+    private final ru.example.inconsensu.registry.application.SubjectCardPdfService cardPdf;
     private final ThirdPartyService thirdParties;
 
     public UiSubjectController(
@@ -55,13 +56,15 @@ public class UiSubjectController {
             RevocationService revocation,
             UiSearchCriteria searchCriteria,
             ConsentTypeService types,
-            ThirdPartyService thirdParties) {
+            ThirdPartyService thirdParties,
+            ru.example.inconsensu.registry.application.SubjectCardPdfService cardPdf) {
         this.view = view;
         this.cards = cards;
         this.revocation = revocation;
         this.searchCriteria = searchCriteria;
         this.types = types;
         this.thirdParties = thirdParties;
+        this.cardPdf = cardPdf;
     }
 
     /**
@@ -149,6 +152,8 @@ public class UiSubjectController {
                 Page<UiSubjectViewService.SubjectRow> results = view.search(
                         query,
                         filter,
+                        // Без явной сортировки Pageable уходит несортированным: тогда работает нативный
+                        // запрос под индексом subject_full_name_prefix_idx, а порядок задаёт он сам.
                         PageRequest.of(
                                 Math.max(page, 0),
                                 normalizeSize(size),
@@ -156,7 +161,7 @@ public class UiSubjectController {
                                         sort,
                                         direction,
                                         SUBJECT_SORT,
-                                        org.springframework.data.domain.Sort.by("lastName", "firstName", "id"))));
+                                        org.springframework.data.domain.Sort.unsorted())));
                 model.addAttribute("results", results);
             } catch (ApiException e) {
                 // Подсказка о формате запроса — часть экрана, а не ошибка сервера (UI-3).
@@ -171,6 +176,24 @@ public class UiSubjectController {
         model.addAttribute("card", view.card(id, superseded));
         model.addAttribute("showSuperseded", superseded);
         return "ui/subjects/card";
+    }
+
+    /**
+     * UI-4: карточка клиента в PDF из интерфейса.
+     *
+     * <p>Ссылка вела на `/api/v1/subjects/{id}/card.pdf`, где сессионная кука не принимается: кнопка
+     * «Экспорт в PDF» всегда отвечала 401. Рендер тот же, права — как у карточки.
+     */
+    @GetMapping(
+            value = "/ui/subjects/{id}/card.pdf",
+            produces = org.springframework.http.MediaType.APPLICATION_PDF_VALUE)
+    public org.springframework.http.ResponseEntity<byte[]> cardPdf(@PathVariable UUID id) {
+        return org.springframework.http.ResponseEntity.ok()
+                .header(
+                        org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+                        // В имени файла только идентификатор: ФИО в имя файла и в URL не попадает (UI-0.10).
+                        "attachment; filename=\"consent-card-" + id + ".pdf\"")
+                .body(cardPdf.render(id));
     }
 
     /** Вкладки карточки (UI-4): грузятся фрагментом, чтобы страница не перезагружалась. */
@@ -224,7 +247,8 @@ public class UiSubjectController {
         return historyFragment(id, eventType, view.startOfDay(from), view.startOfNextDay(to), model);
     }
 
-    /** UI-4: проверка целостности цепочки событий клиента. */
+    /** UI-4: проверка целостности цепочки событий клиента — функция аудита, значит и роли аудита (§16.2). */
+    @PreAuthorize("hasAnyRole('AUDITOR','DPO','ADMIN')")
     @PostMapping("/ui/subjects/{id}/history/verify")
     public String verifyHistory(@PathVariable UUID id, Model model) {
         model.addAttribute("report", view.verifySubjectHistory(id));
@@ -253,7 +277,8 @@ public class UiSubjectController {
             RevocationSource.EMAIL_REQUEST,
             RevocationSource.OFFICE);
 
-    /** UI-5: список согласий, которые погаснут вместе с выбранным. */
+    /** UI-5: список согласий, которые погаснут вместе с выбранным. Диалог — начало отзыва, значит и права те же. */
+    @PreAuthorize("hasAnyRole('MANAGER','DPO','ADMIN')")
     @GetMapping("/ui/consents/{id}/revocation-dialog")
     public String revocationDialog(
             @PathVariable UUID id, @RequestParam(defaultValue = "card") String returnTo, Model model) {
@@ -272,6 +297,7 @@ public class UiSubjectController {
      * <p>Раньше кнопка вела на несуществующий маршрут и не делала ничего. Здесь согласие ещё не выбрано,
      * поэтому диалог открывается со списком отзываемых согласий клиента.
      */
+    @PreAuthorize("hasAnyRole('MANAGER','DPO','ADMIN')")
     @GetMapping("/ui/subjects/{id}/revocation-dialog")
     public String subjectRevocationDialog(@PathVariable UUID id, Model model) {
         List<UiSubjectViewService.RevocableConsent> revocable = view.revocableConsents(id);

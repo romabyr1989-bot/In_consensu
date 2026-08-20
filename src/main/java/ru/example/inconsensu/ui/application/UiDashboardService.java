@@ -59,8 +59,8 @@ public class UiDashboardService {
     /** Блок администратора «Ошибки импорта» (UI-2). */
     @Transactional(readOnly = true)
     public List<ImportJob> failedImports() {
-        return imports.list(PageRequest.of(0, RECENT_LIMIT)).getContent().stream()
-                .filter(job -> job.getRejected() > 0 || job.getStatus().name().equals("FAILED"))
-                .toList();
+        // Отбор запросом: раньше бралось десять последних задач любого исхода, и после десяти удачных
+        // импортов блок пустел, хотя ошибки в системе были.
+        return imports.failed(RECENT_LIMIT);
     }
 }

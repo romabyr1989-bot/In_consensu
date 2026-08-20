@@ -112,6 +112,12 @@ public class ConsentImportService {
         return jobs.findById(jobId).orElseThrow(() -> ApiException.notFound("Задача импорта не найдена"));
     }
 
+    /** Задачи с ошибками: блок «Ошибки импорта» на дашборде (UI-2). */
+    @Transactional(readOnly = true)
+    public List<ImportJob> failed(int limit) {
+        return jobs.findFailed(org.springframework.data.domain.PageRequest.of(0, limit));
+    }
+
     @Transactional(readOnly = true)
     public org.springframework.data.domain.Page<ImportJob> list(org.springframework.data.domain.Pageable pageable) {
         return jobs.findAllByOrderByStartedAtDesc(pageable);

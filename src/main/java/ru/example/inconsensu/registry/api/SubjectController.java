@@ -130,7 +130,13 @@ public class SubjectController {
     }
 
     /** FR-5.1: полная история согласий субъекта, включая заменённые и отозванные. */
-    /** UI-4, этап 8: карточка клиента в PDF. Контакты маскируются по роли, как и на экране (NFR-3). */
+    /**
+     * UI-4, этап 8: карточка клиента в PDF. Контакты маскируются по роли, как и на экране (NFR-3).
+     *
+     * <p>Проверка роли обязательна и здесь: у соседних методов карточки она стояла, а у выгрузки в PDF её
+     * не было — служебная роль без права на ПДн получала файл с карточкой клиента.
+     */
+    @PreAuthorize(Authorities.EMPLOYEE)
     @GetMapping(value = "/{id}/card.pdf", produces = org.springframework.http.MediaType.APPLICATION_PDF_VALUE)
     public org.springframework.http.ResponseEntity<byte[]> cardPdf(@PathVariable UUID id) {
         byte[] pdf = cardPdf.render(id);

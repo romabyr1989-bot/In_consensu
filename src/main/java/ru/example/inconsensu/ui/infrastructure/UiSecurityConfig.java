@@ -27,17 +27,38 @@ public class UiSecurityConfig {
 
     public static final String LOGIN_PATH = "/ui/login";
 
-    private final ru.example.inconsensu.iam.application.AuthService authService;
+    /** Имя параметра с адресом возврата: он же в форме входа и на странице «Сессия истекла». */
+    public static final String RETURN_PARAMETER = "from";
 
-    public UiSecurityConfig(ru.example.inconsensu.iam.application.AuthService authService) {
+    private final ru.example.inconsensu.iam.application.AuthService authService;
+    private final String frameAncestors;
+
+    public UiSecurityConfig(
+            ru.example.inconsensu.iam.application.AuthService authService,
+            @org.springframework.beans.factory.annotation.Value("${inconsensu.selfservice.frame-ancestors:'self'}")
+                    String frameAncestors) {
         this.authService = authService;
+        this.frameAncestors = frameAncestors;
     }
 
     @Bean
     @Order(2)
     public SecurityFilterChain uiSecurityFilterChain(HttpSecurity http) throws Exception {
         SavedRequestAwareAuthenticationSuccessHandler successHandler =
-                new SavedRequestAwareAuthenticationSuccessHandler();
+                new SavedRequestAwareAuthenticationSuccessHandler() {
+                    @Override
+                    protected String determineTargetUrl(
+                            jakarta.servlet.http.HttpServletRequest request,
+                            jakarta.servlet.http.HttpServletResponse response) {
+                        // Адрес возврата приходит из формы: сохранённого запроса после истечения сессии нет.
+                        // Проверка обязательна — «//evil.example» увела бы сотрудника на чужой сайт.
+                        String requested = request.getParameter(RETURN_PARAMETER);
+                        if (requested != null && requested.startsWith("/ui/") && !requested.startsWith("//")) {
+                            return requested;
+                        }
+                        return super.determineTargetUrl(request, response);
+                    }
+                };
         successHandler.setDefaultTargetUrl("/ui/");
 
         http.securityMatcher("/ui/**", "/self/ui/**", "/webjars/**", "/assets/**", "/favicon.ico")
@@ -67,10 +88,45 @@ public class UiSecurityConfig {
                         .invalidateHttpSession(true)
                         .deleteCookies("JSESSIONID"))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
-                        .invalidSessionUrl("/ui/session-expired"))
-                .exceptionHandling(handling -> handling.accessDeniedPage("/ui/forbidden"));
+                        // UI-0.3: после входа сотрудник возвращается туда, где его застало истечение сессии.
+                        // invalidSessionUrl отдаёт голый переход, поэтому адрес переносится параметром.
+                        .invalidSessionStrategy(UiSecurityConfig::sessionExpired))
+                .exceptionHandling(handling -> handling.accessDeniedPage("/ui/forbidden"))
+                // UI-18: страница самообслуживания встраивается в личный кабинет клиента, поэтому запрет
+                // фреймов с неё снимается, а разрешённые источники задаёт оператор настройкой
+                // INCONSENSU_SELFSERVICE_FRAME_ANCESTORS. Экраны сотрудника остаются закрытыми от фреймов.
+                .headers(headers ->
+                        headers.frameOptions(frame -> frame.disable()).addHeaderWriter(this::frameAncestors));
 
         return http.build();
+    }
+
+    /**
+     * Заголовки фреймов: страница клиента встраивается, экраны сотрудника — нет (UI-18, UI-0.3).
+     *
+     * <p>Политика задаётся настройкой оператора: по умолчанию встраивание разрешено только тому же
+     * источнику, а личный кабинет клиента добавляется явно — иначе страницу с согласиями можно было бы
+     * открыть во фрейме на чужом сайте.
+     */
+    private void frameAncestors(
+            jakarta.servlet.http.HttpServletRequest request, jakarta.servlet.http.HttpServletResponse response) {
+        String path = request.getRequestURI();
+        if (path != null && path.startsWith("/self/ui")) {
+            response.setHeader("Content-Security-Policy", "frame-ancestors " + frameAncestors);
+        } else {
+            response.setHeader("X-Frame-Options", "DENY");
+            response.setHeader("Content-Security-Policy", "frame-ancestors 'none'");
+        }
+    }
+
+    /** Куда после истечения сессии: страница объяснения и адрес, на который вернуть после входа. */
+    private static void sessionExpired(
+            jakarta.servlet.http.HttpServletRequest request, jakarta.servlet.http.HttpServletResponse response)
+            throws java.io.IOException {
+        String target =
+                request.getRequestURI() + (request.getQueryString() == null ? "" : "?" + request.getQueryString());
+        response.sendRedirect("/ui/session-expired?from="
+                + java.net.URLEncoder.encode(target, java.nio.charset.StandardCharsets.UTF_8));
     }
 
     /**

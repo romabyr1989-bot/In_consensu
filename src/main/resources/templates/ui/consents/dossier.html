@@ -118,7 +118,7 @@
 
         <button class="btn btn-outline-danger" sec:authorize="hasAnyRole('MANAGER','DPO','ADMIN')"
                 th:if="${dossier.consent().status.name() == 'ACTIVE' or dossier.consent().status.name() == 'EXPIRING'}"
-                th:hx-get="@{/ui/consents/{id}/revocation-dialog(id=${dossier.consent().id})}"
+                th:hx-get="@{/ui/consents/{id}/revocation-dialog(id=${dossier.consent().id},returnTo='dossier')}"
                 hx-target="#ic-modal-content" hx-swap="innerHTML">Отозвать</button>
 
         <div class="modal fade" id="ic-modal" tabindex="-1" aria-hidden="true">

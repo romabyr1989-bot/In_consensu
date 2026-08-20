@@ -147,6 +147,9 @@
                 or selectedFrom != null or selectedTo != null}">
             <summary class="mb-2">Фильтры</summary>
             <form class="row g-2 align-items-end" method="get" th:action="@{/ui/notifications}">
+                <!-- UI-0.8: выбранная сортировка переживает применение фильтров. -->
+                <input type="hidden" name="sort" th:if="${sort != null}" th:value="${sort}">
+                <input type="hidden" name="direction" th:if="${direction != null}" th:value="${direction}">
                 <input type="hidden" name="tab" value="journal">
                 <div class="col-md-2">
                     <label class="form-label" for="from">С даты</label>
@@ -178,13 +181,6 @@
                         <option value="">любой</option>
                         <option th:each="value : ${channels}" th:value="${value}" th:text="${value.nameRu()}"
                                 th:selected="${value == selectedChannel}">письмо</option>
-                    </select>
-                </div>
-                <div class="col-md-1">
-                    <label class="form-label" for="size">На странице</label>
-                    <select class="form-select" id="size" name="size">
-                        <option th:each="value : ${ {20, 50, 100} }" th:value="${value}" th:text="${value}"
-                                th:selected="${value == pageSize}">20</option>
                     </select>
                 </div>
                 <div class="col-12">

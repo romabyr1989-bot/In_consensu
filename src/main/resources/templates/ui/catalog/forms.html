@@ -22,6 +22,9 @@
         <div th:replace="~{ui/fragments/layout :: flash}"></div>
 
         <form class="row g-2 mb-3" th:action="@{/ui/catalog/forms}" method="get">
+                <!-- UI-0.8: выбранная сортировка переживает применение фильтров. -->
+                <input type="hidden" name="sort" th:if="${sort != null}" th:value="${sort}">
+                <input type="hidden" name="direction" th:if="${direction != null}" th:value="${direction}">
             <div class="col-md-4">
                 <label class="form-label" for="text">Поиск по коду, названию и тексту</label>
                 <input class="form-control" id="text" name="text" th:value="${text}">
@@ -49,13 +52,6 @@
                     <option value="">любое</option>
                     <option th:each="party : ${thirdParties}" th:value="${party.id}" th:text="${party.name}"
                             th:selected="${party.id == thirdPartyId}">ООО «Моменто»</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <label class="form-label" for="size">Строк на странице</label>
-                <select class="form-select" id="size" name="size">
-                    <option th:each="value : ${ {20,50,100} }" th:value="${value}" th:text="${value}"
-                            th:selected="${value == size}">20</option>
                 </select>
             </div>
             <input type="hidden" name="status" th:value="${status}">

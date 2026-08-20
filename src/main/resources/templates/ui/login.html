@@ -16,6 +16,8 @@
             <div class="alert alert-success" role="alert" th:if="${param.logout != null}">Вы вышли из системы</div>
 
             <form th:action="@{/ui/login}" method="post">
+            <!-- UI-0.3: адрес, на который вернуть сотрудника после входа; проверяется на сервере. -->
+            <input type="hidden" name="from" th:value="${param.from}">
                 <div class="mb-3">
                     <label class="form-label" for="username">Логин</label>
                     <input class="form-control" id="username" name="username" autocomplete="username" required

@@ -80,13 +80,15 @@ public class UiSelfServiceViewService {
     public SelfPage page(UUID sessionId) {
         SelfUiSession session = sessions.activeSession(sessionId);
         Subject subject = subjects.get(session.getSubjectId());
-        List<ConsentQueryService.ConsentView> effective = consents.effectiveConsentsOf(subject.getId());
+        // Текущие, а не эффективные: выборка эффективных исключает отозванные по определению, и блок
+        // «История ваших отзывов» (UI-18) оставался пустым, даже когда клиент только что нажал «Отозвать».
+        List<ConsentQueryService.ConsentView> current = consents.currentConsentsOf(subject.getId());
 
-        List<SelfConsent> active = effective.stream()
+        List<SelfConsent> active = current.stream()
                 .filter(view -> view.status() != ConsentStatus.REVOKED)
                 .map(this::toSelfConsent)
                 .toList();
-        List<SelfConsent> revokedList = effective.stream()
+        List<SelfConsent> revokedList = current.stream()
                 .filter(view -> view.status() == ConsentStatus.REVOKED)
                 .map(this::toSelfConsent)
                 .toList();

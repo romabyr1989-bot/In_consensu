@@ -116,3 +116,19 @@ body {
 .ic-spinner {
     display: none;
 }
+
+/* UI-0.8: заголовок, по которому можно сортировать, должен выглядеть нажимаемым. */
+.ic-sortable a {
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.ic-sortable a:hover,
+.ic-sortable a:focus-visible {
+    text-decoration: underline;
+}
+
+.ic-sortable[aria-sort="ascending"] a,
+.ic-sortable[aria-sort="descending"] a {
+    font-weight: 600;
+}

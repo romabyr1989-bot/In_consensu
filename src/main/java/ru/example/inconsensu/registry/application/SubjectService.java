@@ -133,7 +133,7 @@ public class SubjectService {
             found = new PageImpl<>(List.of(), pageable, 0);
         } else if (withoutQuery) {
             // UI-2: плитка дашборда открывает список по одному фильтру, без поискового запроса.
-            found = repository.findAllByIdIn(matching, pageable);
+            found = repository.findAllByIdIn(matching, ordered(pageable));
         } else {
             found = doSearchAmong(query, matching, pageable);
         }
@@ -214,10 +214,11 @@ public class SubjectService {
         }
         if (trimmed.contains("@")) {
             return searchByContactAmong(
-                    ContactType.EMAIL, ContactNormalizer.normalize(ContactType.EMAIL, trimmed), ids, pageable);
+                    ContactType.EMAIL, ContactNormalizer.normalize(ContactType.EMAIL, trimmed), ids, ordered(pageable));
         }
         if (trimmed.startsWith("+") || trimmed.replaceAll("\\D", "").length() >= 10) {
-            return searchByContactAmong(ContactType.PHONE, ContactNormalizer.normalizePhone(trimmed), ids, pageable);
+            return searchByContactAmong(
+                    ContactType.PHONE, ContactNormalizer.normalizePhone(trimmed), ids, ordered(pageable));
         }
         Optional<Subject> byExternalId = repository.findByExternalId(trimmed);
         if (byExternalId.isPresent()) {
@@ -231,9 +232,22 @@ public class SubjectService {
                         ErrorCode.VALIDATION_FAILED,
                         "Для поиска по ФИО введите не менее " + MIN_NAME_QUERY_LENGTH + " символов");
             }
-            return repository.searchByFullNamePrefixAmong(trimmed.toLowerCase(Locale.ROOT) + "%", ids, pageable);
+            return repository.searchByFullNamePrefixAmong(
+                    trimmed.toLowerCase(Locale.ROOT) + "%", ids, ordered(pageable));
         }
         return new PageImpl<>(List.of(), pageable, 0);
+    }
+
+    /** Порядок списка клиентов по умолчанию: он же зашит в нативный запрос под индексом. */
+    private static final org.springframework.data.domain.Sort DEFAULT_ORDER =
+            org.springframework.data.domain.Sort.by("lastName", "firstName", "id");
+
+    /** JPQL-запросы своего order by не имеют: без сортировки порядок строк не определён. */
+    private static Pageable ordered(Pageable pageable) {
+        return pageable.getSort().isSorted()
+                ? pageable
+                : org.springframework.data.domain.PageRequest.of(
+                        pageable.getPageNumber(), pageable.getPageSize(), DEFAULT_ORDER);
     }
 
     private Page<Subject> doSearch(String query, Pageable pageable) {
@@ -243,10 +257,10 @@ public class SubjectService {
         }
         if (trimmed.contains("@")) {
             return searchByContact(
-                    ContactType.EMAIL, ContactNormalizer.normalize(ContactType.EMAIL, trimmed), pageable);
+                    ContactType.EMAIL, ContactNormalizer.normalize(ContactType.EMAIL, trimmed), ordered(pageable));
         }
         if (trimmed.startsWith("+") || trimmed.replaceAll("\\D", "").length() >= 10) {
-            return searchByContact(ContactType.PHONE, ContactNormalizer.normalizePhone(trimmed), pageable);
+            return searchByContact(ContactType.PHONE, ContactNormalizer.normalizePhone(trimmed), ordered(pageable));
         }
         // Внешний идентификатор проверяется раньше ФИО: «CRM-1002345» содержит буквы, и эвристика UI-3 иначе
         // отправила бы его в префиксный поиск по фамилии. Поиск по уникальному индексу дешёвый.

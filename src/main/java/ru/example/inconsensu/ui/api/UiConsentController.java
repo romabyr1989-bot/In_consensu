@@ -12,7 +12,9 @@ import ru.example.inconsensu.registry.application.ConsentEvidenceService;
 /** UI-4a: досье согласия — точный текст версии, доказательства и цепочка событий. */
 @Controller
 // FR-12.2: досье показывает доказательства и цепочку событий — роли те же, что и у API-аналога.
-@PreAuthorize("hasAnyRole('AUDITOR','DPO','ADMIN','MANAGER')")
+// Досье и текст согласия открываются с карточки клиента, а её §16.2 показывает всем ролям сотрудника:
+// контакты там маскируются, а ссылки на досье выводились и тем, кому эндпоинт отвечал отказом.
+@PreAuthorize(ru.example.inconsensu.common.security.Authorities.EMPLOYEE)
 public class UiConsentController {
 
     private final ConsentEvidenceService evidence;

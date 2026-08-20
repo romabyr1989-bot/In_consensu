@@ -69,8 +69,18 @@ public class UiHomeController {
         return "ui/error/forbidden";
     }
 
+    /**
+     * UI-0.3: после входа сотрудник возвращается туда, где его застало истечение сессии.
+     *
+     * <p>Адрес приходит параметром от стратегии истёкшей сессии: до фильтра, сохраняющего запрос, дело не
+     * доходит, и без параметра ссылка «Войти» вела бы на главную, обещая на странице обратное.
+     */
     @GetMapping("/ui/session-expired")
-    public String sessionExpired() {
+    public String sessionExpired(
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String from, Model model) {
+        // Только внутренние адреса: параметр приходит из запроса, и «//example.com» увёл бы на чужой сайт.
+        model.addAttribute(
+                "returnTo", from != null && from.startsWith("/ui/") && !from.startsWith("//") ? from : "/ui/");
         return "ui/error/session-expired";
     }
 }

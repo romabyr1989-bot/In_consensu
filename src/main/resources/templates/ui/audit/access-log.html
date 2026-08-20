@@ -18,6 +18,9 @@
                 or selectedFrom != null or selectedTo != null}">
             <summary class="mb-2">Фильтры</summary>
             <form class="row g-2" th:action="@{/ui/audit/access-log}" method="get">
+                <!-- UI-0.8: выбранная сортировка переживает применение фильтров. -->
+                <input type="hidden" name="sort" th:if="${sort != null}" th:value="${sort}">
+                <input type="hidden" name="direction" th:if="${direction != null}" th:value="${direction}">
                 <div class="col-md-4">
                     <label class="form-label" for="endpoint">Экран или эндпоинт</label>
                     <input class="form-control" id="endpoint" name="endpoint" placeholder="/api/v1/subjects"
@@ -35,13 +38,6 @@
                     <label class="form-label" for="to">По дату</label>
                     <input class="form-control" type="date" id="to" name="to" th:value="${selectedTo}">
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label" for="size">На странице</label>
-                    <select class="form-select" id="size" name="size">
-                        <option th:each="value : ${ {20, 50, 100} }" th:value="${value}" th:text="${value}"
-                                th:selected="${value == pageSize}">20</option>
-                    </select>
-                </div>
                 <div class="col-12">
                     <button class="btn btn-primary" type="submit">Показать</button>
                     <a class="btn btn-outline-secondary" th:href="@{/ui/audit/access-log}">Сбросить фильтры</a>
@@ -53,7 +49,7 @@
             <thead>
             <tr>
                 <th th:replace="~{ui/fragments/layout :: sortHeader('Когда', 'occurredAt')}"></th>
-                <th th:replace="~{ui/fragments/layout :: sortHeader('Пользователь', 'user')}"></th>
+                <th scope="col">Пользователь</th>
                 <th th:replace="~{ui/fragments/layout :: sortHeader('Экран или эндпоинт', 'endpoint')}"></th>
                 <th scope="col">Клиент</th>
                 <th scope="col">Request id</th>

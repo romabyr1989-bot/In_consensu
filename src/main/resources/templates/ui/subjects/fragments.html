@@ -33,7 +33,8 @@
             </div>
         </div>
         <div class="btn-group">
-            <a class="btn btn-outline-secondary" th:href="@{/api/v1/subjects/{id}/card.pdf(id=${card.subject.id})}">
+            <!-- Через интерфейс: у /api/** сессионная кука не принимается, и кнопка отвечала 401 (§12). -->
+            <a class="btn btn-outline-secondary" th:href="@{/ui/subjects/{id}/card.pdf(id=${card.subject.id})}">
                 Экспорт в PDF</a>
             <button class="btn btn-outline-danger" type="button"
                     sec:authorize="hasAnyRole('MANAGER','DPO','ADMIN')"
@@ -235,7 +236,7 @@
         </tr>
         </thead>
         <tbody>
-        <tr th:each="entry : ${history}">
+        <tr th:each="entry : ${history.entries}">
             <td th:text="${entry.occurredAt}">17.08.2026 14:05</td>
             <td th:text="${entry.description}">Согласие отозвано: Реклама по email</td>
             <td th:text="${entry.actorRu}">Сотрудник · manager</td>
@@ -246,8 +247,13 @@
         </tr>
         </tbody>
     </table>
-    <p class="text-muted mb-0" th:if="${history.isEmpty()}">
+    <p class="text-muted mb-0" th:if="${#lists.isEmpty(history.entries)}">
         Ничего не найдено: событий за выбранный период нет. Измените тип события или период.
+    </p>
+    <!-- UI-0.6: усечение не прячется — иначе неполная лента выглядит как вся история клиента. -->
+    <p class="text-muted small mb-0" th:if="${history.truncated}">
+        Показаны последние <span th:text="${#lists.size(history.entries)}">200</span> событий из
+        <span th:text="${history.total}">1200</span>. Сузьте период или выберите тип события.
     </p>
 </div>
 

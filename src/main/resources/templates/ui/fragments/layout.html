@@ -124,12 +124,25 @@
 </form>
 
 <!-- UI-0.8: номер страницы хранится в адресной строке, а не в состоянии экрана. -->
-<nav th:fragment="pagination(page)" th:if="${page != null and page.totalPages > 1}" aria-label="Страницы">
+<nav th:fragment="pagination(page)" th:if="${page != null and page.totalPages > 1}" aria-label="Страницы"
+     th:with="from=${page.number - 3 < 0 ? 0 : page.number - 3},
+              to=${page.number + 3 > page.totalPages - 1 ? page.totalPages - 1 : page.number + 3}">
+    <!-- Окно вокруг текущей страницы: журнал доступа к ПДн растёт неограниченно, и полный список ссылок
+         превратил бы разметку в тысячи элементов. -->
     <ul class="pagination">
-        <li class="page-item" th:each="number : ${#numbers.sequence(0, page.totalPages - 1)}"
+        <li class="page-item" th:if="${from > 0}">
+            <a class="page-link" th:href="'?' + ${pageQuery} + 'page=0'">1</a>
+        </li>
+        <li class="page-item disabled" th:if="${from > 1}"><span class="page-link">…</span></li>
+        <li class="page-item" th:each="number : ${#numbers.sequence(from, to)}"
             th:classappend="${number == page.number} ? 'active'">
             <a class="page-link" th:text="${number + 1}"
                th:href="'?' + ${pageQuery} + 'page=' + ${number}">1</a>
+        </li>
+        <li class="page-item disabled" th:if="${to < page.totalPages - 2}"><span class="page-link">…</span></li>
+        <li class="page-item" th:if="${to < page.totalPages - 1}">
+            <a class="page-link" th:text="${page.totalPages}"
+               th:href="'?' + ${pageQuery} + 'page=' + ${page.totalPages - 1}">10</a>
         </li>
     </ul>
 </nav>

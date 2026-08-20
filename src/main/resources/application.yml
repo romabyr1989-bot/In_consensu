@@ -116,6 +116,10 @@ logging:
 inconsensu:
   # §6, §8.7: business dates and calendar arithmetic use the operator timezone.
   timezone: ${INCONSENSU_TIMEZONE:Europe/Moscow}
+  selfservice:
+    # UI-18: кто вправе встроить страницу самообслуживания во фрейм. По умолчанию только сам сервис;
+    # адрес личного кабинета оператор добавляет сюда явно.
+    frame-ancestors: ${INCONSENSU_SELFSERVICE_FRAME_ANCESTORS:'self'}
   notifications:
     # Абсолютный адрес установки: из него собираются ссылки в письмах (FR-9.2).
     base-url: ${INCONSENSU_BASE_URL:http://localhost:8080}
