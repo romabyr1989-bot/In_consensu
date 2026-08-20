@@ -24,7 +24,7 @@
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:each="party : ${thirdParties}">
+                <tr th:each="party : ${thirdParties.content}">
                     <td><a th:href="@{/ui/third-parties/{id}(id=${party.id})}" th:text="${party.name}">ООО «Моменто»</a></td>
                     <td th:text="${party.inn}">7701234567</td>
                     <td th:text="${party.roleRu}">Обработчик</td>
@@ -47,11 +47,16 @@
                         <span class="badge bg-secondary" th:unless="${party.active}">выключено</span>
                     </td>
                 </tr>
-                <tr th:if="${#lists.isEmpty(thirdParties)}">
+                <tr th:if="${thirdParties.isEmpty()}">
                     <td colspan="7" class="text-muted">Третьих лиц ещё нет. Добавьте партнёра формой ниже.</td>
                 </tr>
                 </tbody>
             </table>
+
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <div th:replace="~{ui/fragments/layout :: pagination(${thirdParties})}"></div>
+            <div th:replace="~{ui/fragments/layout :: pageSize}"></div>
+        </div>
         </div>
 
         <div class="card" sec:authorize="hasAnyRole('LAWYER','DPO','ADMIN')">

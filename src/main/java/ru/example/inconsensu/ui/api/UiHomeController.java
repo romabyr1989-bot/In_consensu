@@ -35,6 +35,9 @@ public class UiHomeController {
      */
     @GetMapping("/ui/login")
     public String login(Model model) {
+        // UI-1: кнопка входа через IdP показывается только при включённом профиле oidc. Признака в модели
+        // не было вовсе, поэтому кнопка не появлялась ни при каком профиле.
+        model.addAttribute("oidcEnabled", environment.matchesProfiles("oidc"));
         if (environment.matchesProfiles("demo")) {
             model.addAttribute(
                     "demoLogin",

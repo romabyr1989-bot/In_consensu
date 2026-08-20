@@ -51,7 +51,7 @@
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:each="row : ${types}">
+                <tr th:each="row : ${types.content}">
                     <td><code th:text="${row.type.code}">PDN_PROCESSING</code></td>
                     <td th:text="${row.type.nameRu}">Обработка ПДн</td>
                     <td th:text="${row.type.category.nameRu()}">Базовое</td>
@@ -85,13 +85,18 @@
                         </form>
                     </td>
                 </tr>
-                <tr th:if="${#lists.isEmpty(types)}">
+                <tr th:if="${types.isEmpty()}">
                     <td colspan="11" class="text-muted">
                         Ничего не найдено. Ослабьте фильтры по категории и активности или добавьте тип формой ниже.
                     </td>
                 </tr>
                 </tbody>
             </table>
+
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <div th:replace="~{ui/fragments/layout :: pagination(${types})}"></div>
+            <div th:replace="~{ui/fragments/layout :: pageSize}"></div>
+        </div>
         </div>
 
         <div class="card" sec:authorize="hasAnyRole('LAWYER','DPO','ADMIN')">

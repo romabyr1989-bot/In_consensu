@@ -42,4 +42,21 @@ public final class UiSorting {
     public static int[] pageSizes() {
         return PAGE_SIZES.clone();
     }
+
+    /**
+     * Страница из готового списка (UI-0.8).
+     *
+     * <p>Справочники — типы согласий, третьи лица, подписки — собираются в памяти со счётчиками и
+     * сортировкой, и постранично их режет экран: без этого страница со всем справочником росла бы
+     * неограниченно.
+     */
+    public static <T> org.springframework.data.domain.Page<T> page(
+            java.util.List<T> rows, int pageNumber, int requestedSize) {
+        int size = pageSize(requestedSize);
+        int number = Math.max(pageNumber, 0);
+        int from = Math.min(number * size, rows.size());
+        int to = Math.min(from + size, rows.size());
+        return new org.springframework.data.domain.PageImpl<>(
+                rows.subList(from, to), org.springframework.data.domain.PageRequest.of(number, size), rows.size());
+    }
 }

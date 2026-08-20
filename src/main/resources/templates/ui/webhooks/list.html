@@ -21,7 +21,7 @@
             </tr>
             </thead>
             <tbody>
-            <tr th:each="subscription : ${subscriptions}">
+            <tr th:each="subscription : ${subscriptions.content}">
                 <td th:text="${subscription.name}">CRM</td>
                 <td class="text-truncate" style="max-width: 320px" th:text="${subscription.url}">https://…</td>
                 <td>
@@ -58,11 +58,16 @@
                     </form>
                 </td>
             </tr>
-            <tr th:if="${#lists.isEmpty(subscriptions)}">
+            <tr th:if="${subscriptions.isEmpty()}">
                 <td colspan="6" class="text-muted">Подписок ещё нет. Создайте первую формой ниже.</td>
             </tr>
             </tbody>
         </table>
+
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <div th:replace="~{ui/fragments/layout :: pagination(${subscriptions})}"></div>
+            <div th:replace="~{ui/fragments/layout :: pageSize}"></div>
+        </div>
 
         <!-- UI-14: секрет виден один раз, поэтому рядом с ним кнопка копирования. -->
         <div class="alert alert-warning d-flex justify-content-between align-items-center"

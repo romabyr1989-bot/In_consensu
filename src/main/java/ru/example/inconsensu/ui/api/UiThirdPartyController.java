@@ -50,10 +50,15 @@ public class UiThirdPartyController {
             @RequestParam(required = false) String contract,
             @RequestParam(required = false) String sort,
             @RequestParam(required = false) String direction,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
             Model model) {
         // UI-2: плитка «Договоров истекает за 30 дней» ведёт в отфильтрованный список, а не в общий.
         model.addAttribute(
-                "thirdParties", view.rows("EXPIRING".equals(contract), sort, UiSorting.descending(direction)));
+                "thirdParties",
+                UiSorting.page(
+                        view.rows("EXPIRING".equals(contract), sort, UiSorting.descending(direction)), page, size));
+        model.addAttribute("pageSize", UiSorting.pageSize(size));
         model.addAttribute("contractFilter", contract);
         model.addAttribute("sort", sort);
         model.addAttribute("direction", direction);

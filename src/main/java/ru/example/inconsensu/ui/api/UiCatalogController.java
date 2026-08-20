@@ -84,10 +84,15 @@ public class UiCatalogController {
             @RequestParam(required = false) String edit,
             @RequestParam(required = false) String sort,
             @RequestParam(required = false) String direction,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
             Model model) {
-        model.addAttribute("types", view.types(category, active, sort, UiSorting.descending(direction)));
+        model.addAttribute(
+                "types",
+                UiSorting.page(view.types(category, active, sort, UiSorting.descending(direction)), page, size));
         model.addAttribute("sort", sort);
         model.addAttribute("direction", direction);
+        model.addAttribute("pageSize", UiSorting.pageSize(size));
         model.addAttribute("selectedCategory", category);
         model.addAttribute("selectedActive", active);
         model.addAttribute("categories", ConsentCategory.values());

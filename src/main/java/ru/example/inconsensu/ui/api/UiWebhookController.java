@@ -49,10 +49,16 @@ public class UiWebhookController {
     public String list(
             @RequestParam(required = false) String sort,
             @RequestParam(required = false) String direction,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
             Model model) {
         model.addAttribute(
                 "subscriptions",
-                view.subscriptions(sort, ru.example.inconsensu.ui.application.UiSorting.descending(direction)));
+                ru.example.inconsensu.ui.application.UiSorting.page(
+                        view.subscriptions(sort, ru.example.inconsensu.ui.application.UiSorting.descending(direction)),
+                        page,
+                        size));
+        model.addAttribute("pageSize", ru.example.inconsensu.ui.application.UiSorting.pageSize(size));
         model.addAttribute("sort", sort);
         model.addAttribute("direction", direction);
         model.addAttribute("eventTypes", EVENT_TYPES.stream().sorted().toList());

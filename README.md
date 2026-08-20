@@ -102,6 +102,7 @@ SMTP-сервер для тестов поднимать не нужно: поч
 | `INCONSENSU_MAIL_ENABLED` | `true` | выключает отправку писем, не трогая очередь уведомлений |
 | `INCONSENSU_NOTIFICATION_CRON` | `0 0 6 * * *` | время ежедневного отбора истекающих согласий (FR-9.1) |
 | `INCONSENSU_OUTBOX_DELAY` | `PT30S` | период доставки событий из outbox в webhooks |
+| `INCONSENSU_SELFSERVICE_FRAME_ANCESTORS` | `'self'` | кто вправе встроить страницу самообслуживания во фрейм (UI-18); адрес личного кабинета добавляется сюда |
 | `INCONSENSU_WEBHOOK_ALLOWED_HOSTS` | — | список разрешённых хостов подписок; пусто — без ограничений (NFR-4) |
 | `INCONSENSU_WEBHOOK_REQUIRE_HTTPS` | `false` | запретить подписки по http:// |
 | `INCONSENSU_CRYPTO_ENABLED` | `false` | шифрование контактов в базе (NFR-3) |

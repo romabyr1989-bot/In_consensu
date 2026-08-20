@@ -37,15 +37,10 @@
             </tbody>
         </table>
 
-        <nav th:if="${deliveries.totalPages > 1}" aria-label="Страницы доставок">
-            <ul class="pagination">
-                <li class="page-item" th:each="number : ${#numbers.sequence(0, deliveries.totalPages - 1)}"
-                    th:classappend="${number == deliveries.number} ? 'active'">
-                    <a class="page-link" th:text="${number + 1}"
-                       th:href="@{/ui/webhooks/{id}/deliveries(id=${subscription.id},page=${number},size=${pageSize})}">1</a>
-                </li>
-            </ul>
-        </nav>
+        <div class="d-flex align-items-center gap-2">
+            <div th:replace="~{ui/fragments/layout :: pagination(${deliveries})}"></div>
+            <div th:replace="~{ui/fragments/layout :: pageSize}"></div>
+        </div>
         <a class="btn btn-link" th:href="@{/ui/webhooks}">К списку подписок</a>
     </main>
 </div>
