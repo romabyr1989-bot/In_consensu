@@ -54,6 +54,24 @@ public class AuditIntegrityService {
         return new Report(problems.isEmpty() ? Integrity.OK : Integrity.BROKEN, 1, events, 0, problems);
     }
 
+    /**
+     * Проверка всех цепочек, затронувших субъекта (UI-4).
+     *
+     * <p>Цепочка ведётся по агрегату, а у клиента их несколько — по одному на согласие. Кнопка на вкладке
+     * «История» должна отвечать за всю историю клиента, поэтому проверяются все его агрегаты сразу.
+     */
+    @Transactional(readOnly = true)
+    public Report verifySubject(java.util.UUID subjectId) {
+        List<Problem> problems = new ArrayList<>();
+        long events = 0;
+        long aggregates = 0;
+        for (Object[] aggregate : eventRepository.findDistinctAggregatesOfSubject(subjectId)) {
+            aggregates++;
+            events += verifyChain((String) aggregate[0], (String) aggregate[1], problems);
+        }
+        return new Report(problems.isEmpty() ? Integrity.OK : Integrity.BROKEN, aggregates, events, 0, problems);
+    }
+
     /** Full verification of every chain and every anchor (FR-10.4). */
     @Transactional(readOnly = true)
     public Report verifyAll() {

@@ -38,6 +38,8 @@ public class UiSelfServiceViewService {
             String grantedAt,
             String validUntil,
             String consequence,
+            /** UI-18: что погаснет вместе с этим согласием — клиент должен видеть это до нажатия. */
+            List<String> cascadeTitles,
             boolean revocable) {}
 
     /** @param message «Согласие отозвано 17.08.2026 14:05, обращение — ОБР-…» */
@@ -142,7 +144,23 @@ public class UiSelfServiceViewService {
                 formats.date(view.consent().getGrantedAt()),
                 formats.validUntil(view.consent().getValidUntil()),
                 consequence(base, type.getChannels().isEmpty()),
+                cascadeTitles(view),
                 view.status() == ConsentStatus.ACTIVE || view.status() == ConsentStatus.EXPIRING);
+    }
+
+    /**
+     * Согласия, которые погаснут вместе с выбранным (UI-18, FR-8.4).
+     *
+     * <p>Отзыв необратим, поэтому клиент обязан увидеть полный список до нажатия: отзывая обработку
+     * персональных данных, он гасит и рекламу, и передачи — об этом нельзя узнавать постфактум.
+     */
+    private List<String> cascadeTitles(ConsentQueryService.ConsentView view) {
+        if (view.status() != ConsentStatus.ACTIVE && view.status() != ConsentStatus.EXPIRING) {
+            return List.of();
+        }
+        return revocation.previewCascade(view.consent().getId()).stream()
+                .map(consent -> types.get(consent.getConsentTypeId()).getNameRu())
+                .toList();
     }
 
     /** UI-18: последствия отзыва объясняются словами клиента, а не терминами системы. */

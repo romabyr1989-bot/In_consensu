@@ -46,13 +46,22 @@
                       th:text="${consent.statusText()}">действует</span>
             </div>
             <p class="small mt-2 mb-2" th:text="${consent.consequence()}">Мы перестанем звонить вам с предложениями.</p>
+            <!-- UI-18: отзыв необратим, поэтому список погасающих согласий виден до нажатия, а не только
+                 в подтверждении. -->
+            <p class="small text-danger mb-2" th:if="${consent.revocable() and !consent.cascadeTitles().isEmpty()}">
+                Вместе с ним будут отозваны:
+                <span th:text="${#strings.listJoin(consent.cascadeTitles(), ', ')}">Реклама по телефону</span>.
+            </p>
             <div class="d-flex gap-2">
                 <button class="btn btn-sm btn-link p-0" type="button"
                         th:hx-get="@{/self/ui/consents/{id}/text(id=${consent.id()})}"
                         hx-target="#self-modal-content" hx-swap="innerHTML">Текст согласия</button>
                 <form th:action="@{/self/ui/consents/{id}/revoke(id=${consent.id()})}" method="post"
                       th:if="${consent.revocable()}" class="ms-auto"
-                      th:data-confirm="${consent.consequence()} + ' Отзыв необратим. Отозвать согласие?'">
+                      th:data-confirm="${consent.consequence()}
+                          + (${consent.cascadeTitles().isEmpty()} ? ''
+                             : ' Вместе с ним будут отозваны: ' + ${#strings.listJoin(consent.cascadeTitles(), ', ')} + '.')
+                          + ' Отзыв необратим. Отозвать согласие?'">
                     <button class="btn btn-sm btn-outline-danger" type="submit">Отозвать</button>
                 </form>
             </div>

@@ -57,6 +57,28 @@
             </div>
         </div>
 
+        <!-- UI-4a: чем подтверждается воля клиента; чувствительные значения маскированы (NFR-3) -->
+        <div class="card mb-3">
+            <div class="card-header">Доказательства</div>
+            <div class="card-body">
+                <dl class="row mb-0 small">
+                    <dt class="col-sm-4">Способ подписания</dt>
+                    <dd class="col-sm-8" th:text="${signatureTypeRu}">Простая ЭП по SMS</dd>
+                    <th:block th:each="field : ${evidenceFields}">
+                        <dt class="col-sm-4" th:text="${field.key}">phone</dt>
+                        <dd class="col-sm-8">
+                            <a th:if="${field.key == 'documentRef'}" th:href="${field.value}"
+                               th:text="${field.value}" rel="noopener">скан заявления</a>
+                            <span th:unless="${field.key == 'documentRef'}" th:text="${field.value}">***</span>
+                        </dd>
+                    </th:block>
+                </dl>
+                <p class="text-muted small mb-0" th:if="${evidenceFields.isEmpty()}">
+                    Доказательства не заполнены.
+                </p>
+            </div>
+        </div>
+
         <div class="card mb-3">
             <div class="card-header">События</div>
             <div class="card-body p-0">

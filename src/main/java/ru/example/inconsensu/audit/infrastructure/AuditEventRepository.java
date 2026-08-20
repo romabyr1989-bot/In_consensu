@@ -23,4 +23,8 @@ public interface AuditEventRepository extends JpaRepository<AuditEvent, Long>, J
 
     @Query("select distinct e.aggregateType, e.aggregateId from AuditEvent e")
     List<Object[]> findDistinctAggregates();
+
+    /** Агрегаты, затронувшие субъекта: их цепочки проверяет вкладка «История» карточки (UI-4). */
+    @Query("select distinct e.aggregateType, e.aggregateId from AuditEvent e where e.subjectId = :subjectId")
+    List<Object[]> findDistinctAggregatesOfSubject(@Param("subjectId") java.util.UUID subjectId);
 }

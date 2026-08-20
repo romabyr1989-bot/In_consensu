@@ -182,26 +182,75 @@
 </div>
 
 <!-- UI-4, вкладка «История» -->
-<div th:fragment="history">
+<!-- UI-4, вкладка «История»: лента событий, а не список согласий -->
+<div th:fragment="history" id="card-history">
+    <form class="row g-2 mb-3" th:hx-get="@{/ui/subjects/{id}/history(id=${subjectId})}"
+          hx-target="#card-history" hx-swap="outerHTML">
+        <div class="col-12 col-md-4">
+            <label class="form-label" for="history-event-type">Тип события</label>
+            <select class="form-select form-select-sm" id="history-event-type" name="eventType">
+                <option value="">все</option>
+                <option th:each="type : ${eventTypes}" th:value="${type}" th:text="${type.nameRu()}"
+                        th:selected="${type == selectedEventType}">получено согласие</option>
+            </select>
+        </div>
+        <div class="col-6 col-md-3">
+            <label class="form-label" for="history-from">С даты</label>
+            <input class="form-control form-control-sm" type="date" id="history-from" name="from">
+        </div>
+        <div class="col-6 col-md-3">
+            <label class="form-label" for="history-to">По дату</label>
+            <input class="form-control form-control-sm" type="date" id="history-to" name="to">
+        </div>
+        <div class="col-12 col-md-2 align-self-end">
+            <button class="btn btn-sm btn-outline-secondary" type="submit">Показать</button>
+        </div>
+    </form>
+
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="text-muted small">События по клиенту в порядке возникновения</span>
+        <button class="btn btn-sm btn-outline-primary"
+                th:hx-post="@{/ui/subjects/{id}/history/verify(id=${subjectId})}"
+                hx-target="#integrity-result" hx-swap="innerHTML">Проверить целостность</button>
+    </div>
+    <div id="integrity-result" class="mb-2"></div>
+
     <table class="table align-middle">
         <thead>
         <tr>
-            <th scope="col">Согласие</th>
-            <th scope="col">Статус</th>
-            <th scope="col">Получено</th>
-            <th scope="col">Источник</th>
+            <th scope="col">Когда</th>
+            <th scope="col">Событие</th>
+            <th scope="col">Кто</th>
+            <th scope="col"></th>
         </tr>
         </thead>
         <tbody>
-        <tr th:each="row : ${history}">
-            <td th:text="${row.typeNameRu}">Реклама по email</td>
-            <td th:text="${row.view.statusText}">отозвано</td>
-            <td th:text="${row.grantedAt}">12.03.2025</td>
-            <td th:text="${row.source}">Личный кабинет</td>
+        <tr th:each="entry : ${history}">
+            <td th:text="${entry.occurredAt}">17.08.2026 14:05</td>
+            <td th:text="${entry.description}">Согласие отозвано: Реклама по email</td>
+            <td th:text="${entry.actorRu}">Сотрудник · manager</td>
+            <td class="text-end">
+                <a class="btn btn-sm btn-link" th:if="${entry.consentId != null}"
+                   th:href="@{/ui/consents/{id}(id=${entry.consentId})}">Досье</a>
+            </td>
         </tr>
         </tbody>
     </table>
-    <p class="text-muted mb-0" th:if="${history.isEmpty()}">История пуста.</p>
+    <p class="text-muted mb-0" th:if="${history.isEmpty()}">
+        Ничего не найдено: событий за выбранный период нет. Измените тип события или период.
+    </p>
+</div>
+
+<!-- UI-4: результат проверки цепочки с указанием первого нарушенного события (FR-10.3) -->
+<div th:fragment="integrityResult">
+    <div class="alert alert-success py-2 mb-0" th:if="${report.integrity().name() == 'OK'}" role="alert">
+        Целостность подтверждена: проверено событий —
+        <span th:text="${report.eventsChecked()}">12</span>.
+    </div>
+    <div class="alert alert-danger py-2 mb-0" th:unless="${report.integrity().name() == 'OK'}" role="alert">
+        Цепочка нарушена. Первое расхождение:
+        <span th:text="${report.problems().isEmpty()} ? '—' : ${report.problems()[0].description()}">событие …</span>
+    </div>
 </div>
 
 <!-- UI-0.10: раскрытый контакт возвращается фрагментом на место маскированного -->

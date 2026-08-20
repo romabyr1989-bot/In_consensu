@@ -16,13 +16,23 @@ public class UiConsentController {
 
     private final ConsentEvidenceService evidence;
 
-    public UiConsentController(ConsentEvidenceService evidence) {
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+
+    public UiConsentController(
+            ConsentEvidenceService evidence, com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
         this.evidence = evidence;
+        this.objectMapper = objectMapper;
     }
 
     @GetMapping("/ui/consents/{id}")
     public String dossier(@PathVariable UUID id, Model model) {
-        model.addAttribute("dossier", evidence.of(id));
+        var dossier = evidence.of(id);
+        model.addAttribute("dossier", dossier);
+        // UI-4a: поля доказательств показываются без чувствительных значений — телефон, OTP и IP
+        // маскируются, как и в ответе API (NFR-3).
+        model.addAttribute("evidenceFields", evidence.maskedEvidence(dossier.consent(), objectMapper));
+        model.addAttribute(
+                "signatureTypeRu", dossier.consent().getSignatureType().nameRu());
         return "ui/consents/dossier";
     }
 

@@ -40,6 +40,11 @@ public final class UiFormats {
     }
 
     /** Телефон приводится к виду UI-0.4; маскированное значение остаётся как есть. */
+    /** Начало календарного дня в таймзоне оператора: фильтры форм задаются датами, а не мгновениями. */
+    public Instant startOfDay(LocalDate date) {
+        return date.atStartOfDay(zone).toInstant();
+    }
+
     public String phone(String value) {
         if (value == null) {
             return "";

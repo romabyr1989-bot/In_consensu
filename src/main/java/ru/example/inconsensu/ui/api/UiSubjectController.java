@@ -116,14 +116,51 @@ public class UiSubjectController {
         model.addAttribute("showSuperseded", superseded);
         return switch (tab) {
             case "transfers" -> "ui/subjects/fragments :: transfers";
-            case "history" -> historyFragment(id, model);
+            case "history" -> historyFragment(id, null, null, null, model);
             default -> "ui/subjects/fragments :: consents";
         };
     }
 
-    private String historyFragment(UUID id, Model model) {
-        model.addAttribute("history", view.history(id));
+    private String historyFragment(
+            UUID id,
+            ru.example.inconsensu.common.domain.AuditEventType eventType,
+            java.time.Instant from,
+            java.time.Instant to,
+            Model model) {
+        model.addAttribute("history", view.historyFeed(id, eventType, from, to));
+        model.addAttribute("eventTypes", ru.example.inconsensu.common.domain.AuditEventType.values());
+        model.addAttribute("selectedEventType", eventType);
+        model.addAttribute("subjectId", id);
         return "ui/subjects/fragments :: history";
+    }
+
+    /**
+     * Лента событий клиента с фильтрами (UI-4).
+     *
+     * <p>Отдельная точка, потому что фильтры перезагружают только ленту: карточка по UI-4 не должна
+     * перерисовываться целиком.
+     */
+    @GetMapping("/ui/subjects/{id}/history")
+    public String history(
+            @PathVariable UUID id,
+            @RequestParam(required = false) ru.example.inconsensu.common.domain.AuditEventType eventType,
+            @RequestParam(required = false)
+                    @org.springframework.format.annotation.DateTimeFormat(
+                            iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE)
+                    java.time.LocalDate from,
+            @RequestParam(required = false)
+                    @org.springframework.format.annotation.DateTimeFormat(
+                            iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE)
+                    java.time.LocalDate to,
+            Model model) {
+        return historyFragment(id, eventType, view.startOfDay(from), view.startOfNextDay(to), model);
+    }
+
+    /** UI-4: проверка целостности цепочки событий клиента. */
+    @PostMapping("/ui/subjects/{id}/history/verify")
+    public String verifyHistory(@PathVariable UUID id, Model model) {
+        model.addAttribute("report", view.verifySubjectHistory(id));
+        return "ui/subjects/fragments :: integrityResult";
     }
 
     /**

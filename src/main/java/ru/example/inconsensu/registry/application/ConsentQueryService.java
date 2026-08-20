@@ -103,6 +103,17 @@ public class ConsentQueryService {
         return view(consents.findBySubjectIdOrderByGrantedAtDesc(subjectId));
     }
 
+    /**
+     * Согласие без записи в журнал доступа к ПДн.
+     *
+     * <p>Нужна лентам и спискам, которые уже зафиксированы одним обращением: {@link #get(UUID)} пишет
+     * запись на каждый вызов, и на строке ленты это раздувало бы журнал (FR-5.2, FR-10.5).
+     */
+    @Transactional(readOnly = true)
+    public java.util.Optional<ConsentView> find(UUID consentId) {
+        return consents.findById(consentId).map(this::view);
+    }
+
     @Transactional(readOnly = true)
     public ConsentView get(UUID consentId) {
         Consent consent = consents.findById(consentId).orElseThrow(() -> ApiException.notFound("Согласие не найдено"));

@@ -1,5 +1,6 @@
 package ru.example.inconsensu.ui.application;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -8,9 +9,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.example.inconsensu.audit.application.AuditIntegrityService;
+import ru.example.inconsensu.audit.application.AuditQueryService;
 import ru.example.inconsensu.audit.application.PdnAccessLogService;
 import ru.example.inconsensu.channels.domain.ChannelDecision;
 import ru.example.inconsensu.channels.domain.ChannelSummaryComposer;
+import ru.example.inconsensu.common.domain.AuditEventType;
 import ru.example.inconsensu.common.domain.CommunicationChannel;
 import ru.example.inconsensu.common.domain.ConsentStatus;
 import ru.example.inconsensu.common.domain.ContactType;
@@ -18,6 +22,7 @@ import ru.example.inconsensu.common.error.ApiException;
 import ru.example.inconsensu.common.error.ErrorCode;
 import ru.example.inconsensu.common.security.CurrentUser;
 import ru.example.inconsensu.registry.application.ConsentQueryService;
+import ru.example.inconsensu.registry.application.ConsentRegistrationService;
 import ru.example.inconsensu.registry.application.RevocationService;
 import ru.example.inconsensu.registry.application.SubjectCardService;
 import ru.example.inconsensu.registry.application.SubjectService;
@@ -77,6 +82,8 @@ public class UiSubjectViewService {
     private final RevocationService revocation;
     private final ru.example.inconsensu.catalog.application.ConsentTypeService types;
     private final ru.example.inconsensu.thirdparty.application.ThirdPartyService thirdParties;
+    private final AuditQueryService audit;
+    private final AuditIntegrityService integrity;
     private final PdnAccessLogService pdnAccessLog;
     private final UiFormats formats;
 
@@ -87,6 +94,8 @@ public class UiSubjectViewService {
             RevocationService revocation,
             ru.example.inconsensu.catalog.application.ConsentTypeService types,
             ru.example.inconsensu.thirdparty.application.ThirdPartyService thirdParties,
+            AuditQueryService audit,
+            AuditIntegrityService integrity,
             PdnAccessLogService pdnAccessLog,
             UiFormats formats) {
         this.subjects = subjects;
@@ -95,6 +104,8 @@ public class UiSubjectViewService {
         this.revocation = revocation;
         this.types = types;
         this.thirdParties = thirdParties;
+        this.audit = audit;
+        this.integrity = integrity;
         this.pdnAccessLog = pdnAccessLog;
         this.formats = formats;
     }
@@ -144,6 +155,79 @@ public class UiSubjectViewService {
     @Transactional(readOnly = true)
     public List<ConsentRow> history(UUID subjectId) {
         return consents.historyOf(subjectId).stream().map(this::row).toList();
+    }
+
+    /**
+     * Событие ленты истории клиента (UI-4).
+     *
+     * @param description человекочитаемое описание: «Получено согласие „Реклама по email“, источник — …»
+     * @param actorRu кто действовал: сотрудник, клиент, система или внешняя система
+     * @param consentId ссылка на согласие, если событие относится к нему
+     */
+    public record HistoryEntry(
+            String occurredAt, String eventTypeRu, String description, String actorRu, UUID consentId) {}
+
+    /**
+     * Лента событий по субъекту (UI-4).
+     *
+     * <p>Раньше вкладка показывала список согласий — то есть состояние, а не историю. UI-4 требует именно
+     * ленту: кто, когда и что сделал, со ссылкой на согласие и проверкой целостности цепочки.
+     */
+    @Transactional(readOnly = true)
+    public List<HistoryEntry> historyFeed(UUID subjectId, AuditEventType eventType, Instant from, Instant to) {
+        var filter = new AuditQueryService.EventFilter(null, null, eventType, null, subjectId, from, to);
+        return audit.events(filter, org.springframework.data.domain.PageRequest.of(0, 200)).getContent().stream()
+                .map(this::historyEntry)
+                .toList();
+    }
+
+    private HistoryEntry historyEntry(ru.example.inconsensu.audit.domain.AuditEvent event) {
+        // Тип агрегата, а не перехват исключения: неудачный поиск внутри транзакции помечает её
+        // rollback-only, и «поймали и пошли дальше» оборачивается падением всего запроса на коммите.
+        UUID consentId = ConsentRegistrationService.AGGREGATE_TYPE.equals(event.getAggregateType())
+                ? parseUuid(event.getAggregateId())
+                : null;
+        String typeName = consentId == null
+                ? null
+                : consents.find(consentId)
+                        .map(view ->
+                                types.get(view.consent().getConsentTypeId()).getNameRu())
+                        .orElse(null);
+        return new HistoryEntry(
+                formats.dateTime(event.getOccurredAt()),
+                event.getEventType().nameRu(),
+                typeName == null
+                        ? event.getEventType().nameRu()
+                        : event.getEventType().nameRu() + ": " + typeName,
+                event.getActorType().nameRu()
+                        + (event.getActorId() == null || event.getActorId().isBlank()
+                                ? ""
+                                : " · " + event.getActorId()),
+                consentId);
+    }
+
+    /** Идентификатор агрегата — строка: у формы или настроек это не UUID. */
+    private static UUID parseUuid(String value) {
+        try {
+            return UUID.fromString(value);
+        } catch (IllegalArgumentException notAUuid) {
+            return null;
+        }
+    }
+
+    /** Границы фильтра по периоду в таймзоне оператора: даты в форме — календарные (UI-0.4). */
+    public Instant startOfDay(java.time.LocalDate date) {
+        return date == null ? null : formats.startOfDay(date);
+    }
+
+    public Instant startOfNextDay(java.time.LocalDate date) {
+        return date == null ? null : formats.startOfDay(date.plusDays(1));
+    }
+
+    /** UI-4: проверка цепочки событий клиента с указанием первого нарушенного (FR-10.3). */
+    @Transactional(readOnly = true)
+    public AuditIntegrityService.Report verifySubjectHistory(UUID subjectId) {
+        return integrity.verifySubject(subjectId);
     }
 
     @Transactional(readOnly = true)
