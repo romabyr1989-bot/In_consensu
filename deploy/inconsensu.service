@@ -1,0 +1,32 @@
+# Установка In consensu на чистую операционную систему (ADR-0078).
+#
+# Файл кладётся в /etc/systemd/system/inconsensu.service, приложение — в /opt/inconsensu/inconsensu.jar,
+# настройки и секреты — в /etc/inconsensu/inconsensu.env (режим 0640, владелец root:inconsensu).
+# Порядок описан в docs/install.md.
+
+[Unit]
+Description=In consensu — центр управления согласиями
+Documentation=https://github.com/romabyr1989-bot/In_consensu
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=inconsensu
+Group=inconsensu
+WorkingDirectory=/opt/inconsensu
+EnvironmentFile=/etc/inconsensu/inconsensu.env
+ExecStart=/usr/bin/java -jar /opt/inconsensu/inconsensu.jar
+Restart=on-failure
+RestartSec=10
+
+# NFR-3: сервису не нужны ни повышение прав, ни запись куда-либо, кроме своего каталога.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/inconsensu
+StateDirectory=inconsensu
+
+[Install]
+WantedBy=multi-user.target

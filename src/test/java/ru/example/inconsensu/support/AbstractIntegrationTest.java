@@ -5,14 +5,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.utility.DockerImageName;
 
 /**
- * Base class for integration tests (§11): a real PostgreSQL, real Flyway migrations, real HTTP.
+ * Базовый класс интеграционных тестов (§11): настоящая PostgreSQL, настоящие миграции Flyway, настоящий HTTP.
  *
- * <p>The container is a JVM wide singleton on purpose. Letting the JUnit extension manage it would restart PostgreSQL
- * for every test class, which multiplies the suite duration; Ryuk removes the container when the JVM exits.
+ * <p>База внешняя и одна на прогон: продукт ставится на чистую операционную систему и не требует Docker,
+ * поэтому его проверка тоже не поднимает контейнеров (ADR-0078). Адрес берётся из переменных окружения,
+ * см. {@link TestDatabase}; порядок запуска описан в README.
  *
  * <p>{@code @AutoConfigureObservability} is required because Spring Boot Test switches metrics export off by default
  * ({@code management.defaults.metrics.export.enabled=false}); without it {@code /actuator/prometheus} would answer 404
@@ -24,20 +23,10 @@ import org.testcontainers.utility.DockerImageName;
 @org.springframework.context.annotation.Import({TestAccounts.class, TestForms.class})
 public abstract class AbstractIntegrationTest {
 
-    private static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>(
-                    DockerImageName.parse("postgres:16-alpine"))
-            .withDatabaseName("cus")
-            .withUsername("cus")
-            .withPassword("cus");
-
-    static {
-        POSTGRES.start();
-    }
-
     @DynamicPropertySource
     static void datasourceProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES::getUsername);
-        registry.add("spring.datasource.password", POSTGRES::getPassword);
+        registry.add("spring.datasource.url", TestDatabase::url);
+        registry.add("spring.datasource.username", TestDatabase::user);
+        registry.add("spring.datasource.password", TestDatabase::password);
     }
 }

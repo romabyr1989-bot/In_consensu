@@ -30,11 +30,21 @@ jobs:
       #
       # Версия Docker API спрашивается у движка раннера: жёстко закреплённое число ломает сборку и на
       # старом движке (не знает новой версии), и на новом (не принимает слишком старую).
-      - name: make verify
+      # Продукт ставится на чистую операционную систему и не требует Docker (ADR-0078), поэтому и
+      # проверка идёт на PostgreSQL, установленной в системе, а не в контейнере. На раннере она
+      # предустановлена, её достаточно запустить и завести базу под тесты.
+      - name: Поднять PostgreSQL
         run: |
-          API_VERSION="$(docker version --format '{{.Server.APIVersion}}')"
-          echo "Docker Engine API: ${API_VERSION}"
-          make verify MVN_ARGS="-Dinconsensu.docker.api-version=${API_VERSION}"
+          sudo systemctl start postgresql
+          sudo -u postgres psql -c "CREATE USER inconsensu WITH PASSWORD 'inconsensu' SUPERUSER;"
+          sudo -u postgres psql -c "CREATE DATABASE inconsensu_test OWNER inconsensu;"
+
+      - name: make verify
+        env:
+          INCONSENSU_TEST_DB_URL: jdbc:postgresql://localhost:5432/inconsensu_test
+          INCONSENSU_TEST_DB_USER: inconsensu
+          INCONSENSU_TEST_DB_PASSWORD: inconsensu
+        run: make verify
 
       - name: Отчёты тестов и покрытия
         if: always()
@@ -78,20 +88,3 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: "1"
-
-  docker:
-    name: Сборка Docker-образа
-    runs-on: ubuntu-latest
-    needs: build
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - name: docker build
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: false
-          tags: inconsensu:ci
-          cache-from: type=gha
-          cache-to: type=gha,mode=max

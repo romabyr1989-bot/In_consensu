@@ -17,8 +17,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.utility.DockerImageName;
 import ru.example.inconsensu.common.domain.ContactType;
 import ru.example.inconsensu.notification.application.WebhookSubscriptionService;
 import ru.example.inconsensu.registry.application.ContactMaintenanceService;
@@ -26,6 +24,7 @@ import ru.example.inconsensu.registry.application.SubjectService;
 import ru.example.inconsensu.registry.domain.Subject;
 import ru.example.inconsensu.support.RunAs;
 import ru.example.inconsensu.support.TestAccounts;
+import ru.example.inconsensu.support.TestDatabase;
 import ru.example.inconsensu.support.TestForms;
 
 /**
@@ -43,29 +42,25 @@ import ru.example.inconsensu.support.TestForms;
 @Import({TestAccounts.class, TestForms.class})
 class ContactEncryptionIT {
 
+    /** Схема этого класса: имя постоянное, Flyway создаёт её при первом прогоне. */
+    private static final String SCHEMA = "encryption_test";
+
     /**
-     * Собственная база, а не общий контейнер остальных тестов.
+     * Отдельная схема, а не общая с остальными тестами.
      *
      * <p>Класс включает шифрование, а проход ротации ключа переписывает все контакты базы, какие в ней
-     * есть. На общей базе это утекало в соседние классы: они работают с выключенным флагом и падали в
-     * конвертере на чужом шифртексте. Точечная уборка после теста от этого не спасает — режим хранения
-     * глобален, поэтому изолируется хранилище, а не строки.
+     * есть. На общих данных это утекало в соседние классы: они работают с выключенным флагом и падали в
+     * конвертере на чужом шифртексте (ADR-0048). Раньше изоляция достигалась отдельным контейнером;
+     * контейнеров в проекте больше нет (ADR-0078), поэтому изолируется схема — Flyway создаёт её сам.
      */
-    private static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>(
-                    DockerImageName.parse("postgres:16-alpine"))
-            .withDatabaseName("cus")
-            .withUsername("cus")
-            .withPassword("cus");
-
-    static {
-        POSTGRES.start();
-    }
-
     @DynamicPropertySource
-    static void datasourceProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES::getUsername);
-        registry.add("spring.datasource.password", POSTGRES::getPassword);
+    static void isolatedSchema(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", () -> TestDatabase.urlWithSchema(SCHEMA));
+        registry.add("spring.datasource.username", TestDatabase::user);
+        registry.add("spring.datasource.password", TestDatabase::password);
+        registry.add("spring.flyway.schemas", () -> SCHEMA);
+        registry.add("spring.flyway.create-schemas", () -> true);
+        registry.add("spring.jpa.properties.hibernate.default_schema", () -> SCHEMA);
     }
 
     @Autowired

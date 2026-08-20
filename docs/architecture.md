@@ -59,7 +59,7 @@ flowchart LR
   subgraph Deploy["Контур оператора (РФ, NFR-4)"]
     App["<b>cus</b><br/>Spring Boot, модульный монолит<br/>один деплой-юнит, stateless"]
     DB[("PostgreSQL 16 / Postgres Pro<br/>согласия, каталог, журналы, outbox")]
-    Mail["SMTP / Mailpit в dev"]
+    Mail["SMTP-сервер оператора"]
   end
 
   Consumer["Внешние потребители событий<br/>(webhook-подписки)"]
@@ -177,6 +177,6 @@ flowchart LR
 
 ## 6. Развёртывание
 
-Один контейнер приложения + PostgreSQL. Поддерживаются Docker и Podman, Alt Linux (Альт Сервер),
+Служба systemd + PostgreSQL, без контейнеров (ADR-0078). Поддерживаются Alt Linux (Альт Сервер),
 PostgreSQL 15/16 и Postgres Pro Standard, OpenJDK 21 (Axiom JDK, Liberica). TLS терминируется на
 периметре. Подробности эксплуатации — в `runbook.md` (этап 8).

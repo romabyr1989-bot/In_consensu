@@ -19,12 +19,14 @@
 
 ## Запуск за 5 минут
 
-Нужны только Docker и Docker Compose.
+Нужны JDK 21 и PostgreSQL 15 или 16, установленные в системе. Docker не требуется ни для запуска, ни для
+установки: продукт ставится на чистую операционную систему (ADR-0078, подробно — [`docs/install.md`](docs/install.md)).
 
 ```bash
-git clone <репозиторий> cus && cd cus
-INCONSENSU_PROFILES=demo docker compose up -d --build   # postgres + mailpit + приложение с демо-данными
-./scripts/demo.sh                                # сквозная проверка реализованного объёма
+git clone <репозиторий> in-consensu && cd in-consensu
+make db          # заводит базу inconsensu и пользователя (нужен доступ к psql под postgres)
+make up          # запускает приложение с демо-данными
+./scripts/demo.sh   # сквозная проверка реализованного объёма
 ```
 
 Профиль `demo` создаёт вымышленных клиентов (Травин, Чкалов, Бондаренко), опубликованную форму согласия
@@ -43,31 +45,36 @@ INCONSENSU_PROFILES=demo docker compose up -d --build   # postgres + mailpit + �
 | OpenAPI (YAML) | <http://localhost:8080/v3/api-docs.yaml> |
 | Health | <http://localhost:8080/actuator/health> |
 | Метрики Prometheus | <http://localhost:8080/actuator/prometheus> |
-| Почтовая заглушка Mailpit | <http://localhost:8025> |
 
-Остановить: `docker compose down` (с удалением данных — `docker compose down -v`).
+Письма уведомлений уходят на SMTP-сервер из `INCONSENSU_SMTP_HOST`; без него приложение работает, письма
+просто не отправляются.
+
+Остановить: Ctrl+C в терминале `make up`. Установка как службы — [`docs/install.md`](docs/install.md).
 
 ## Разработка
 
-Нужны JDK 21 (Axiom JDK, Liberica или другой OpenJDK-совместимый) и Docker — последний обязателен
-для интеграционных тестов на Testcontainers.
+Нужны JDK 21 (Axiom JDK, Liberica или другой OpenJDK-совместимый) и PostgreSQL — интеграционные тесты
+идут на настоящей базе, но поднимают её не сами: контейнеров в проекте нет (ADR-0078).
 
 ```bash
 make help          # список команд
 make verify        # ./mvnw verify: тесты, покрытие, Spotless, Checkstyle, сверка openapi.yaml
-make test          # только юнит-тесты, без Docker
+make test          # только юнит-тесты, без базы данных
 make format        # ./mvnw spotless:apply
-make run           # запуск с профилем dev (нужна поднятая БД: docker compose up -d postgres)
+make run           # запуск с профилем dev (нужна поднятая PostgreSQL)
 make openapi       # перегенерировать docs/openapi.yaml после изменения API
 ```
 
-Если Docker поднят не через Docker Desktop, а через colima или Podman, Testcontainers нужно указать
-сокет:
+Интеграционные тесты берут адрес базы из окружения; значения по умолчанию рассчитаны на локальную
+установку, а `make db` заводит и рабочую базу, и тестовую:
 
 ```bash
-export DOCKER_HOST="unix://$HOME/.colima/default/docker.sock"   # для colima
-export TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock
+export INCONSENSU_TEST_DB_URL=jdbc:postgresql://localhost:5432/inconsensu_test
+export INCONSENSU_TEST_DB_USER=inconsensu
+export INCONSENSU_TEST_DB_PASSWORD=inconsensu
 ```
+
+SMTP-сервер для тестов поднимать не нужно: почтовая заглушка работает внутри тестовой JVM.
 
 `./mvnw verify` — единственный критерий готовности: сборка падает при упавшем тесте, недостаточном
 покрытии слоёв `domain` и `application`, нарушении форматирования, нарушении правил Checkstyle,
@@ -102,16 +109,15 @@ export TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock
 Профили: `dev` — читаемые логи и подробный health; `demo` — демонстрационные (вымышленные) данные;
 `oidc` — вход через внешний IdP; `kafka` — опциональная доставка событий (этап 8).
 
-Отдельно — переменные, которые читает только `docker-compose.yml`:
+Отдельно — переменные интеграционных тестов; значения по умолчанию рассчитаны на локальную установку:
 
 | Переменная | По умолчанию | Назначение |
 |---|---|---|
-| `INCONSENSU_PROFILES` | `demo` | профиль приложения в контейнере (передаётся как `SPRING_PROFILES_ACTIVE`) |
-| `INCONSENSU_DB_PORT` | `5432` | порт PostgreSQL на хосте |
-| `INCONSENSU_SMTP_PORT` / `INCONSENSU_MAILPIT_UI_PORT` | `1025` / `8025` | порты Mailpit на хосте |
+| `INCONSENSU_TEST_DB_URL` | `jdbc:postgresql://localhost:5432/inconsensu_test` | база, на которой идут интеграционные тесты |
+| `INCONSENSU_TEST_DB_USER` / `INCONSENSU_TEST_DB_PASSWORD` | `inconsensu` / `inconsensu` | учётные данные к ней |
 
-Сборка образа требует BuildKit (входит в Docker 23+ и в `docker buildx`); `make docker-build`
-включает его явно.
+Установка на сервер — [`docs/install.md`](docs/install.md): исполняемый JAR, служба systemd и внешняя
+PostgreSQL, без контейнеров.
 
 ## Структура
 

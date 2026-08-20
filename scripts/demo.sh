@@ -5,13 +5,13 @@
 # Скрипт покрывает все этапы §13: сквозной сценарий §11 (канал разрешён -> отзыв -> канал запрещён ->
 # событие в outbox -> письмо), веб-интерфейс §16 и эксплуатационные возможности этапа 8.
 #
-# Нужен профиль demo: INCONSENSU_PROFILES=demo docker compose up -d
+# Нужен профиль demo: make up (или запуск службы с SPRING_PROFILES_ACTIVE=demo)
 # Использование:  BASE_URL=http://localhost:8080 ./scripts/demo.sh
 
 set -euo pipefail
 
 BASE_URL="${BASE_URL:-http://localhost:8080}"
-MAILPIT_URL="${MAILPIT_URL:-http://localhost:8025}"
+MAIL_UI_URL="${MAIL_UI_URL:-}"
 TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-120}"
 # Демо-профиль создаёт пользователей на каждую роль Приложения E (см. README)
 DEMO_LOGIN="${DEMO_LOGIN:-admin}"
@@ -55,7 +55,7 @@ step "Ожидание запуска приложения на ${BASE_URL}"
 if wait_for_health; then
   ok "приложение отвечает"
 else
-  fail "приложение не поднялось за ${TIMEOUT_SECONDS} с — проверьте 'docker compose logs app'"
+  fail "приложение не поднялось за ${TIMEOUT_SECONDS} с — проверьте журнал: journalctl -u inconsensu"
   exit 1
 fi
 
@@ -100,11 +100,11 @@ else
   fail "неожиданный ответ: ${PROBLEM}"
 fi
 
-step "Почтовая заглушка Mailpit"
-if curl --fail --silent --output /dev/null "${MAILPIT_URL}" 2>/dev/null; then
-  ok "Mailpit доступен: ${MAILPIT_URL}"
+step "Просмотр писем (необязательно)"
+if [ -n "${MAIL_UI_URL}" ] && curl --fail --silent --output /dev/null "${MAIL_UI_URL}" 2>/dev/null; then
+  ok "просмотр писем доступен: ${MAIL_UI_URL}"
 else
-  skip "Mailpit не запущен — понадобится на этапе 6 (уведомления)"
+  skip "просмотр писем не настроен: задайте MAIL_UI_URL, если он нужен"
 fi
 
 # --------------------------------------------------------------------------------------
@@ -119,7 +119,7 @@ TOKEN="$(curl --fail --silent -X POST "${BASE_URL}/api/v1/auth/login" \
 if [ -n "$TOKEN" ]; then
   ok "получен токен для пользователя ${DEMO_LOGIN}"
 else
-  fail "не удалось войти: запустите с профилем demo (INCONSENSU_PROFILES=demo docker compose up -d)"
+  fail "не удалось войти: запустите с профилем demo (make up)"
   exit 1
 fi
 AUTH="Authorization: Bearer ${TOKEN}"
@@ -283,13 +283,17 @@ else
   fail "не удалось создать подписку"
 fi
 
-step "Тестовое письмо и доставка в Mailpit (FR-9.2, FR-9.5)"
+step "Тестовое письмо (FR-9.2, FR-9.5)"
 if curl --fail --silent -X POST -H "$AUTH" -H 'Content-Type: application/json' \
      -d '{"email":"dpo@example.ru"}' "${BASE_URL}/api/v1/notifications/test-email" | grep -q '"sent":true'; then
-  if curl --fail --silent "${MAILPIT_URL}/api/v1/search?query=dpo@example.ru" | grep -q "проверка отправки"; then
-    ok "письмо доставлено и видно в Mailpit"
-  else
-    fail "письмо отправлено, но в Mailpit не найдено"
+  ok "письмо принято SMTP-сервером"
+  # Доставку проверяет тот, у кого настроен просмотр писем: своего почтового сервера у продукта нет.
+  if [ -n "${MAIL_UI_URL}" ]; then
+    if curl --fail --silent "${MAIL_UI_URL}/api/v1/search?query=dpo@example.ru" | grep -q "проверка отправки"; then
+      ok "письмо видно в просмотрщике"
+    else
+      fail "письмо отправлено, но в просмотрщике не найдено"
+    fi
   fi
 else
   fail "тестовое письмо не отправлено: проверьте настройки SMTP"

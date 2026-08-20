@@ -44,16 +44,14 @@
         <!-- NFR-3: версия драйвера выше управляемой Spring Boot — в 42.7.11 известна уязвимость -->
         <postgresql.version>42.7.13</postgresql.version>
 
+        <greenmail.version>2.1.12</greenmail.version>
+
         <!-- §11: coverage threshold for domain + application layers -->
         <jacoco.coverage.minimum>0.80</jacoco.coverage.minimum>
 
         <!-- Set to true to rewrite docs/openapi.yaml from the running application (§11) -->
         <inconsensu.openapi.update>false</inconsensu.openapi.update>
 
-        <!-- Docker Engine API version used by Testcontainers. The docker-java default (1.32) is
-             rejected by Docker Engine 29+, which requires at least 1.44. Lower it for an older
-             engine or for Podman: ./mvnw verify -Dinconsensu.docker.api-version=1.41 -->
-        <inconsensu.docker.api-version>1.44</inconsensu.docker.api-version>
     </properties>
 
     <dependencies>
@@ -188,19 +186,15 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!--
+            Почтовая заглушка тестов: SMTP-сервер поднимается в самой JVM (ADR-0078).
+            Прежняя заглушка работала контейнером, а поставка и проверка продукта не должны требовать
+            Docker: приложение ставится на чистую операционную систему.
+        -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-testcontainers</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>postgresql</artifactId>
+            <groupId>com.icegreen</groupId>
+            <artifactId>greenmail-junit5</artifactId>
+            <version>${greenmail.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -343,7 +337,7 @@
                 </configuration>
             </plugin>
 
-            <!-- Integration tests (§11, Testcontainers) -->
+            <!-- Integration tests (§11): внешняя PostgreSQL, адрес берётся из окружения -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
@@ -355,8 +349,6 @@
                     <systemPropertyVariables>
                         <!-- ./mvnw verify -Dinconsensu.openapi.update=true regenerates docs/openapi.yaml (§11) -->
                         <inconsensu.openapi.update>${inconsensu.openapi.update}</inconsensu.openapi.update>
-                        <!-- Read by docker-java inside Testcontainers, see inconsensu.docker.api-version above -->
-                        <api.version>${inconsensu.docker.api-version}</api.version>
                     </systemPropertyVariables>
                 </configuration>
                 <executions>

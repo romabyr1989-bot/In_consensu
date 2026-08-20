@@ -144,8 +144,8 @@ insert into audit_event_archive select e.*, now() from audit_event e where e.occ
 
 | Операция | Команда | Примечание |
 |---|---|---|
-| Обновление версии | `docker compose pull && docker compose up -d` | Flyway применит новые миграции при старте |
-| Плановая остановка | `docker compose stop app` | `server.shutdown=graceful`, запросы дорабатываются |
+| Обновление версии | замена `inconsensu.jar` и `systemctl restart inconsensu` | Flyway применит новые миграции при старте, порядок — `docs/install.md` |
+| Плановая остановка | `systemctl stop inconsensu` | `server.shutdown=graceful`, запросы дорабатываются |
 | Масштабирование | увеличить число реплик | приложение stateless; фоновые задачи защищены ShedLock (NFR-2) |
 | Смена секрета JWT | `INCONSENSU_JWT_SECRET` + перезапуск | все выданные токены станут недействительными, пользователи войдут заново |
 | Смена секрета подписки | экран «Webhooks» → «Новый секрет» | секрет показывается один раз, сообщите его потребителю до отключения старого |
