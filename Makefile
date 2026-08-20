@@ -13,7 +13,7 @@ DB_PASSWORD ?= inconsensu
 DB_URL ?= jdbc:postgresql://localhost:5432/$(DB_NAME)
 
 .DEFAULT_GOAL := help
-.PHONY: help build test verify format lint openapi run db up package psql demo deps clean
+.PHONY: help build test verify format lint openapi run db db-reset up package psql demo deps clean
 
 help: ## Показать список команд
 	@grep -hE '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -44,6 +44,10 @@ db: ## Создать базу и пользователя для локальн
 	psql -v ON_ERROR_STOP=1 -U postgres -c "CREATE USER $(DB_USER) WITH PASSWORD '$(DB_PASSWORD)';" || true
 	psql -v ON_ERROR_STOP=1 -U postgres -c "CREATE DATABASE $(DB_NAME) OWNER $(DB_USER);" || true
 	psql -v ON_ERROR_STOP=1 -U postgres -c "CREATE DATABASE $(TEST_DB_NAME) OWNER $(DB_USER);" || true
+
+db-reset: ## Пересоздать демо-базу: сквозной сценарий §11 меняет данные и рассчитан на свежий набор
+	psql -v ON_ERROR_STOP=1 -U postgres -c "DROP DATABASE IF EXISTS $(DB_NAME);"
+	psql -v ON_ERROR_STOP=1 -U postgres -c "CREATE DATABASE $(DB_NAME) OWNER $(DB_USER);"
 
 up: ## Запустить приложение локально с демо-данными (нужны PostgreSQL и SMTP)
 	INCONSENSU_DB_URL=$(DB_URL) INCONSENSU_DB_USER=$(DB_USER) INCONSENSU_DB_PASSWORD=$(DB_PASSWORD) \

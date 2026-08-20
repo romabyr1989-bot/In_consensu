@@ -5,7 +5,10 @@
 # Скрипт покрывает все этапы §13: сквозной сценарий §11 (канал разрешён -> отзыв -> канал запрещён ->
 # событие в outbox -> письмо), веб-интерфейс §16 и эксплуатационные возможности этапа 8.
 #
-# Нужен профиль demo: make up (или запуск службы с SPRING_PROFILES_ACTIVE=demo)
+# Нужен профиль demo: make up (или запуск службы с SPRING_PROFILES_ACTIVE=demo).
+#
+# Сценарий §11 меняет данные — отзывает согласия и закрывает каналы, — поэтому рассчитан на свежий
+# набор демо-данных. Перед повторным прогоном: make db-reset и перезапуск приложения.
 # Использование:  BASE_URL=http://localhost:8080 ./scripts/demo.sh
 
 set -euo pipefail
@@ -35,6 +38,9 @@ require() {
 }
 
 require curl
+# grep -q закрывает пайп на первом совпадении: curl не дописывает ответ, падает с SIGPIPE, и под
+# `set -o pipefail` успешный шаг считается провалившимся. Поэтому ответ дочитывается до конца.
+contains() { grep -c -e "$1" >/dev/null; }
 # Разбор карточки клиента: выбрать рекламное согласие регулярным выражением по JSON надёжно не выходит.
 require python3
 
@@ -68,14 +74,14 @@ else
 fi
 
 step "Проверка метрик (/actuator/prometheus)"
-if curl --fail --silent "${BASE_URL}/actuator/prometheus" | grep -q "jvm_memory_used_bytes"; then
+if curl --fail --silent "${BASE_URL}/actuator/prometheus" | contains "jvm_memory_used_bytes"; then
   ok "метрики отдаются"
 else
   fail "метрики недоступны"
 fi
 
 step "Проверка спецификации API (/v3/api-docs)"
-if curl --fail --silent "${BASE_URL}/v3/api-docs" | grep -q '"openapi"'; then
+if curl --fail --silent "${BASE_URL}/v3/api-docs" | contains '"openapi"'; then
   ok "OpenAPI отдаётся, Swagger UI: ${BASE_URL}/swagger-ui.html"
 else
   fail "OpenAPI недоступен"
@@ -125,7 +131,7 @@ fi
 AUTH="Authorization: Bearer ${TOKEN}"
 
 step "Справочник типов согласий по Приложению B (FR-1.1)"
-if curl --fail --silent -H "$AUTH" "${BASE_URL}/api/v1/consent-types?size=50" | grep -q "PDN_PROCESSING"; then
+if curl --fail --silent -H "$AUTH" "${BASE_URL}/api/v1/consent-types?size=50" | contains "PDN_PROCESSING"; then
   ok "типы согласий загружены"
 else
   fail "справочник типов пуст"
@@ -177,7 +183,7 @@ else
 fi
 
 step "Журнал доступа к ПДн (FR-10.5)"
-if curl --fail --silent -H "$AUTH" "${BASE_URL}/api/v1/audit/access-log?size=5" | grep -q "subjects"; then
+if curl --fail --silent -H "$AUTH" "${BASE_URL}/api/v1/audit/access-log?size=5" | contains "subjects"; then
   ok "обращения к карточке зафиксированы"
 else
   fail "журнал доступа пуст"
@@ -210,7 +216,7 @@ fi
 step "Массовая проверка канала (FR-6.4)"
 if curl --fail --silent -X POST -H "$AUTH" -H 'Content-Type: application/json' \
      -d "{\"channel\":\"EMAIL\",\"identifiers\":[\"${SUBJECT_ID}\"],\"includeReasons\":true}" \
-     "${BASE_URL}/api/v1/channels/check" | grep -q '"requested":1'; then
+     "${BASE_URL}/api/v1/channels/check" | contains '"requested":1'; then
   ok "пакетная проверка отвечает по каждому идентификатору"
 else
   fail "массовая проверка канала не сработала"
@@ -250,14 +256,14 @@ fi
 
 step "Событие отзыва записано в outbox (FR-9.4, §8.6)"
 if [ -n "$AD_CONSENT_ID" ] && curl --fail --silent -H "$AUTH" \
-     "${BASE_URL}/api/v1/consents/${AD_CONSENT_ID}/evidence" | grep -q '"integrity":"OK"'; then
+     "${BASE_URL}/api/v1/consents/${AD_CONSENT_ID}/evidence" | contains '"integrity":"OK"'; then
   ok "отзыв зафиксирован в неизменяемом журнале, событие ушло в очередь доставки"
 else
   skip "нечего проверять: рекламное согласие не отзывалось"
 fi
 
 step "Правила уведомлений (FR-9.1)"
-if curl --fail --silent -H "$AUTH" "${BASE_URL}/api/v1/notification-rules" | grep -q '"triggerTypeRu"'; then
+if curl --fail --silent -H "$AUTH" "${BASE_URL}/api/v1/notification-rules" | contains '"triggerTypeRu"'; then
   ok "правила загружены, пороги переподписания настроены"
 else
   fail "справочник правил уведомлений пуст"
@@ -273,7 +279,7 @@ if [ -n "$SUBSCRIPTION_ID" ] && grep -q '"secret"' <<<"$SUBSCRIPTION"; then
   # Адрес недоступен намеренно: показываем журнал доставок и обработку ошибки, а не успех.
   curl --fail --silent -X POST -H "$AUTH" "${BASE_URL}/api/v1/webhooks/${SUBSCRIPTION_ID}/test" >/dev/null || true
   if curl --fail --silent -H "$AUTH" "${BASE_URL}/api/v1/webhooks/${SUBSCRIPTION_ID}/deliveries" \
-       | grep -q '"attempt"'; then
+       | contains '"attempt"'; then
     ok "попытка доставки записана в журнал с кодом ответа и ошибкой"
   else
     fail "журнал доставок пуст"
@@ -285,11 +291,11 @@ fi
 
 step "Тестовое письмо (FR-9.2, FR-9.5)"
 if curl --fail --silent -X POST -H "$AUTH" -H 'Content-Type: application/json' \
-     -d '{"email":"dpo@example.ru"}' "${BASE_URL}/api/v1/notifications/test-email" | grep -q '"sent":true'; then
+     -d '{"email":"dpo@example.ru"}' "${BASE_URL}/api/v1/notifications/test-email" | contains '"sent":true'; then
   ok "письмо принято SMTP-сервером"
   # Доставку проверяет тот, у кого настроен просмотр писем: своего почтового сервера у продукта нет.
   if [ -n "${MAIL_UI_URL}" ]; then
-    if curl --fail --silent "${MAIL_UI_URL}/api/v1/search?query=dpo@example.ru" | grep -q "проверка отправки"; then
+    if curl --fail --silent "${MAIL_UI_URL}/api/v1/search?query=dpo@example.ru" | contains "проверка отправки"; then
       ok "письмо видно в просмотрщике"
     else
       fail "письмо отправлено, но в просмотрщике не найдено"
@@ -300,7 +306,7 @@ else
 fi
 
 step "Внеочередной прогон задачи уведомлений (FR-9.1)"
-if curl --fail --silent -X POST -H "$AUTH" "${BASE_URL}/api/v1/notifications/run" | grep -q '"expiring"'; then
+if curl --fail --silent -X POST -H "$AUTH" "${BASE_URL}/api/v1/notifications/run" | contains '"expiring"'; then
   ok "задача отработала, повторные уведомления отсекаются дедупликацией"
 else
   fail "внеочередной прогон не выполнен"
@@ -312,12 +318,12 @@ UI_CSRF="$(curl --fail --silent -c "$UI_COOKIES" "${BASE_URL}/ui/login" \
   | sed -n 's/.*name="_csrf" content="\([^"]*\)".*/\1/p')"
 curl --fail --silent -b "$UI_COOKIES" -c "$UI_COOKIES" -o /dev/null \
   -X POST -d "username=${DEMO_LOGIN}&password=${DEMO_PASSWORD}&_csrf=${UI_CSRF}" "${BASE_URL}/ui/login" || true
-if curl --fail --silent -b "$UI_COOKIES" "${BASE_URL}/ui/" | grep -q "Действующих согласий"; then
+if curl --fail --silent -b "$UI_COOKIES" "${BASE_URL}/ui/" | contains "Действующих согласий"; then
   ok "вход выполнен, дашборд UI-2 открывается"
 else
   fail "интерфейс не открылся под демо-пользователем"
 fi
-if curl --fail --silent -b "$UI_COOKIES" "${BASE_URL}/ui/subjects/${SUBJECT_ID}" | grep -q "Телефонный звонок"; then
+if curl --fail --silent -b "$UI_COOKIES" "${BASE_URL}/ui/subjects/${SUBJECT_ID}" | contains "Телефонный звонок"; then
   ok "карточка клиента UI-4 показывает плитки каналов"
 else
   fail "карточка клиента не отрисовалась"
@@ -333,13 +339,13 @@ SELF_URL="$(curl --fail --silent -X POST -H "Authorization: Bearer ${SELF_TOKEN}
   | sed -n 's/.*"url":"\([^"]*\)".*/\1/p')"
 SELF_COOKIES="$(mktemp)"
 curl --fail --silent -b "$SELF_COOKIES" -c "$SELF_COOKIES" -o /dev/null "$SELF_URL" || true
-if curl --fail --silent -b "$SELF_COOKIES" "${BASE_URL}/self/ui" | grep -q "Здравствуйте"; then
+if curl --fail --silent -b "$SELF_COOKIES" "${BASE_URL}/self/ui" | contains "Здравствуйте"; then
   ok "клиент видит свои согласия по одноразовой ссылке"
 else
   fail "страница самообслуживания не открылась"
 fi
 # Ссылка одноразовая: второе открытие обязано отказать.
-if curl --silent "$SELF_URL" | grep -q "Ссылка недействительна"; then
+if curl --silent "$SELF_URL" | contains "Ссылка недействительна"; then
   ok "повторное открытие ссылки отклонено"
 else
   fail "одноразовая ссылка сработала дважды"
@@ -347,12 +353,14 @@ fi
 rm -f "$SELF_COOKIES"
 
 step "Экспорт карточки клиента в PDF (UI-4, этап 8)"
-if curl --fail --silent -H "$AUTH" "${BASE_URL}/api/v1/subjects/${SUBJECT_ID}/card.pdf" \
-     | head -c 5 | grep -q "%PDF-"; then
+PDF_FILE="$(mktemp)"
+curl --fail --silent -H "$AUTH" -o "$PDF_FILE" "${BASE_URL}/api/v1/subjects/${SUBJECT_ID}/card.pdf" || true
+if [ -s "$PDF_FILE" ] && head -c 5 "$PDF_FILE" | contains "%PDF-"; then
   ok "карточка выгружается в PDF"
 else
   fail "PDF карточки не сформировался"
 fi
+rm -f "$PDF_FILE"
 
 step "Асинхронная массовая проверка канала (этап 8)"
 BULK_JOB="$(curl --fail --silent -X POST -H "$AUTH" -H 'Content-Type: application/json' \
@@ -372,7 +380,7 @@ fi
 
 step "Пробный прогон политики хранения (NFR-5)"
 if curl --fail --silent -X POST -H "$AUTH" \
-     "${BASE_URL}/api/v1/maintenance/retention/run?dryRun=true" | grep -q '"dryRun":true'; then
+     "${BASE_URL}/api/v1/maintenance/retention/run?dryRun=true" | contains '"dryRun":true'; then
   ok "ретенция считает записи, ничего не меняя"
 else
   fail "пробный прогон ретенции не выполнен"
