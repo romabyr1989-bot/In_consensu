@@ -52,5 +52,80 @@
     </div>
 </div>
 
+<!--
+  UI-8: разметка одного пункта формы.
+  Вынесена во фрагмент, чтобы шаблон нового пункта не был копией: расхождение между ними означало бы,
+  что добавленный пункт теряет часть полей. Параметр item пустой для шаблона, index в нём — «__INDEX__»,
+  который скрипт заменяет на номер при добавлении.
+-->
+<fieldset th:fragment="itemFields(index, item)" class="border rounded p-3 mb-3 ic-item">
+    <legend class="h6 d-flex justify-content-between align-items-center">
+        <span>Пункт <span class="ic-item-number" th:text="${item != null} ? ${index + 1} : '1'">1</span></span>
+        <span class="btn-group btn-group-sm">
+            <button class="btn btn-outline-secondary" type="button" onclick="cusMoveItem(this,-1)"
+                    aria-label="Переместить пункт выше">Вверх</button>
+            <button class="btn btn-outline-secondary" type="button" onclick="cusMoveItem(this,1)"
+                    aria-label="Переместить пункт ниже">Вниз</button>
+            <button class="btn btn-outline-danger" type="button" onclick="cusRemoveItem(this)"
+                    aria-label="Удалить пункт">Удалить пункт</button>
+        </span>
+    </legend>
+    <div class="row g-2">
+        <div class="col-md-6">
+            <label class="form-label">Тип согласия</label>
+            <select class="form-select ic-item-type" th:name="'items[' + ${index} + '].typeCode'">
+                <option th:each="type : ${activeTypes}" th:value="${type.code}" th:text="${type.nameRu}"
+                        th:data-requires-third-party="${type.requiresThirdParty}"
+                        th:data-advertising="${type.category.name() == 'ADVERTISING'}"
+                        th:selected="${item != null and item.consentType.code == type.code}">Тип</option>
+            </select>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Срок (ISO-8601, пусто — до отзыва)</label>
+            <input class="form-control" th:name="'items[' + ${index} + '].validity'"
+                   th:value="${item != null} ? ${item.validity} : ''">
+        </div>
+        <div class="col-12">
+            <label class="form-label">Формулировка</label>
+            <textarea class="form-control" rows="2" th:name="'items[' + ${index} + '].text'"
+                      th:text="${item != null} ? ${item.text} : ''"></textarea>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Цели (по одной в строке)</label>
+            <textarea class="form-control" rows="2" th:name="'items[' + ${index} + '].purposes'"
+                      th:text="${item != null} ? ${#strings.listJoin(item.purposes, '&#10;')} : ''"></textarea>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Категории ПДн</label>
+            <select class="form-select" multiple size="4" th:name="'items[' + ${index} + '].categories'">
+                <option th:each="category : ${pdnCategories}" th:value="${category.code}"
+                        th:text="${category.nameRu} + (${category.special} ? ' (специальная)' : '')"
+                        th:selected="${item != null and item.pdnCategories.contains(category.code)}">ФИО</option>
+            </select>
+        </div>
+        <!-- UI-8: блок третьего лица показывается, только если тип его требует. -->
+        <div class="col-md-6 ic-third-party">
+            <label class="form-label">Третье лицо</label>
+            <select class="form-select" th:name="'items[' + ${index} + '].thirdPartyId'">
+                <option value="">—</option>
+                <option th:each="party : ${thirdParties}" th:value="${party.id}" th:text="${party.name}"
+                        th:selected="${item != null and item.thirdPartyId != null and item.thirdPartyId == party.id}">ООО</option>
+            </select>
+        </div>
+        <div class="col-md-6 align-self-end">
+            <div class="form-check">
+                <input class="form-check-input ic-item-mandatory" type="checkbox" value="true"
+                       th:name="'items[' + ${index} + '].mandatory'"
+                       th:checked="${item != null and item.mandatory}">
+                <label class="form-check-label">Обязателен для заключения договора</label>
+            </div>
+            <!-- FR-1.4: рекламное согласие не может быть условием заключения договора. -->
+            <div class="form-text text-warning ic-advertising-warning d-none">
+                Рекламное согласие не может быть обязательным для заключения договора (ч. 4 ст. 9 152-ФЗ).
+            </div>
+        </div>
+    </div>
+</fieldset>
+
 </body>
 </html>

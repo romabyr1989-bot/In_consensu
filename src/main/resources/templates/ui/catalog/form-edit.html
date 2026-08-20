@@ -62,68 +62,24 @@
                             <button class="btn btn-sm btn-outline-primary" type="button" onclick="cusAddItem()">Добавить пункт</button>
                         </div>
                         <div class="card-body" id="items">
-                            <fieldset class="border rounded p-3 mb-3 ic-item"
-                                      th:each="item, iter : ${form.form().items}">
-                                <legend class="h6">Пункт <span th:text="${iter.index + 1}">1</span></legend>
-                                <div class="row g-2">
-                                    <div class="col-md-6">
-                                        <label class="form-label">Тип согласия</label>
-                                        <select class="form-select" th:name="'items[' + ${iter.index} + '].typeCode'">
-                                            <option th:each="type : ${activeTypes}" th:value="${type.code}"
-                                                    th:text="${type.nameRu}"
-                                                    th:selected="${item.consentType.code == type.code}">Тип</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Срок (ISO-8601, пусто — до отзыва)</label>
-                                        <input class="form-control" th:name="'items[' + ${iter.index} + '].validity'"
-                                               th:value="${item.validity}">
-                                    </div>
-                                    <div class="col-12">
-                                        <label class="form-label">Формулировка</label>
-                                        <textarea class="form-control" rows="2"
-                                                  th:name="'items[' + ${iter.index} + '].text'"
-                                                  th:text="${item.text}"></textarea>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Цели (по одной в строке)</label>
-                                        <textarea class="form-control" rows="2"
-                                                  th:name="'items[' + ${iter.index} + '].purposes'"
-                                                  th:text="${#strings.listJoin(item.purposes, '&#10;')}"></textarea>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Категории ПДн</label>
-                                        <select class="form-select" multiple size="4"
-                                                th:name="'items[' + ${iter.index} + '].categories'">
-                                            <option th:each="category : ${pdnCategories}" th:value="${category.code}"
-                                                    th:text="${category.nameRu} + (${category.special} ? ' (специальная)' : '')"
-                                                    th:selected="${item.pdnCategories.contains(category.code)}">ФИО</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Третье лицо</label>
-                                        <select class="form-select" th:name="'items[' + ${iter.index} + '].thirdPartyId'">
-                                            <option value="">—</option>
-                                            <option th:each="party : ${thirdParties}" th:value="${party.id}"
-                                                    th:text="${party.name}"
-                                                    th:selected="${item.thirdPartyId != null and item.thirdPartyId == party.id}">ООО</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-6 align-self-end">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" value="true"
-                                                   th:name="'items[' + ${iter.index} + '].mandatory'"
-                                                   th:checked="${item.mandatory}">
-                                            <label class="form-check-label">Обязателен для заключения договора</label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </fieldset>
+                            <!-- th:block, а не обёртка: у th:replace приоритет выше th:each, а лишний узел
+                                 сломал бы перестановку пунктов — она двигает соседей внутри #items. -->
+                            <th:block th:each="item, iter : ${form.form().items}">
+                                <div th:replace="~{ui/catalog/fragments :: itemFields(${iter.index}, ${item})}"></div>
+                            </th:block>
                         </div>
+                        <!-- Заготовка нового пункта: тот же фрагмент, поэтому поля не разойдутся. -->
+                        <template id="item-template">
+                            <div th:replace="~{ui/catalog/fragments :: itemFields('__INDEX__', null)}"></div>
+                        </template>
                     </div>
 
                     <div class="d-flex gap-2">
                         <button class="btn btn-primary" type="submit">Сохранить черновик</button>
+                        <!-- UI-8: проверка идёт по сохранённому черновику, поэтому это названо явно. -->
+                        <button class="btn btn-outline-secondary" type="button"
+                                th:hx-get="@{/ui/catalog/forms/{id}/preview(id=${form.form().id})}"
+                                hx-target="#form-preview" hx-swap="outerHTML">Проверить сохранённое</button>
                     </div>
                 </form>
 
@@ -145,29 +101,111 @@
 </div>
 <script th:src="@{/webjars/bootstrap/js/bootstrap.bundle.min.js}"></script>
 <script th:src="@{/assets/js/inconsensu.js}"></script>
-<script th:inline="javascript">
-    // Новый пункт добавляется копией разметки: без сборщика и без шаблонизатора на клиенте (UI-0.2).
-    function cusAddItem() {
-        var container = document.getElementById('items');
-        var index = container.querySelectorAll('.ic-item').length;
-        var first = container.querySelector('.ic-item');
-        if (!first) {
-            return;
-        }
-        var clone = first.cloneNode(true);
-        clone.querySelectorAll('[name]').forEach(function (field) {
-            field.name = field.name.replace(/items\[\d+\]/, 'items[' + index + ']');
-            if (field.type === 'checkbox') {
-                field.checked = false;
-            } else if (field.tagName === 'SELECT') {
-                field.selectedIndex = 0;
-            } else {
-                field.value = '';
+<!-- Без th:inline: шаблонных подстановок здесь нет, а «[[» в регулярном выражении Thymeleaf
+     принимает за своё выражение и падает на разборе. -->
+<script>
+    // UI-8: работа со списком пунктов без сборщика и фреймворков (UI-0.2).
+    //
+    // Порядок в разметке — это и есть порядок пунктов: applyDraft нумерует их индексом цикла, поэтому
+    // перестановке достаточно поменять узлы местами и переписать индексы в именах полей.
+    function cusItems() {
+        return Array.prototype.slice.call(document.querySelectorAll('#items .ic-item'));
+    }
+
+    function cusRenumber() {
+        cusItems().forEach(function (item, index) {
+            item.querySelectorAll('[name]').forEach(function (field) {
+                field.name = field.name.replace(/items\[[0-9_A-Z]*\]/, 'items[' + index + ']');
+            });
+            var number = item.querySelector('.ic-item-number');
+            if (number) {
+                number.textContent = index + 1;
             }
         });
-        clone.querySelector('legend span').textContent = index + 1;
-        container.appendChild(clone);
     }
+
+    function cusAddItem() {
+        // Из шаблона, а не копией первого пункта: у свежего черновика пунктов нет, и копировать нечего —
+        // раньше кнопка на такой форме молча ничего не делала.
+        var template = document.getElementById('item-template');
+        var container = document.getElementById('items');
+        container.appendChild(template.content.cloneNode(true));
+        cusRenumber();
+        cusBindItems();
+    }
+
+    function cusMoveItem(button, delta) {
+        var item = button.closest('.ic-item');
+        var items = cusItems();
+        var index = items.indexOf(item);
+        var target = index + delta;
+        if (target < 0 || target >= items.length) {
+            return;
+        }
+        if (delta < 0) {
+            item.parentNode.insertBefore(item, items[target]);
+        } else {
+            item.parentNode.insertBefore(items[target], item);
+        }
+        cusRenumber();
+    }
+
+    function cusRemoveItem(button) {
+        button.closest('.ic-item').remove();
+        cusRenumber();
+    }
+
+    // UI-8: третье лицо показывается, только если тип его требует; для рекламного типа рядом с
+    // переключателем «обязателен» появляется предупреждение FR-1.4.
+    function cusSyncItem(item) {
+        var select = item.querySelector('.ic-item-type');
+        if (!select) {
+            return;
+        }
+        var option = select.options[select.selectedIndex];
+        var requiresThirdParty = option && option.dataset.requiresThirdParty === 'true';
+        var advertising = option && option.dataset.advertising === 'true';
+        var thirdParty = item.querySelector('.ic-third-party');
+        if (thirdParty) {
+            thirdParty.classList.toggle('d-none', !requiresThirdParty);
+            if (!requiresThirdParty) {
+                var field = thirdParty.querySelector('select');
+                if (field) {
+                    field.value = '';
+                }
+            }
+        }
+        var mandatory = item.querySelector('.ic-item-mandatory');
+        var warning = item.querySelector('.ic-advertising-warning');
+        if (warning) {
+            warning.classList.toggle('d-none', !(advertising && mandatory && mandatory.checked));
+        }
+    }
+
+    function cusBindItems() {
+        cusItems().forEach(function (item) {
+            if (item.dataset.bound === 'true') {
+                cusSyncItem(item);
+                return;
+            }
+            item.dataset.bound = 'true';
+            var select = item.querySelector('.ic-item-type');
+            var mandatory = item.querySelector('.ic-item-mandatory');
+            if (select) {
+                select.addEventListener('change', function () {
+                    cusSyncItem(item);
+                });
+            }
+            if (mandatory) {
+                mandatory.addEventListener('change', function () {
+                    cusSyncItem(item);
+                });
+            }
+            cusSyncItem(item);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', cusBindItems);
 </script>
 </body>
 </html>

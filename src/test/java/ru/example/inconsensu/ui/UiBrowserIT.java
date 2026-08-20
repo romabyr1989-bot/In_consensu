@@ -51,6 +51,9 @@ class UiBrowserIT extends AbstractIntegrationTest {
     private TestForms testForms;
 
     @Autowired
+    private ru.example.inconsensu.catalog.application.ConsentFormService forms;
+
+    @Autowired
     private ConsentRegistrationService registration;
 
     private WebClient browser;
@@ -91,6 +94,55 @@ class UiBrowserIT extends AbstractIntegrationTest {
         assertThat(text).contains("Согласия");
         // UI-0.10: ФИО клиента не выводится в заголовок окна браузера.
         assertThat(card.getTitleText()).doesNotContain("Травин");
+    }
+
+    /**
+     * UI-8: на пустом черновике кнопка «Добавить пункт» действительно добавляет пункт.
+     *
+     * <p>Скрипт копировал первый существующий пункт и на свежем черновике молча ничего не делал — форму
+     * Приложения C нельзя было собрать в конструкторе, то есть приёмочный критерий §16 не выполнялся.
+     * Проверяется с включённым JavaScript: разметка сама по себе дефект не показывает.
+     */
+    @Test
+    void the_builder_adds_the_first_item_to_an_empty_draft() throws Exception {
+        AppUser lawyer = accounts.create(RoleCode.LAWYER.name());
+        String code = "UI8_" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+        ConsentForm draft = forms.createDraft(
+                code,
+                new ru.example.inconsensu.catalog.application.ConsentFormService.FormDraft(
+                        "Пустой черновик", "Тело", "сбор", "до отзыва", java.util.Set.of(), List.of()));
+
+        browser.getOptions().setJavaScriptEnabled(true);
+        // Движок HtmlUnit не разбирает современный синтаксис htmx; проверяется собственный скрипт
+        // конструктора, поэтому ошибки чужих библиотек не должны ронять тест.
+        browser.getOptions().setThrowExceptionOnScriptError(false);
+        signIn(lawyer);
+
+        HtmlPage page = browser.getPage("http://localhost/ui/catalog/forms/" + draft.getId() + "/edit");
+        assertThat(page.querySelectorAll("#items .ic-item"))
+                .as("у свежего черновика пунктов нет")
+                .isEmpty();
+
+        HtmlButton add = page.querySelector("button[onclick='cusAddItem()']");
+        add.click();
+
+        assertThat(page.querySelectorAll("#items .ic-item"))
+                .as("кнопка «Добавить пункт» обязана работать и на пустом черновике")
+                .hasSize(1);
+        // Явный тип: querySelector обобщённый, и вывод типа делает вызов assertThat неоднозначным.
+        org.htmlunit.html.DomElement typeField = page.querySelector("#items .ic-item [name='items[0].typeCode']");
+        assertThat(typeField).as("поля нового пункта нумеруются с нуля").isNotNull();
+    }
+
+    private void signIn(AppUser user) throws Exception {
+        HtmlPage loginPage = browser.getPage("http://localhost/ui/login");
+        HtmlTextInput login = loginPage.querySelector("#username");
+        HtmlPasswordInput password = loginPage.querySelector("#password");
+        login.setValue("");
+        login.type(user.getLogin());
+        password.setValue("");
+        password.type(TestAccounts.PASSWORD);
+        ((HtmlButton) loginPage.querySelector("button[type=submit]")).click();
     }
 
     private Consent registerConsent() {
