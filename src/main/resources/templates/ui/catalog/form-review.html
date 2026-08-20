@@ -22,7 +22,11 @@
                     <div class="card-body"><pre class="small mb-0" th:text="${form.previewHtml()}">Текст</pre></div>
                 </div>
                 <div class="card mb-3" th:if="${previousVersion != null}">
-                    <div class="card-header">Отличия от версии <span th:text="${previousVersion.versionNumber}">2</span></div>
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>Отличия от версии <span th:text="${previousVersion.versionNumber}">2</span></span>
+                        <a class="small" th:href="@{/ui/catalog/forms/{id}(id=${previousVersion.id})}"
+                           th:text="'Открыть версию ' + ${previousVersion.versionNumber}">Открыть версию 2</a>
+                    </div>
                     <div class="card-body">
                         <pre class="small mb-0"><span th:each="line : ${diff}"
                              th:classappend="${line.kind().name() == 'ADDED'} ? 'text-success' :
@@ -31,31 +35,27 @@
                     </div>
                 </div>
 
-                <div class="card">
-                    <div class="card-header">Пункты</div>
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item" th:each="item : ${form.form().items}">
-                            <div class="fw-semibold" th:text="${item.consentType.nameRu}">Тип</div>
-                            <div class="small text-muted">
-                                Категории: <span th:text="${#strings.listJoin(item.pdnCategories, ', ')}">EMAIL</span> ·
-                                Срок: <span th:text="${item.validity} ?: 'до отзыва'">P1Y</span> ·
-                                <span th:text="${item.mandatory} ? 'обязателен' : 'необязателен'">необязателен</span>
-                            </div>
-                        </li>
-                    </ul>
-                </div>
+                <div th:replace="~{ui/catalog/fragments :: itemList(${items}, false)}"></div>
             </div>
 
             <div class="col-12 col-xl-5">
-                <div th:replace="~{ui/catalog/fragments :: preview}"></div>
+                <div th:replace="~{ui/catalog/fragments :: requisites(${form.validation()})}"></div>
 
                 <div class="card mt-3">
                     <div class="card-header">Решения согласующих</div>
                     <ul class="list-group list-group-flush">
-                        <li class="list-group-item d-flex justify-content-between" th:each="role : ${requiredRoles}">
-                            <span th:text="${role}">DPO</span>
-                            <span class="badge bg-success" th:if="${approvedRoles.contains(role)}">одобрено</span>
-                            <span class="badge bg-secondary" th:unless="${approvedRoles.contains(role)}">ожидает</span>
+                        <li class="list-group-item" th:each="decision : ${approvals}">
+                            <div class="d-flex justify-content-between">
+                                <span th:text="${decision.roleRu}">Юрист</span>
+                                <span class="badge bg-success" th:if="${decision.approved}">одобрено</span>
+                                <span class="badge bg-secondary" th:unless="${decision.approved}">ожидает</span>
+                            </div>
+                            <div class="small text-muted" th:if="${decision.approved}">
+                                <span th:text="${decision.actor}">Иванова А. А.</span>,
+                                <span th:text="${#temporals.format(decision.decidedAt, 'dd.MM.yyyy HH:mm')}">15.08.2026 11:20</span>
+                            </div>
+                            <div class="small" th:if="${decision.approved and !#strings.isEmpty(decision.comment)}"
+                                 th:text="${decision.comment}">замечаний нет</div>
                         </li>
                     </ul>
                     <div class="card-body">

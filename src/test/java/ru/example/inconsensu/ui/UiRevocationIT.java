@@ -200,7 +200,8 @@ class UiRevocationIT extends AbstractIntegrationTest {
     @Test
     void one_search_leaves_exactly_one_record_in_the_personal_data_access_log() throws Exception {
         registerAdvertisingConsent();
-        MockHttpSession session = loginAs(RoleCode.MANAGER.name());
+        AppUser manager = accounts.create(RoleCode.MANAGER.name());
+        MockHttpSession session = loginAs(manager);
 
         long before = accessLog.count();
         searchFor("Травин", session);
@@ -209,6 +210,15 @@ class UiRevocationIT extends AbstractIntegrationTest {
         assertThat(after - before)
                 .as("поиск фиксируется одной записью независимо от числа найденных клиентов")
                 .isEqualTo(1);
+
+        // §7 и UI-15: журнал обязан называть, кто смотрел данные. При входе через форму идентификатор
+        // пользователя терялся — в principal сессии его просто не было, и колонка «кто» оставалась пустой.
+        assertThat(accessLog.findAll().stream()
+                        .map(ru.example.inconsensu.audit.domain.PdnAccessLogEntry::getUserId)
+                        .filter(manager.getId()::equals)
+                        .count())
+                .as("запись журнала должна ссылаться на вошедшего сотрудника")
+                .isPositive();
     }
 
     /** Прогон поиска через POST и последующий переход по выданной ссылке — как это делает браузер. */
@@ -229,7 +239,10 @@ class UiRevocationIT extends AbstractIntegrationTest {
     }
 
     private MockHttpSession loginAs(String roleCode) throws Exception {
-        AppUser user = accounts.create(roleCode);
+        return loginAs(accounts.create(roleCode));
+    }
+
+    private MockHttpSession loginAs(AppUser user) throws Exception {
         return (MockHttpSession)
                 mockMvc.perform(formLogin("/ui/login").user(user.getLogin()).password(TestAccounts.PASSWORD))
                         .andReturn()

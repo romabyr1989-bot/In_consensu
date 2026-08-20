@@ -287,6 +287,21 @@ public class FormWorkflowService {
         return approvals.findByFormIdOrderByDecidedAtAsc(formId);
     }
 
+    /**
+     * Решения текущего круга согласования (ADR-0022): после доработки прошлые решения не засчитываются.
+     *
+     * <p>Панель UI-9 показывает ровно то, что учитывает переход в APPROVED, — иначе согласующий видел бы
+     * одобрение, которого система уже не считает.
+     */
+    @Transactional(readOnly = true)
+    public List<FormApproval> approvalsOfCurrentRound(UUID formId) {
+        ConsentForm form = forms.findById(formId).orElseThrow(() -> ApiException.notFound("Форма не найдена"));
+        Instant since = form.getSubmittedAt();
+        return approvals.findByFormIdOrderByDecidedAtAsc(formId).stream()
+                .filter(approval -> since == null || !approval.getDecidedAt().isBefore(since))
+                .toList();
+    }
+
     /** Роли, чьё одобрение обязательно для перехода в APPROVED (FR-2.1). */
     @Transactional(readOnly = true)
     public Set<String> requiredRoles() {

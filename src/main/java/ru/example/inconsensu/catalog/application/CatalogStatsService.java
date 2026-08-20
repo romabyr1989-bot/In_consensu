@@ -104,6 +104,12 @@ public class CatalogStatsService {
                 byThirdParty(now, horizon));
     }
 
+    /** UI-10: сколько согласий выдано по конкретной версии формы. */
+    @Transactional(readOnly = true)
+    public long consentsOfForm(UUID formId) {
+        return consentCounts.consentsOfForm(formId);
+    }
+
     /** Разрез по типам на текущий момент (FR-3.4). */
     @Transactional(readOnly = true)
     public List<TypeStats> byType() {

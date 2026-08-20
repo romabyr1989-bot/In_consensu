@@ -199,6 +199,7 @@ public class UiCatalogController {
     @GetMapping("/ui/catalog/forms/{id}")
     public String form(@PathVariable UUID id, Model model) {
         model.addAttribute("form", view.form(id));
+        model.addAttribute("items", view.items(id));
         return "ui/catalog/form-view";
     }
 
@@ -259,9 +260,10 @@ public class UiCatalogController {
     @GetMapping("/ui/catalog/forms/{id}/review")
     public String review(@PathVariable UUID id, Model model) {
         model.addAttribute("form", view.form(id));
+        model.addAttribute("items", view.items(id));
         model.addAttribute("history", workflow.historyOf(id));
-        model.addAttribute("requiredRoles", workflow.requiredRoles());
-        model.addAttribute("approvedRoles", view.approvedRoles(id));
+        // UI-9: по каждой обязательной роли — решение с именем согласующего и датой.
+        model.addAttribute("approvals", view.approvals(id));
         // Этап 8: юрист видит, что изменилось по сравнению с предыдущей опубликованной версией (FR-3.2).
         view.previousVersion(id).ifPresent(previous -> {
             model.addAttribute("previousVersion", previous);

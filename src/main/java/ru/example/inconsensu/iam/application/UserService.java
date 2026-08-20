@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -53,6 +54,19 @@ public class UserService {
     @Transactional(readOnly = true)
     public AppUser get(UUID id) {
         return users.findById(id).orElseThrow(() -> ApiException.notFound("Пользователь не найден"));
+    }
+
+    /**
+     * Имя пользователя для показа рядом с его решением или записью журнала (UI-9).
+     *
+     * <p>Отдельно от {@link #get(UUID)}: тот бросает исключение, а исключение внутри чужой транзакции
+     * помечает её как rollback-only и роняет страницу целиком. Учётной записи может уже не быть —
+     * решение по форме остаётся, и показать его нужно.
+     */
+    @Transactional(readOnly = true)
+    public Optional<String> displayName(UUID id) {
+        // Идентификатор может отсутствовать: решение мог записать фоновый процесс, у которого учётной записи нет.
+        return id == null ? Optional.empty() : users.findById(id).map(AppUser::getFullName);
     }
 
     @Transactional

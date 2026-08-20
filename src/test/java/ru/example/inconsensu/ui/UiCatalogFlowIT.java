@@ -59,7 +59,8 @@ class UiCatalogFlowIT extends AbstractIntegrationTest {
 
     @Test
     void draft_goes_through_the_builder_review_and_publication() throws Exception {
-        MockHttpSession lawyer = loginAs(RoleCode.LAWYER.name());
+        AppUser lawyerUser = accounts.create(RoleCode.LAWYER.name());
+        MockHttpSession lawyer = loginAs(lawyerUser);
         String code = "UI_FLOW_" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
 
         String redirect = mockMvc.perform(post("/ui/catalog/forms")
@@ -113,6 +114,19 @@ class UiCatalogFlowIT extends AbstractIntegrationTest {
                         .param("comment", "проверено юристом"))
                 .andExpect(status().is3xxRedirection());
 
+        // UI-9: панель решений называет роль по-русски, автора решения и момент, а не один код роли.
+        mockMvc.perform(get("/ui/catalog/forms/" + formId + "/review").session(lawyer))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Юрист")))
+                .andExpect(content().string(containsString(lawyerUser.getFullName())))
+                .andExpect(content().string(containsString("проверено юристом")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString(">LAWYER<"))))
+                // UI-9: третье лицо у пункта названо явно, даже когда его нет.
+                .andExpect(content().string(containsString("Третье лицо: <span>не требуется")))
+                // UI-0.4: категории ПДн и срок — по-русски, а не кодами справочника и периодом ISO.
+                .andExpect(content().string(containsString("Срок: <span>до отзыва")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString(">FIO<"))));
+
         // UI-9: публикация доступна DPO и только после одобрения обеими ролями.
         MockHttpSession dpo = loginAs(RoleCode.DPO.name());
         mockMvc.perform(post("/ui/catalog/forms/" + formId + "/publish")
@@ -135,11 +149,16 @@ class UiCatalogFlowIT extends AbstractIntegrationTest {
 
         assertThat(forms.get(formId).getStatus()).isEqualTo(FormStatus.PUBLISHED);
 
-        // UI-10: опубликованная версия показывает контрольную сумму и список версий.
+        // UI-10: контрольная сумма, реквизиты, даты и авторы, счётчик выданных согласий.
         mockMvc.perform(get("/ui/catalog/forms/" + formId).session(dpo))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Контрольная сумма")))
-                .andExpect(content().string(containsString("sha256:")));
+                .andExpect(content().string(containsString("sha256:")))
+                .andExpect(content().string(containsString("Проверка реквизитов (ч. 4 ст. 9 152-ФЗ)")))
+                .andExpect(content().string(containsString("Даты и авторы")))
+                .andExpect(content().string(containsString("Опубликована")))
+                .andExpect(content().string(containsString("Выдано согласий по этой версии")))
+                .andExpect(content().string(containsString(lawyerUser.getLogin())));
     }
 
     @Test
@@ -155,7 +174,10 @@ class UiCatalogFlowIT extends AbstractIntegrationTest {
     }
 
     private MockHttpSession loginAs(String roleCode) throws Exception {
-        AppUser user = accounts.create(roleCode);
+        return loginAs(accounts.create(roleCode));
+    }
+
+    private MockHttpSession loginAs(AppUser user) throws Exception {
         return (MockHttpSession)
                 mockMvc.perform(formLogin("/ui/login").user(user.getLogin()).password(TestAccounts.PASSWORD))
                         .andReturn()

@@ -1,7 +1,9 @@
 package ru.example.inconsensu.ui.application;
 
 import jakarta.servlet.http.HttpServletRequest;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -17,13 +19,17 @@ import ru.example.inconsensu.catalog.application.CatalogStatsService;
 import ru.example.inconsensu.catalog.application.ConsentFormService;
 import ru.example.inconsensu.catalog.application.ConsentTypeService;
 import ru.example.inconsensu.catalog.application.FormWorkflowService;
+import ru.example.inconsensu.catalog.domain.ApprovalDecision;
 import ru.example.inconsensu.catalog.domain.ConsentForm;
 import ru.example.inconsensu.catalog.domain.ConsentType;
+import ru.example.inconsensu.catalog.domain.FormApproval;
 import ru.example.inconsensu.catalog.domain.FormValidationResult;
 import ru.example.inconsensu.common.application.PdnCategoryService;
 import ru.example.inconsensu.common.domain.ConsentSource;
 import ru.example.inconsensu.common.domain.FormStatus;
 import ru.example.inconsensu.common.domain.PdnCategory;
+import ru.example.inconsensu.common.domain.RoleCode;
+import ru.example.inconsensu.iam.application.UserService;
 import ru.example.inconsensu.thirdparty.application.ThirdPartyService;
 import ru.example.inconsensu.thirdparty.domain.ThirdParty;
 
@@ -34,13 +40,39 @@ public class UiCatalogViewService {
     /** @param expiringSoon согласия типа, срок которых истекает в ближайшие 30 дней (FR-3.4) */
     public record TypeRow(ConsentType type, long active, long expiringSoon, long revoked) {}
 
-    /** @param validation чек-лист реквизитов и нарушения для панели конструктора (UI-8) */
+    /**
+     * @param validation чек-лист реквизитов и нарушения для панели конструктора (UI-8)
+     * @param issuedConsents сколько согласий выдано по этой версии — счётчик UI-10
+     */
     public record FormView(
             ConsentForm form,
             String previewHtml,
             String checksum,
             FormValidationResult validation,
-            List<ConsentForm> versions) {}
+            List<ConsentForm> versions,
+            long issuedConsents) {}
+
+    /**
+     * Пункт формы для чтения (UI-9, UI-10): все значения уже по-русски.
+     *
+     * <p>Собирается здесь, а не в шаблоне: на экранах печатались коды справочника ПДн и период ISO
+     * («EMAIL», «P1Y»), что прямо запрещает UI-0.4.
+     */
+    public record FormItemRow(
+            String typeRu,
+            String text,
+            String purposes,
+            String pdnCategoriesRu,
+            String thirdPartyRu,
+            String validityRu,
+            boolean mandatory) {}
+
+    /**
+     * Строка панели решений UI-9: «Юрист — одобрено, Иванова А. А., 15.08.2026 11:20».
+     *
+     * @param actor имя согласующего; логин, если учётной записи уже нет
+     */
+    public record ApprovalRow(String roleRu, boolean approved, String actor, Instant decidedAt, String comment) {}
 
     private final ConsentTypeService types;
     private final ConsentFormService forms;
@@ -48,6 +80,8 @@ public class UiCatalogViewService {
     private final CatalogStatsService stats;
     private final PdnCategoryService pdnCategories;
     private final ThirdPartyService thirdParties;
+    private final UserService users;
+    private final UiFormats formats;
 
     public UiCatalogViewService(
             ConsentTypeService types,
@@ -55,13 +89,17 @@ public class UiCatalogViewService {
             FormWorkflowService workflow,
             CatalogStatsService stats,
             PdnCategoryService pdnCategories,
-            ThirdPartyService thirdParties) {
+            ThirdPartyService thirdParties,
+            UserService users,
+            UiFormats formats) {
         this.types = types;
         this.forms = forms;
         this.workflow = workflow;
         this.stats = stats;
         this.pdnCategories = pdnCategories;
         this.thirdParties = thirdParties;
+        this.users = users;
+        this.formats = formats;
     }
 
     /** UI-6: фильтры по категории и активности. */
@@ -111,7 +149,77 @@ public class UiCatalogViewService {
     public FormView form(UUID id) {
         ConsentForm form = forms.get(id);
         return new FormView(
-                form, forms.preview(id), forms.checksumOf(form), forms.validate(id), forms.versionsOf(form.getCode()));
+                form,
+                forms.preview(id),
+                forms.checksumOf(form),
+                forms.validate(id),
+                forms.versionsOf(form.getCode()),
+                stats.consentsOfForm(id));
+    }
+
+    /** UI-9, UI-10: пункты формы с русскими названиями категорий, партнёра и срока. */
+    @Transactional(readOnly = true)
+    public List<FormItemRow> items(UUID formId) {
+        Map<String, String> categoryNames = pdnCategories.activeCategories().stream()
+                .collect(Collectors.toMap(PdnCategory::getCode, PdnCategory::getNameRu, (first, second) -> first));
+        Map<UUID, String> partyNames = thirdParties.list(Pageable.unpaged()).getContent().stream()
+                .collect(Collectors.toMap(ThirdParty::getId, ThirdParty::getName, (first, second) -> first));
+        return forms.get(formId).getItems().stream()
+                .map(item -> new FormItemRow(
+                        item.getConsentType().getNameRu(),
+                        item.getText(),
+                        String.join(", ", item.getPurposes()),
+                        item.getPdnCategories().stream()
+                                .map(code -> categoryNames.getOrDefault(code, code))
+                                .collect(Collectors.joining(", ")),
+                        item.getThirdPartyId() == null
+                                ? "не требуется"
+                                : partyNames.getOrDefault(item.getThirdPartyId(), "неизвестный партнёр"),
+                        formats.period(item.getValidity()),
+                        item.isMandatory()))
+                .toList();
+    }
+
+    /**
+     * UI-9: по каждой обязательной роли — решение, кто его принял и когда.
+     *
+     * <p>Раньше панель показывала код роли и слово «одобрено»: согласующий не видел ни фамилии, ни даты,
+     * то есть не мог понять, актуально ли решение и с кем говорить о правках.
+     */
+    @Transactional(readOnly = true)
+    public List<ApprovalRow> approvals(UUID id) {
+        Map<String, FormApproval> byRole = new LinkedHashMap<>();
+        for (FormApproval approval : workflow.approvalsOfCurrentRound(id)) {
+            if (approval.getDecision() == ApprovalDecision.APPROVED) {
+                byRole.put(approval.getRoleRequired(), approval);
+            }
+        }
+        return workflow.requiredRoles().stream()
+                .map(role -> {
+                    FormApproval approval = byRole.get(role);
+                    return new ApprovalRow(
+                            roleNameRu(role),
+                            approval != null,
+                            approval == null ? null : actorName(approval),
+                            approval == null ? null : approval.getDecidedAt(),
+                            approval == null ? null : approval.getComment());
+                })
+                .toList();
+    }
+
+    private String actorName(FormApproval approval) {
+        return users.displayName(approval.getUserId())
+                .filter(name -> !name.isBlank())
+                .orElseGet(approval::getUserLogin);
+    }
+
+    private static String roleNameRu(String role) {
+        try {
+            return RoleCode.valueOf(role).nameRu();
+        } catch (IllegalArgumentException unknownRole) {
+            // Список обязательных ролей приходит из настроек оператора и может содержать чужой код.
+            return role;
+        }
     }
 
     /** Предыдущая версия формы: с ней сравнивается черновик на экране согласования (FR-3.2). */

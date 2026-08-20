@@ -21,6 +21,9 @@ public interface ConsentCountsPort {
 
     long activeConsents();
 
+    /** Сколько согласий выдано по конкретной версии формы: счётчик показывает UI-10. */
+    long consentsOfForm(UUID formId);
+
     long expiringConsents(Instant from, Instant to);
 
     long revokedConsentsSince(Instant since);

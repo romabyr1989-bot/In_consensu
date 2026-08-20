@@ -27,14 +27,27 @@ public final class CurrentUser {
                 .orElse(SYSTEM_LOGIN);
     }
 
+    /**
+     * Идентификатор вызывающего: из claim токена (API) или из principal веб-сессии (интерфейс).
+     *
+     * <p>Раньше учитывался только JWT, и всё, что делалось через интерфейс, теряло автора: строки журнала
+     * доступа к ПДн писались без пользователя, а решения по формам — без ссылки на учётную запись.
+     */
     public static Optional<UUID> id() {
-        return authentication()
-                .map(Authentication::getPrincipal)
+        Optional<Object> principal = authentication().map(Authentication::getPrincipal);
+        Optional<UUID> fromToken = principal
                 .filter(Jwt.class::isInstance)
                 .map(Jwt.class::cast)
                 .map(jwt -> jwt.getClaimAsString(CLAIM_USER_ID))
                 .filter(value -> value != null && !value.isBlank())
                 .map(UUID::fromString);
+        if (fromToken.isPresent()) {
+            return fromToken;
+        }
+        return principal
+                .filter(AppUserPrincipal.class::isInstance)
+                .map(AppUserPrincipal.class::cast)
+                .map(AppUserPrincipal::id);
     }
 
     public static List<String> roles() {

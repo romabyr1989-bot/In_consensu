@@ -26,6 +26,12 @@ public class RegistryConsentCountsProvider implements ConsentCountsPort {
 
     @Override
     @Transactional(readOnly = true)
+    public long consentsOfForm(java.util.UUID formId) {
+        return consents.countByFormId(formId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public long expiringConsents(Instant from, Instant to) {
         return consents.countExpiringBetween(from, to);
     }

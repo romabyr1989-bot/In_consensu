@@ -107,6 +107,8 @@ public interface ConsentRepository extends JpaRepository<Consent, UUID>, JpaSpec
 
     long countByStatus(ConsentStatus status);
 
+    long countByFormId(UUID formId);
+
     long countByConsentTypeIdAndStatus(UUID consentTypeId, ConsentStatus status);
 
     /**

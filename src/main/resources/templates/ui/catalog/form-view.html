@@ -23,23 +23,52 @@
             <div class="card-body"><code th:text="${form.checksum()}">sha256:…</code></div>
         </div>
 
+        <!--
+          У опубликованной версии показывается сохранённый рендер: именно по нему посчитана контрольная
+          сумма (FR-1.6). Предпросмотр черновика собирается из тела формы и с ней не сходится.
+        -->
         <div class="card mb-3">
             <div class="card-header">Текст версии</div>
-            <div class="card-body"><pre class="small mb-0" th:text="${form.previewHtml()}">Текст</pre></div>
+            <div class="card-body">
+                <pre class="small mb-0"
+                     th:text="${form.form().renderedText} ?: ${form.previewHtml()}">Текст</pre>
+            </div>
         </div>
 
-        <div class="card mb-3">
-            <div class="card-header">Пункты</div>
+        <div th:replace="~{ui/catalog/fragments :: itemList(${items}, true)}"></div>
+
+        <div th:replace="~{ui/catalog/fragments :: requisites(${form.validation()})}"></div>
+
+        <!-- UI-10: даты и авторы версии, а для опубликованной — сколько согласий по ней выдано. -->
+        <div class="card mb-3 mt-3">
+            <div class="card-header">Даты и авторы</div>
             <ul class="list-group list-group-flush">
-                <li class="list-group-item" th:each="item : ${form.form().items}">
-                    <div class="fw-semibold" th:text="${item.consentType.nameRu}">Реклама по email</div>
-                    <div th:text="${item.text}">Формулировка</div>
-                    <div class="small text-muted">
-                        Цели: <span th:text="${#strings.listJoin(item.purposes, ', ')}">информирование</span> ·
-                        Категории: <span th:text="${#strings.listJoin(item.pdnCategories, ', ')}">EMAIL</span> ·
-                        Срок: <span th:text="${item.validity} ?: 'до отзыва'">P1Y</span> ·
-                        <span th:text="${item.mandatory} ? 'обязателен' : 'необязателен'">необязателен</span>
-                    </div>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>Создана</span>
+                    <span>
+                        <span th:text="${#temporals.format(form.form().createdAt, 'dd.MM.yyyy HH:mm')}">01.08.2026 10:00</span>,
+                        <span th:text="${form.form().createdBy} ?: '—'">lawyer</span>
+                    </span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>Изменена</span>
+                    <span>
+                        <span th:text="${#temporals.format(form.form().updatedAt, 'dd.MM.yyyy HH:mm')}">02.08.2026 12:30</span>,
+                        <span th:text="${form.form().updatedBy} ?: '—'">lawyer</span>
+                    </span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between" th:if="${form.form().submittedAt != null}">
+                    <span>Отправлена на согласование</span>
+                    <span th:text="${#temporals.format(form.form().submittedAt, 'dd.MM.yyyy HH:mm')}">03.08.2026 09:15</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between" th:if="${form.form().publishedAt != null}">
+                    <span>Опубликована</span>
+                    <span th:text="${#temporals.format(form.form().publishedAt, 'dd.MM.yyyy HH:mm')}">05.08.2026 09:15</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between"
+                    th:if="${form.form().status.name() == 'PUBLISHED' or form.form().status.name() == 'ARCHIVED'}">
+                    <span>Выдано согласий по этой версии</span>
+                    <span class="fw-semibold" th:text="${form.issuedConsents()}">128</span>
                 </li>
             </ul>
         </div>
