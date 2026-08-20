@@ -312,6 +312,54 @@ class UiRevocationIT extends AbstractIntegrationTest {
                 .andExpect(content().string(org.hamcrest.Matchers.not(containsString(">FIO<"))));
     }
 
+    /** UI-3: панель расширенных фильтров сужает выборку запросом, а не отбором готовой страницы. */
+    @Test
+    void advanced_filters_narrow_the_search() throws Exception {
+        Consent consent = registerAdvertisingConsent();
+        MockHttpSession session = loginAs(RoleCode.ADMIN.name());
+        String externalId = subjects.get(consent.getSubjectId()).getExternalId();
+
+        String redirect = mockMvc.perform(post("/ui/subjects/search")
+                        .param("query", externalId)
+                        .session(session)
+                        .with(csrf()))
+                .andReturn()
+                .getResponse()
+                .getRedirectedUrl();
+        String searchId =
+                redirect.substring(redirect.indexOf("searchId=") + "searchId=".length(), redirect.indexOf("&"));
+
+        mockMvc.perform(get("/ui/subjects?searchId=" + searchId + "&status=ACTIVE")
+                        .session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Расширенные фильтры")))
+                .andExpect(content().string(containsString(externalId)));
+
+        // «Есть отозванные» у клиента без отзывов не должно давать ни одной строки.
+        // «Есть отозванные» у клиента без отзывов не должно давать ни одной строки. Сам запрос остаётся
+        // в поле поиска, поэтому проверяется таблица результатов, а не текст страницы целиком.
+        mockMvc.perform(get("/ui/subjects?searchId=" + searchId + "&revokedOnly=true")
+                        .session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("Открыть карточку"))));
+    }
+
+    /** UI-2: плитка дашборда открывает отфильтрованный список, а не общий поиск. */
+    @Test
+    void dashboard_tile_opens_the_filtered_list_without_a_query() throws Exception {
+        Consent consent = registerAdvertisingConsent();
+        MockHttpSession session = loginAs(RoleCode.ADMIN.name());
+        String externalId = subjects.get(consent.getSubjectId()).getExternalId();
+
+        mockMvc.perform(get("/ui/").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("/ui/subjects?status=ACTIVE")));
+
+        mockMvc.perform(get("/ui/subjects?status=ACTIVE").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(externalId)));
+    }
+
     /** Прогон поиска через POST и последующий переход по выданной ссылке — как это делает браузер. */
     private String searchFor(String query, MockHttpSession session) throws Exception {
         String redirect = mockMvc.perform(post("/ui/subjects/search")

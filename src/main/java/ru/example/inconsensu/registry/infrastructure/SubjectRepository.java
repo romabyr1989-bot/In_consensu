@@ -44,6 +44,70 @@ public interface SubjectRepository extends JpaRepository<Subject, UUID> {
             @Param("value") String value,
             Pageable pageable);
 
+    /** Клиенты по списку идентификаторов: плитка дашборда открывает список без поискового запроса (UI-2). */
+    @Query("select s from Subject s where s.id in :ids order by s.lastName, s.firstName, s.id")
+    Page<Subject> findAllByIdIn(@Param("ids") java.util.Collection<UUID> ids, Pageable pageable);
+
+    /** То же в пределах заданного множества: панель фильтров UI-3 сужает поиск по признакам согласий. */
+    @Query("select distinct s from Subject s join SubjectContact c on c.subject = s "
+            + "where c.type = :type and c.valueNormalized = :value and s.id in :ids "
+            + "order by s.lastName, s.firstName, s.id")
+    Page<Subject> searchByContactAmong(
+            @Param("type") ru.example.inconsensu.common.domain.ContactType type,
+            @Param("value") String value,
+            @Param("ids") java.util.Collection<UUID> ids,
+            Pageable pageable);
+
+    /** То же по HMAC контакта при включённом шифровании (NFR-3). */
+    @Query("select distinct s from Subject s join SubjectContact c on c.subject = s "
+            + "where c.type = :type and c.searchHmac = :hmac and s.id in :ids "
+            + "order by s.lastName, s.firstName, s.id")
+    Page<Subject> searchByContactHmacAmong(
+            @Param("type") ru.example.inconsensu.common.domain.ContactType type,
+            @Param("hmac") String hmac,
+            @Param("ids") java.util.Collection<UUID> ids,
+            Pageable pageable);
+
+    /** Префиксный поиск по ФИО в пределах множества (UI-3). */
+    @Query("select s from Subject s where s.id in :ids "
+            + "and lower(concat(s.lastName, ' ', s.firstName, ' ', coalesce(s.middleName, ''))) like :prefix "
+            + "order by s.lastName, s.firstName, s.id")
+    Page<Subject> searchByFullNamePrefixAmong(
+            @Param("prefix") String prefix, @Param("ids") java.util.Collection<UUID> ids, Pageable pageable);
+
+    /**
+     * Идентификаторы субъектов, у которых есть согласие с заданными признаками (UI-3, панель фильтров).
+     *
+     * <p>Фильтр выполняется запросом: отбор в памяти сломал бы пагинацию и счётчик результатов, как это уже
+     * было в каталоге форм (ADR-0051). Статус считается теми же правилами, что и {@code
+     * ConsentStatusCalculator}: отзыв важнее срока, заменённые не в счёт.
+     */
+    @Query("select distinct c.subjectId from Consent c "
+            + "where (:typeId is null or c.consentTypeId = :typeId) "
+            + "and (:thirdPartyId is null or c.thirdPartyId = :thirdPartyId) "
+            + "and (:source is null or c.source = :source) "
+            + "and (:byExpiring = false or (c.revokedAt is null and c.supersededById is null "
+            + "     and c.validUntil is not null and c.validUntil <= :expiringBefore)) "
+            + "and (:revokedOnly = false or c.revokedAt is not null) "
+            + "and (:status is null or ("
+            + "  (:status = 'REVOKED' and c.revokedAt is not null) or "
+            + "  (:status = 'SUPERSEDED' and c.revokedAt is null and c.supersededById is not null) or "
+            + "  (:status = 'EXPIRED' and c.revokedAt is null and c.supersededById is null "
+            + "     and c.validUntil is not null and c.validUntil < :now) or "
+            + "  (:status = 'EXPIRING' and c.revokedAt is null and c.supersededById is null "
+            + "     and c.validUntil is not null and c.validUntil >= :now and c.validUntil <= :expiringHorizon) or "
+            + "  (:status = 'ACTIVE' and c.revokedAt is null and c.supersededById is null "
+            + "     and (c.validUntil is null or c.validUntil > :expiringHorizon))))")
+    java.util.List<UUID> subjectIdsWithConsent(
+            @Param("status") String status,
+            @Param("typeId") UUID typeId,
+            @Param("thirdPartyId") UUID thirdPartyId,
+            @Param("source") ru.example.inconsensu.common.domain.ConsentSource source,
+            @Param("byExpiring") boolean byExpiring,
+            @Param("expiringBefore") java.time.Instant expiringBefore,
+            @Param("revokedOnly") boolean revokedOnly,
+            @Param("now") java.time.Instant now,
+            @Param("expiringHorizon") java.time.Instant expiringHorizon);
     /** Поиск по HMAC нормализованного контакта: используется при включённом шифровании (NFR-3). */
     @Query(
             """

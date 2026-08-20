@@ -119,6 +119,7 @@ public class UiSubjectViewService {
     private final PdnAccessLogService pdnAccessLog;
     private final UiFormats formats;
     private final ru.example.inconsensu.common.application.PdnCategoryService pdnCategories;
+    private final java.time.Clock clock;
 
     public UiSubjectViewService(
             SubjectService subjects,
@@ -131,7 +132,8 @@ public class UiSubjectViewService {
             AuditIntegrityService integrity,
             PdnAccessLogService pdnAccessLog,
             UiFormats formats,
-            ru.example.inconsensu.common.application.PdnCategoryService pdnCategories) {
+            ru.example.inconsensu.common.application.PdnCategoryService pdnCategories,
+            java.time.Clock clock) {
         this.subjects = subjects;
         this.cards = cards;
         this.consents = consents;
@@ -143,6 +145,33 @@ public class UiSubjectViewService {
         this.pdnAccessLog = pdnAccessLog;
         this.formats = formats;
         this.pdnCategories = pdnCategories;
+        this.clock = clock;
+    }
+
+    /**
+     * Поиск с панелью расширенных фильтров UI-3.
+     *
+     * <p>Горизонт «истекающих» берётся из настройки оператора — тот же, что у статусов согласий, иначе
+     * фильтр «заканчивается» и бейдж в таблице расходились бы.
+     */
+    @Transactional(readOnly = true)
+    public Page<SubjectRow> search(String query, SubjectService.SubjectFilter filter, Pageable pageable) {
+        if (filter == null || filter.isEmpty()) {
+            return search(query, pageable);
+        }
+        java.time.Instant now = clock.instant();
+        java.time.Instant horizon = now.plus(consents.expiringDays(), java.time.temporal.ChronoUnit.DAYS);
+        boolean fullContacts = ContactAccessPolicy.seesFullContacts(CurrentUser.roles());
+        return subjects.search(query, filter, now, horizon, pageable).map(subject -> {
+            List<ConsentQueryService.ConsentView> effective = consents.cardConsentsOf(subject.getId());
+            return new SubjectRow(
+                    subject,
+                    contactsOf(subject, fullContacts),
+                    count(effective, ConsentStatus.ACTIVE),
+                    count(effective, ConsentStatus.EXPIRING),
+                    count(effective, ConsentStatus.REVOKED),
+                    channelFlags(subject));
+        });
     }
 
     @Transactional(readOnly = true)

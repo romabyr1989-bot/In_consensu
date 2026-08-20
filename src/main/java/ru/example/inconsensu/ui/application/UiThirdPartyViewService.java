@@ -84,6 +84,19 @@ public class UiThirdPartyViewService {
 
     @Transactional(readOnly = true)
     public List<PartyRow> rows() {
+        return rows(false);
+    }
+
+    /** @param expiringContractsOnly оставить только партнёров с истекающим или истёкшим договором (UI-2) */
+    @Transactional(readOnly = true)
+    public List<PartyRow> rows(boolean expiringContractsOnly) {
+        List<PartyRow> all = allRows();
+        return expiringContractsOnly
+                ? all.stream().filter(row -> !row.contractBadge().isEmpty()).toList()
+                : all;
+    }
+
+    private List<PartyRow> allRows() {
         LocalDate today = thirdParties.today();
         Map<String, String> names = categoryNamesByCode();
         Map<UUID, CatalogStatsService.ThirdPartyStats> counts = stats.byThirdParty().stream()

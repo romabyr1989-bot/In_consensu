@@ -14,13 +14,18 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
+import ru.example.inconsensu.catalog.application.ConsentTypeService;
 import ru.example.inconsensu.common.domain.CommunicationChannel;
+import ru.example.inconsensu.common.domain.ConsentSource;
+import ru.example.inconsensu.common.domain.ConsentStatus;
 import ru.example.inconsensu.common.domain.ContactType;
 import ru.example.inconsensu.common.domain.RevocationSource;
 import ru.example.inconsensu.common.error.ApiException;
 import ru.example.inconsensu.registry.application.RevocationService;
 import ru.example.inconsensu.registry.application.SubjectCardService;
+import ru.example.inconsensu.registry.application.SubjectService;
 import ru.example.inconsensu.registry.domain.Subject;
+import ru.example.inconsensu.thirdparty.application.ThirdPartyService;
 import ru.example.inconsensu.ui.application.UiSearchCriteria;
 import ru.example.inconsensu.ui.application.UiSubjectViewService;
 
@@ -40,16 +45,22 @@ public class UiSubjectController {
     private final SubjectCardService cards;
     private final RevocationService revocation;
     private final UiSearchCriteria searchCriteria;
+    private final ConsentTypeService types;
+    private final ThirdPartyService thirdParties;
 
     public UiSubjectController(
             UiSubjectViewService view,
             SubjectCardService cards,
             RevocationService revocation,
-            UiSearchCriteria searchCriteria) {
+            UiSearchCriteria searchCriteria,
+            ConsentTypeService types,
+            ThirdPartyService thirdParties) {
         this.view = view;
         this.cards = cards;
         this.revocation = revocation;
         this.searchCriteria = searchCriteria;
+        this.types = types;
+        this.thirdParties = thirdParties;
     }
 
     /**
@@ -59,6 +70,11 @@ public class UiSubjectController {
      * строку, историю браузера, заголовок Referer и журналы прокси (UI-0.10). Значение остаётся в сессии,
      * наружу уходит только идентификатор запроса.
      */
+    /** UI-0.8: размеры страницы — 20, 50 или 100. */
+    private static int normalizeSize(int size) {
+        return size == 50 || size == 100 ? size : PAGE_SIZE;
+    }
+
     @PostMapping("/ui/subjects/search")
     public String submitSearch(
             @RequestParam(required = false) String query,
@@ -76,20 +92,53 @@ public class UiSubjectController {
             @RequestParam(required = false) UUID searchId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) ConsentStatus status,
+            @RequestParam(required = false) UUID consentTypeId,
+            @RequestParam(required = false) UUID thirdPartyId,
+            @RequestParam(required = false) ConsentSource source,
+            @RequestParam(required = false)
+                    @org.springframework.format.annotation.DateTimeFormat(
+                            iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE)
+                    java.time.LocalDate expiringBefore,
+            @RequestParam(defaultValue = "false") boolean revokedOnly,
             HttpSession session,
             Model model) {
         String query = searchCriteria.recall(session, searchId);
         model.addAttribute("query", query);
         model.addAttribute("searchId", searchId);
         model.addAttribute("size", size);
+        // UI-3: панель расширенных фильтров. Состояние держится в URL, значения возвращаются в форму.
+        SubjectService.SubjectFilter filter = new SubjectService.SubjectFilter(
+                status,
+                consentTypeId,
+                thirdPartyId,
+                source,
+                expiringBefore == null ? null : view.startOfNextDay(expiringBefore),
+                revokedOnly);
+        model.addAttribute("statuses", ConsentStatus.values());
+        model.addAttribute("sources", ConsentSource.values());
+        model.addAttribute("consentTypes", types.activeTypes());
+        model.addAttribute(
+                "thirdParties",
+                thirdParties
+                        .list(org.springframework.data.domain.Pageable.unpaged())
+                        .getContent());
+        model.addAttribute("selectedStatus", status);
+        model.addAttribute("selectedConsentTypeId", consentTypeId);
+        model.addAttribute("selectedThirdPartyId", thirdPartyId);
+        model.addAttribute("selectedSource", source);
+        model.addAttribute("selectedExpiringBefore", expiringBefore);
+        model.addAttribute("revokedOnly", revokedOnly);
+        model.addAttribute("filtersApplied", !filter.isEmpty());
         if (searchId != null && query == null) {
             // Сессия истекла или ссылку открыли в другом сеансе: показываем пустую форму, а не 500.
             model.addAttribute("searchHint", "Запрос устарел — введите его заново.");
         }
-        if (query != null && !query.isBlank()) {
+        // UI-2: список открывается и по одним фильтрам — тогда поискового запроса нет вовсе.
+        if ((query != null && !query.isBlank()) || !filter.isEmpty()) {
             try {
                 Page<UiSubjectViewService.SubjectRow> results =
-                        view.search(query, PageRequest.of(page, size < 1 ? PAGE_SIZE : size));
+                        view.search(query, filter, PageRequest.of(page, normalizeSize(size)));
                 model.addAttribute("results", results);
             } catch (ApiException e) {
                 // Подсказка о формате запроса — часть экрана, а не ошибка сервера (UI-3).

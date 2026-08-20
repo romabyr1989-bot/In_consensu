@@ -24,6 +24,73 @@
             </div>
         </form>
 
+        <!--
+          UI-3: панель расширенных фильтров. Отправляется методом GET и вместе с идентификатором запроса:
+          сам запрос остаётся в сессии (UI-0.10), а состояние фильтров держится в адресной строке (UI-0.8).
+        -->
+        <details class="mb-4" th:open="${filtersApplied}">
+            <summary class="mb-2">Расширенные фильтры</summary>
+            <form class="row g-2 align-items-end" method="get" th:action="@{/ui/subjects}">
+                <input type="hidden" name="searchId" th:value="${searchId}">
+                <div class="col-md-3">
+                    <label class="form-label" for="status">Статус согласия</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="">любой</option>
+                        <option th:each="value : ${statuses}" th:value="${value}" th:text="${value.nameRu()}"
+                                th:selected="${value == selectedStatus}">действует</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="consentTypeId">Тип согласия</label>
+                    <select class="form-select" id="consentTypeId" name="consentTypeId">
+                        <option value="">любой</option>
+                        <option th:each="type : ${consentTypes}" th:value="${type.id}" th:text="${type.nameRu}"
+                                th:selected="${type.id == selectedConsentTypeId}">Реклама по email</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="thirdPartyId">Третье лицо</label>
+                    <select class="form-select" id="thirdPartyId" name="thirdPartyId">
+                        <option value="">любое</option>
+                        <option th:each="party : ${thirdParties}" th:value="${party.id}" th:text="${party.name}"
+                                th:selected="${party.id == selectedThirdPartyId}">ООО «Моменто»</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="source">Источник</label>
+                    <select class="form-select" id="source" name="source">
+                        <option value="">любой</option>
+                        <option th:each="value : ${sources}" th:value="${value}" th:text="${value.nameRu()}"
+                                th:selected="${value == selectedSource}">Договор</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="expiringBefore">Истекает до даты</label>
+                    <input class="form-control" type="date" id="expiringBefore" name="expiringBefore"
+                           th:value="${selectedExpiringBefore}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="size">На странице</label>
+                    <select class="form-select" id="size" name="size">
+                        <option th:each="value : ${ {20, 50, 100} }" th:value="${value}" th:text="${value}"
+                                th:selected="${value == size}">20</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="revokedOnly" name="revokedOnly"
+                               value="true" th:checked="${revokedOnly}">
+                        <label class="form-check-label" for="revokedOnly">Есть отозванные</label>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-primary" type="submit">Применить</button>
+                    <a class="btn btn-outline-secondary"
+                       th:href="@{/ui/subjects(searchId=${searchId})}">Сбросить фильтры</a>
+                </div>
+            </form>
+        </details>
+
         <div class="alert alert-warning" role="alert" th:if="${searchHint != null}" th:text="${searchHint}"></div>
 
         <p class="text-muted" th:if="${results == null}">Введите запрос, чтобы найти клиента.</p>

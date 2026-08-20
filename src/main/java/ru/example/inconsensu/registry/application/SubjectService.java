@@ -1,5 +1,6 @@
 package ru.example.inconsensu.registry.application;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -101,6 +102,66 @@ public class SubjectService {
     }
 
     /**
+     * Поиск с панелью расширенных фильтров UI-3.
+     *
+     * <p>Фильтры сужают множество субъектов запросом, а не отбором готовой страницы: иначе счётчик
+     * результатов и пагинация показывали бы одно, а таблица — другое.
+     */
+    @Transactional(readOnly = true)
+    public Page<Subject> search(
+            String query, SubjectFilter filter, Instant now, Instant expiringHorizon, Pageable pageable) {
+        if (filter == null || filter.isEmpty()) {
+            return search(query, pageable);
+        }
+        List<UUID> matching = repository.subjectIdsWithConsent(
+                // Имя статуса, а не сам enum: Hibernate не выводит тип параметра, если тот сравнивается
+                // только с литералами перечисления, и запрос падает на разборе.
+                filter.status() == null ? null : filter.status().name(),
+                filter.consentTypeId(),
+                filter.thirdPartyId(),
+                filter.source(),
+                // PostgreSQL не выводит тип параметра из «? is null», поэтому дата всегда задана, а
+                // применять ли её, говорит отдельный флаг.
+                filter.expiringBefore() != null,
+                filter.expiringBefore() == null ? Instant.EPOCH : filter.expiringBefore(),
+                filter.revokedOnly(),
+                now,
+                expiringHorizon);
+        boolean withoutQuery = query == null || query.isBlank();
+        Page<Subject> found;
+        if (matching.isEmpty()) {
+            found = new PageImpl<>(List.of(), pageable, 0);
+        } else if (withoutQuery) {
+            // UI-2: плитка дашборда открывает список по одному фильтру, без поискового запроса.
+            found = repository.findAllByIdIn(matching, pageable);
+        } else {
+            found = doSearchAmong(query, matching, pageable);
+        }
+        pdnAccessLogService.recordBulk(
+                "/api/v1/subjects?query", (int) Math.min(found.getTotalElements(), Integer.MAX_VALUE));
+        return withContacts(found);
+    }
+
+    /** @param revokedOnly «есть отозванные» — у клиента хотя бы одно отозванное согласие */
+    public record SubjectFilter(
+            ru.example.inconsensu.common.domain.ConsentStatus status,
+            UUID consentTypeId,
+            UUID thirdPartyId,
+            ru.example.inconsensu.common.domain.ConsentSource source,
+            Instant expiringBefore,
+            boolean revokedOnly) {
+
+        public boolean isEmpty() {
+            return status == null
+                    && consentTypeId == null
+                    && thirdPartyId == null
+                    && source == null
+                    && expiringBefore == null
+                    && !revokedOnly;
+        }
+    }
+
+    /**
      * Поиск по явно названному признаку (§9: `GET /subjects` с `phone`, `email`, `externalId`).
      *
      * <p>Единое поле `query` с автоопределением нужно интерфейсу (UI-3), а машинному клиенту — точный
@@ -145,6 +206,36 @@ public class SubjectService {
         return new PageImpl<>(ordered, found.getPageable(), found.getTotalElements());
     }
 
+    /** Тот же разбор запроса, что и в {@link #doSearch}, но в пределах отфильтрованного множества (UI-3). */
+    private Page<Subject> doSearchAmong(String query, List<UUID> ids, Pageable pageable) {
+        String trimmed = query == null ? "" : query.trim();
+        if (trimmed.isEmpty()) {
+            return new PageImpl<>(List.of(), pageable, 0);
+        }
+        if (trimmed.contains("@")) {
+            return searchByContactAmong(
+                    ContactType.EMAIL, ContactNormalizer.normalize(ContactType.EMAIL, trimmed), ids, pageable);
+        }
+        if (trimmed.startsWith("+") || trimmed.replaceAll("\\D", "").length() >= 10) {
+            return searchByContactAmong(ContactType.PHONE, ContactNormalizer.normalizePhone(trimmed), ids, pageable);
+        }
+        Optional<Subject> byExternalId = repository.findByExternalId(trimmed);
+        if (byExternalId.isPresent()) {
+            return ids.contains(byExternalId.get().getId())
+                    ? new PageImpl<>(List.of(byExternalId.get()), pageable, 1)
+                    : new PageImpl<>(List.of(), pageable, 0);
+        }
+        if (trimmed.matches(".*\\p{L}.*")) {
+            if (trimmed.length() < MIN_NAME_QUERY_LENGTH) {
+                throw new ApiException(
+                        ErrorCode.VALIDATION_FAILED,
+                        "Для поиска по ФИО введите не менее " + MIN_NAME_QUERY_LENGTH + " символов");
+            }
+            return repository.searchByFullNamePrefixAmong(trimmed.toLowerCase(Locale.ROOT) + "%", ids, pageable);
+        }
+        return new PageImpl<>(List.of(), pageable, 0);
+    }
+
     private Page<Subject> doSearch(String query, Pageable pageable) {
         String trimmed = query == null ? "" : query.trim();
         if (trimmed.isEmpty()) {
@@ -185,6 +276,13 @@ public class SubjectService {
             return repository.searchByContactHmac(type, crypto.searchHmac(normalized), pageable);
         }
         return repository.searchByContact(type, normalized, pageable);
+    }
+
+    private Page<Subject> searchByContactAmong(ContactType type, String normalized, List<UUID> ids, Pageable pageable) {
+        if (crypto.isEnabled()) {
+            return repository.searchByContactHmacAmong(type, crypto.searchHmac(normalized), ids, pageable);
+        }
+        return repository.searchByContactAmong(type, normalized, ids, pageable);
     }
 
     /**

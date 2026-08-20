@@ -45,8 +45,10 @@ public class UiThirdPartyController {
     }
 
     @GetMapping("/ui/third-parties")
-    public String list(Model model) {
-        model.addAttribute("thirdParties", view.rows());
+    public String list(@RequestParam(required = false) String contract, Model model) {
+        // UI-2: плитка «Договоров истекает за 30 дней» ведёт в отфильтрованный список, а не в общий.
+        model.addAttribute("thirdParties", view.rows("EXPIRING".equals(contract)));
+        model.addAttribute("contractFilter", contract);
         model.addAttribute("today", thirdParties.today());
         model.addAttribute("roles", ThirdPartyRole.values());
         model.addAttribute("categories", catalog.pdnCategories());

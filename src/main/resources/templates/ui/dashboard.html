@@ -11,7 +11,7 @@
 
         <div class="row g-3 mb-4">
             <div class="col-6 col-xl-3">
-                <a class="ic-tile" th:href="@{/ui/subjects}">
+                <a class="ic-tile" th:href="@{/ui/subjects(status='ACTIVE')}">
                     <div class="ic-tile-value" th:text="${stats.activeConsents()}">0</div>
                     <div class="text-muted">Действующих согласий</div>
                 </a>
@@ -36,7 +36,7 @@
                 </a>
             </div>
             <div class="col-6 col-xl-3">
-                <a class="ic-tile" th:href="@{/ui/third-parties}">
+                <a class="ic-tile" th:href="@{/ui/third-parties(contract='EXPIRING')}">
                     <div class="ic-tile-value" th:text="${stats.expiringContracts()}">0</div>
                     <div class="text-muted">Договоров истекает за 30 дней</div>
                 </a>
