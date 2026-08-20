@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import ru.example.inconsensu.audit.application.AuditQueryService;
 import ru.example.inconsensu.common.domain.AuditEventType;
 import ru.example.inconsensu.ui.application.UiAuditViewService;
+import ru.example.inconsensu.ui.application.UiSorting;
 
 /** UI-15: события аудита, журнал доступа к ПДн и проверка целостности. */
 @Controller
@@ -49,6 +50,8 @@ public class UiAuditController {
             @RequestParam(required = false) LocalDate to,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String direction,
             Model model) {
         model.addAttribute(
                 "events",
@@ -63,8 +66,10 @@ public class UiAuditController {
                                 to == null
                                         ? null
                                         : to.plusDays(1).atStartOfDay(zone).toInstant()),
-                        pageRequest(page, size)));
+                        pageRequest(page, size, sort, direction, EVENT_SORT)));
         model.addAttribute("eventTypes", AuditEventType.values());
+        model.addAttribute("sort", sort);
+        model.addAttribute("direction", direction);
         // Выбранные фильтры возвращаются в форму: иначе поля пусты, а таблица отфильтрована (UI-0.8).
         model.addAttribute("selectedAggregateType", aggregateType);
         model.addAttribute("selectedEventType", eventType);
@@ -84,6 +89,8 @@ public class UiAuditController {
             @RequestParam(required = false) LocalDate to,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String direction,
             Model model) {
         model.addAttribute(
                 "entries",
@@ -96,7 +103,9 @@ public class UiAuditController {
                                 to == null
                                         ? null
                                         : to.plusDays(1).atStartOfDay(zone).toInstant()),
-                        pageRequest(page, size)));
+                        pageRequest(page, size, sort, direction, ACCESS_SORT)));
+        model.addAttribute("sort", sort);
+        model.addAttribute("direction", direction);
         model.addAttribute("selectedSubjectId", subjectId);
         model.addAttribute("selectedEndpoint", endpoint);
         model.addAttribute("selectedFrom", from);
@@ -105,8 +114,18 @@ public class UiAuditController {
         return "ui/audit/access-log";
     }
 
-    private static PageRequest pageRequest(int page, int size) {
-        return PageRequest.of(Math.max(page, 0), normalizeSize(size), Sort.by(Sort.Direction.DESC, "id"));
+    /** UI-0.8: колонки вкладки «События», по которым разрешена сортировка. */
+    private static final java.util.Map<String, String> EVENT_SORT = java.util.Map.of(
+            "occurredAt", "occurredAt", "aggregate", "aggregateType", "eventType", "eventType", "actor", "actorId");
+
+    /** UI-0.8: колонки вкладки «Доступ к ПДн». */
+    private static final java.util.Map<String, String> ACCESS_SORT =
+            java.util.Map.of("occurredAt", "occurredAt", "endpoint", "endpoint", "user", "userId");
+
+    private static PageRequest pageRequest(
+            int page, int size, String sort, String direction, java.util.Map<String, String> allowed) {
+        Sort order = UiSorting.of(sort, direction, allowed, Sort.by(Sort.Direction.DESC, "id"));
+        return PageRequest.of(Math.max(page, 0), normalizeSize(size), order);
     }
 
     private static int normalizeSize(int size) {

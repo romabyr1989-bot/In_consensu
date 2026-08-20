@@ -37,15 +37,15 @@
             <table class="table bg-white align-middle">
                 <thead>
                 <tr>
-                    <th scope="col">Код</th>
-                    <th scope="col">Название</th>
-                    <th scope="col">Категория</th>
+                    <th th:replace="~{ui/fragments/layout :: sortHeader('Код', 'code')}"></th>
+                    <th th:replace="~{ui/fragments/layout :: sortHeader('Название', 'name')}"></th>
+                    <th th:replace="~{ui/fragments/layout :: sortHeader('Категория', 'category')}"></th>
                     <th scope="col">Каналы</th>
                     <th scope="col">Третье лицо</th>
                     <th scope="col">Срок</th>
                     <th scope="col">Зависит от</th>
                     <th scope="col">Значим для бизнеса</th>
-                    <th scope="col">Согласий: действует / истекает / отозвано</th>
+                    <th th:replace="~{ui/fragments/layout :: sortHeader('Согласий: действует / истекает / отозвано', 'active')}"></th>
                     <th scope="col">Активен</th>
                     <th scope="col"></th>
                 </tr>
@@ -57,10 +57,10 @@
                     <td th:text="${row.type.category.nameRu()}">Базовое</td>
                     <td>
                         <span class="badge bg-light text-dark me-1" th:each="channel : ${row.type.channels}"
-                              th:text="${channel}">EMAIL</span>
+                              th:text="${channel.nameRu()}">Электронная почта</span>
                     </td>
                     <td th:text="${row.type.requiresThirdParty} ? 'нужно' : '—'">—</td>
-                    <td th:text="${row.type.defaultValidity} ?: 'до отзыва'">до отзыва</td>
+                    <td th:text="${formats.period(row.type.defaultValidity)}">до отзыва</td>
                     <td th:text="${row.type.dependsOn != null} ? ${row.type.dependsOn.code} : '—'">—</td>
                     <td th:text="${row.type.businessSignificant} ? 'да' : 'нет'">нет</td>
                     <td>
@@ -83,6 +83,11 @@
                                   + ${row.active} + '. Новые регистрировать будет нельзя, выданные сохранятся. Продолжить?'">
                             <button class="btn btn-sm btn-outline-danger" type="submit">Деактивировать</button>
                         </form>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(types)}">
+                    <td colspan="11" class="text-muted">
+                        Ничего не найдено. Ослабьте фильтры по категории и активности или добавьте тип формой ниже.
                     </td>
                 </tr>
                 </tbody>

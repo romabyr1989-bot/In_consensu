@@ -19,6 +19,7 @@ import ru.example.inconsensu.common.domain.ConsentSource;
 import ru.example.inconsensu.common.error.ApiException;
 import ru.example.inconsensu.integration.application.ConsentImportService;
 import ru.example.inconsensu.ui.application.UiImportViewService;
+import ru.example.inconsensu.ui.application.UiSorting;
 
 /** UI-12: загрузка файла, пробный запуск и отчёт по строкам. */
 @Controller
@@ -33,10 +34,33 @@ public class UiImportController {
         this.view = view;
     }
 
+    /** UI-0.8: колонки списка задач импорта, по которым разрешена сортировка. */
+    private static final java.util.Map<String, String> JOB_SORT = java.util.Map.of(
+            "fileName", "fileName",
+            "startedAt", "startedAt",
+            "startedBy", "startedBy",
+            "status", "status",
+            "total", "total");
+
     @GetMapping("/ui/import")
-    public String list(Model model) {
-        model.addAttribute("jobs", imports.list(PageRequest.of(0, 50)).getContent());
+    public String list(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String direction,
+            Model model) {
+        int pageSize = UiSorting.pageSize(size);
+        var order = UiSorting.of(
+                sort,
+                direction,
+                JOB_SORT,
+                org.springframework.data.domain.Sort.by(
+                        org.springframework.data.domain.Sort.Direction.DESC, "startedAt"));
+        model.addAttribute("jobs", imports.list(PageRequest.of(Math.max(page, 0), pageSize, order)));
         model.addAttribute("sources", ConsentSource.values());
+        model.addAttribute("sort", sort);
+        model.addAttribute("direction", direction);
+        model.addAttribute("pageSize", pageSize);
         return "ui/import/list";
     }
 

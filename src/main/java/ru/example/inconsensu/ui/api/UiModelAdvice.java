@@ -1,5 +1,6 @@
 package ru.example.inconsensu.ui.api;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -31,7 +32,11 @@ public class UiModelAdvice {
     }
 
     @ModelAttribute
-    public void common(Model model, Authentication authentication) {
+    public void common(Model model, Authentication authentication, jakarta.servlet.http.HttpServletRequest request) {
+        // UI-0.8: ссылки сортировки и пагинации обязаны сохранять уже выбранные фильтры, поэтому каркас
+        // отдаёт текущие параметры экрана без sort, direction и page — их подставляет сама ссылка.
+        model.addAttribute("tableQuery", tableQuery(request));
+        model.addAttribute("tableParams", tableParams(request));
         model.addAttribute("branding", branding.branding());
         // UI-0.4: даты форматируются одним способом и в таймзоне оператора. #temporals.format в шаблоне
         // берёт таймзону JVM, из-за чего одно и то же время печаталось по-разному на сервере и у оператора.
@@ -53,6 +58,29 @@ public class UiModelAdvice {
                 roles.contains(RoleCode.LAWYER.name()) || roles.contains(RoleCode.DPO.name())
                         ? forms.awaitingDecision().size()
                         : 0);
+    }
+
+    private static final Set<String> TABLE_STATE_PARAMS = Set.of("sort", "direction", "page", "size");
+
+    /** Параметры экрана, кроме состояния таблицы: готовая строка вида «status=ACTIVE&amp;». */
+    private static String tableQuery(jakarta.servlet.http.HttpServletRequest request) {
+        StringBuilder query = new StringBuilder();
+        tableParams(request)
+                .forEach((name, value) -> query.append(java.net.URLEncoder.encode(name, StandardCharsets.UTF_8))
+                        .append('=')
+                        .append(java.net.URLEncoder.encode(value, StandardCharsets.UTF_8))
+                        .append('&'));
+        return query.toString();
+    }
+
+    private static java.util.Map<String, String> tableParams(jakarta.servlet.http.HttpServletRequest request) {
+        java.util.Map<String, String> params = new java.util.LinkedHashMap<>();
+        request.getParameterMap().forEach((name, values) -> {
+            if (!TABLE_STATE_PARAMS.contains(name) && values.length > 0 && !values[0].isBlank()) {
+                params.put(name, values[0]);
+            }
+        });
+        return params;
     }
 
     private static String rolesRu(Set<String> roles) {

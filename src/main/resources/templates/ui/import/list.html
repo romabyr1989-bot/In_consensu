@@ -48,12 +48,16 @@
         <table class="table bg-white align-middle">
             <thead>
             <tr>
-                <th scope="col">Файл</th><th scope="col">Запущен</th><th scope="col">Кто</th>
-                <th scope="col">Режим</th><th scope="col">Статус</th><th scope="col">Всего / импортировано / отклонено</th>
+                <th th:replace="~{ui/fragments/layout :: sortHeader('Файл', 'fileName')}"></th>
+                <th th:replace="~{ui/fragments/layout :: sortHeader('Запущен', 'startedAt')}"></th>
+                <th th:replace="~{ui/fragments/layout :: sortHeader('Кто', 'startedBy')}"></th>
+                <th scope="col">Режим</th>
+                <th th:replace="~{ui/fragments/layout :: sortHeader('Статус', 'status')}"></th>
+                <th th:replace="~{ui/fragments/layout :: sortHeader('Всего / импортировано / отклонено', 'total')}"></th>
             </tr>
             </thead>
             <tbody>
-            <tr th:each="job : ${jobs}">
+            <tr th:each="job : ${jobs.content}">
                 <td><a th:href="@{/ui/import/{id}(id=${job.id})}" th:text="${job.fileName}">clients.csv</a></td>
                 <td th:text="${formats.dateTime(job.startedAt)}">17.08.2026 10:00</td>
                 <td th:text="${job.startedBy}">dpo</td>
@@ -66,6 +70,11 @@
             </tr>
             </tbody>
         </table>
+
+        <div class="d-flex align-items-center gap-2">
+            <div th:replace="~{ui/fragments/layout :: pagination(${jobs})}"></div>
+            <div th:replace="~{ui/fragments/layout :: pageSize}"></div>
+        </div>
     </main>
 </div>
 </body>

@@ -21,6 +21,7 @@ import ru.example.inconsensu.thirdparty.application.PartnerExportService;
 import ru.example.inconsensu.thirdparty.application.ThirdPartyService;
 import ru.example.inconsensu.thirdparty.domain.PartnerExport;
 import ru.example.inconsensu.ui.application.UiCatalogViewService;
+import ru.example.inconsensu.ui.application.UiSorting;
 import ru.example.inconsensu.ui.application.UiThirdPartyViewService;
 
 /** UI-11: справочник третьих лиц, карточка, договор и выгрузки партнёру. */
@@ -45,10 +46,17 @@ public class UiThirdPartyController {
     }
 
     @GetMapping("/ui/third-parties")
-    public String list(@RequestParam(required = false) String contract, Model model) {
+    public String list(
+            @RequestParam(required = false) String contract,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String direction,
+            Model model) {
         // UI-2: плитка «Договоров истекает за 30 дней» ведёт в отфильтрованный список, а не в общий.
-        model.addAttribute("thirdParties", view.rows("EXPIRING".equals(contract)));
+        model.addAttribute(
+                "thirdParties", view.rows("EXPIRING".equals(contract), sort, UiSorting.descending(direction)));
         model.addAttribute("contractFilter", contract);
+        model.addAttribute("sort", sort);
+        model.addAttribute("direction", direction);
         model.addAttribute("today", thirdParties.today());
         model.addAttribute("roles", ThirdPartyRole.values());
         model.addAttribute("categories", catalog.pdnCategories());

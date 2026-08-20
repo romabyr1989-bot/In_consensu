@@ -90,10 +90,31 @@ public class UiThirdPartyViewService {
     /** @param expiringContractsOnly оставить только партнёров с истекающим или истёкшим договором (UI-2) */
     @Transactional(readOnly = true)
     public List<PartyRow> rows(boolean expiringContractsOnly) {
-        List<PartyRow> all = allRows();
-        return expiringContractsOnly
-                ? all.stream().filter(row -> !row.contractBadge().isEmpty()).toList()
-                : all;
+        return rows(expiringContractsOnly, null, false);
+    }
+
+    /** То же с сортировкой по колонке таблицы (UI-0.8). */
+    @Transactional(readOnly = true)
+    public List<PartyRow> rows(boolean expiringContractsOnly, String sortField, boolean descending) {
+        List<PartyRow> rows = allRows();
+        if (expiringContractsOnly) {
+            rows = rows.stream().filter(row -> !row.contractBadge().isEmpty()).toList();
+        }
+        java.util.Comparator<PartyRow> comparator =
+                switch (sortField == null ? "" : sortField) {
+                    case "name" -> java.util.Comparator.comparing(PartyRow::name);
+                    case "inn" -> java.util.Comparator.comparing(PartyRow::inn);
+                    case "role" -> java.util.Comparator.comparing(PartyRow::roleRu);
+                    case "contract" -> java.util.Comparator.comparing(PartyRow::contractUntil);
+                    case "consents" -> java.util.Comparator.comparingLong(PartyRow::consentsActive);
+                    default -> null;
+                };
+        if (comparator == null) {
+            return rows;
+        }
+        return rows.stream()
+                .sorted(descending ? comparator.reversed() : comparator)
+                .toList();
     }
 
     private List<PartyRow> allRows() {

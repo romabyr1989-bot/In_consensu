@@ -192,9 +192,14 @@
         <table class="table bg-white align-middle">
             <thead>
             <tr>
-                <th scope="col">Создано</th><th scope="col">Получатель</th><th scope="col">Тема</th>
-                <th scope="col">Правило</th><th scope="col">Канал</th><th scope="col">Статус</th>
-                <th scope="col">Ошибка</th><th scope="col"></th>
+                <th th:replace="~{ui/fragments/layout :: sortHeader('Создано', 'createdAt')}"></th>
+                <th th:replace="~{ui/fragments/layout :: sortHeader('Получатель', 'recipient')}"></th>
+                <th th:replace="~{ui/fragments/layout :: sortHeader('Тема', 'subject')}"></th>
+                <th scope="col">Правило</th>
+                <th scope="col">Канал</th>
+                <th th:replace="~{ui/fragments/layout :: sortHeader('Статус', 'status')}"></th>
+                <th scope="col">Ошибка</th>
+                <th scope="col"></th>
             </tr>
             </thead>
             <tbody>

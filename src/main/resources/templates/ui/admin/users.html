@@ -11,11 +11,17 @@
 
         <table class="table bg-white align-middle">
             <thead>
-            <tr><th scope="col">Логин</th><th scope="col">ФИО</th><th scope="col">Email</th>
-                <th scope="col">Роли</th><th scope="col">Активен</th><th scope="col">Сброс пароля</th></tr>
+            <tr>
+                <th th:replace="~{ui/fragments/layout :: sortHeader('Логин', 'login')}"></th>
+                <th th:replace="~{ui/fragments/layout :: sortHeader('ФИО', 'fullName')}"></th>
+                <th th:replace="~{ui/fragments/layout :: sortHeader('Email', 'email')}"></th>
+                <th scope="col">Роли</th>
+                <th th:replace="~{ui/fragments/layout :: sortHeader('Активен', 'active')}"></th>
+                <th scope="col">Сброс пароля</th>
+            </tr>
             </thead>
             <tbody>
-            <tr th:each="user : ${users}">
+            <tr th:each="user : ${users.content}">
                 <td th:text="${user.login}">admin</td>
                 <td th:text="${user.fullName}">Администратор</td>
                 <td th:text="${user.email}"></td>
@@ -51,8 +57,16 @@
                     </form>
                 </td>
             </tr>
+            <tr th:if="${users.isEmpty()}">
+                <td colspan="6" class="text-muted">Пользователей нет. Создайте первого формой ниже.</td>
+            </tr>
             </tbody>
         </table>
+
+        <div class="d-flex align-items-center gap-2 mb-4">
+            <div th:replace="~{ui/fragments/layout :: pagination(${users})}"></div>
+            <div th:replace="~{ui/fragments/layout :: pageSize}"></div>
+        </div>
 
         <div class="card">
             <div class="card-header">Новый пользователь</div>

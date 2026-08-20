@@ -51,8 +51,13 @@
 
         <table class="table bg-white align-middle">
             <thead>
-            <tr><th scope="col">Когда</th><th scope="col">Пользователь</th><th scope="col">Экран или эндпоинт</th>
-                <th scope="col">Клиент</th><th scope="col">Request id</th></tr>
+            <tr>
+                <th th:replace="~{ui/fragments/layout :: sortHeader('Когда', 'occurredAt')}"></th>
+                <th th:replace="~{ui/fragments/layout :: sortHeader('Пользователь', 'user')}"></th>
+                <th th:replace="~{ui/fragments/layout :: sortHeader('Экран или эндпоинт', 'endpoint')}"></th>
+                <th scope="col">Клиент</th>
+                <th scope="col">Request id</th>
+            </tr>
             </thead>
             <tbody>
             <tr th:each="entry : ${entries.content}">

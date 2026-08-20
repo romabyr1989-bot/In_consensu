@@ -7,6 +7,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +29,7 @@ import ru.example.inconsensu.common.domain.ConsentCategory;
 import ru.example.inconsensu.common.domain.ConsentSource;
 import ru.example.inconsensu.common.error.ApiException;
 import ru.example.inconsensu.ui.application.UiCatalogViewService;
+import ru.example.inconsensu.ui.application.UiSorting;
 
 /** UI-6 … UI-10: типы согласий, список форм, конструктор, согласование и просмотр версии. */
 @Controller
@@ -80,8 +82,12 @@ public class UiCatalogController {
             @RequestParam(required = false) ConsentCategory category,
             @RequestParam(required = false) Boolean active,
             @RequestParam(required = false) String edit,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String direction,
             Model model) {
-        model.addAttribute("types", view.types(category, active));
+        model.addAttribute("types", view.types(category, active, sort, UiSorting.descending(direction)));
+        model.addAttribute("sort", sort);
+        model.addAttribute("direction", direction);
         model.addAttribute("selectedCategory", category);
         model.addAttribute("selectedActive", active);
         model.addAttribute("categories", ConsentCategory.values());
@@ -155,10 +161,16 @@ public class UiCatalogController {
             @RequestParam(required = false) String text,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String direction,
             Model model) {
+        Sort order = UiSorting.of(sort, direction, FORM_SORT, Sort.by(Sort.Direction.DESC, "updatedAt"));
         model.addAttribute(
                 "forms",
-                view.forms(status, source, typeCode, thirdPartyId, text, PageRequest.of(page, pageSize(size))));
+                view.forms(status, source, typeCode, thirdPartyId, text, PageRequest.of(page, pageSize(size), order)));
+        model.addAttribute("sort", sort);
+        model.addAttribute("direction", direction);
+        model.addAttribute("pageSize", pageSize(size));
         model.addAttribute("status", status);
         model.addAttribute("source", source);
         model.addAttribute("typeCode", typeCode);
@@ -173,6 +185,14 @@ public class UiCatalogController {
         model.addAttribute("awaiting", view.awaitingDecision());
         return "ui/catalog/forms";
     }
+
+    /** UI-0.8: колонки списка форм, по которым разрешена сортировка. */
+    private static final java.util.Map<String, String> FORM_SORT = java.util.Map.of(
+            "code", "code",
+            "title", "title",
+            "version", "versionNumber",
+            "status", "status",
+            "updatedAt", "updatedAt");
 
     /** UI-0.8: размер страницы выбирается из 20 / 50 / 100; иное значение приводится к ближайшему разрешённому. */
     private static int pageSize(int requested) {

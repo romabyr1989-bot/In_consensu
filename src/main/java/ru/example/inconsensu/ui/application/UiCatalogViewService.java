@@ -104,6 +104,32 @@ public class UiCatalogViewService {
 
     /** UI-6: фильтры по категории и активности. */
     @Transactional(readOnly = true)
+    public List<TypeRow> types(
+            ru.example.inconsensu.common.domain.ConsentCategory category,
+            Boolean active,
+            String sortField,
+            boolean descending) {
+        List<TypeRow> rows = types(category, active);
+        java.util.Comparator<TypeRow> comparator =
+                switch (sortField == null ? "" : sortField) {
+                    case "code" -> java.util.Comparator.comparing(
+                            row -> row.type().getCode());
+                    case "name" -> java.util.Comparator.comparing(
+                            row -> row.type().getNameRu());
+                    case "category" -> java.util.Comparator.comparing(
+                            row -> row.type().getCategory().nameRu());
+                    case "active" -> java.util.Comparator.comparingLong(TypeRow::active);
+                        // Порядок по умолчанию задаёт справочник: он же определяет порядок пунктов формы.
+                    default -> null;
+                };
+        if (comparator == null) {
+            return rows;
+        }
+        return rows.stream()
+                .sorted(descending ? comparator.reversed() : comparator)
+                .toList();
+    }
+
     public List<TypeRow> types(ru.example.inconsensu.common.domain.ConsentCategory category, Boolean active) {
         var counts = stats.byType().stream()
                 .collect(Collectors.toMap(CatalogStatsService.TypeStats::code, Function.identity()));

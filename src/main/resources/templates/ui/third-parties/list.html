@@ -14,12 +14,12 @@
             <table class="table bg-white align-middle">
                 <thead>
                 <tr>
-                    <th scope="col">Наименование</th>
-                    <th scope="col">ИНН</th>
-                    <th scope="col">Роль</th>
-                    <th scope="col">Договор</th>
+                    <th th:replace="~{ui/fragments/layout :: sortHeader('Наименование', 'name')}"></th>
+                    <th th:replace="~{ui/fragments/layout :: sortHeader('ИНН', 'inn')}"></th>
+                    <th th:replace="~{ui/fragments/layout :: sortHeader('Роль', 'role')}"></th>
+                    <th th:replace="~{ui/fragments/layout :: sortHeader('Договор', 'contract')}"></th>
                     <th scope="col">Категории ПДн</th>
-                    <th scope="col">Согласий: действует / истекает / отозвано</th>
+                    <th th:replace="~{ui/fragments/layout :: sortHeader('Согласий: действует / истекает / отозвано', 'consents')}"></th>
                     <th scope="col">Активно</th>
                 </tr>
                 </thead>

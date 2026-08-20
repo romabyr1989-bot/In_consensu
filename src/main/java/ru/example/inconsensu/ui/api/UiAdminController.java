@@ -17,6 +17,8 @@ import ru.example.inconsensu.common.domain.RoleCode;
 import ru.example.inconsensu.common.error.ApiException;
 import ru.example.inconsensu.iam.application.OperatorSettingsService;
 import ru.example.inconsensu.iam.application.UserService;
+import ru.example.inconsensu.ui.application.UiSettingsCatalog;
+import ru.example.inconsensu.ui.application.UiSorting;
 
 /** UI-16: пользователи, роли и настройки оператора. */
 @Controller
@@ -32,11 +34,25 @@ public class UiAdminController {
         this.auditService = auditService;
     }
 
+    /** UI-0.8: колонки списка пользователей, по которым разрешена сортировка. */
+    private static final java.util.Map<String, String> USER_SORT =
+            java.util.Map.of("login", "login", "fullName", "fullName", "email", "email", "active", "active");
+
     @GetMapping("/ui/admin/users")
     @PreAuthorize("hasRole('ADMIN')")
-    public String users(Model model) {
-        model.addAttribute("users", users.list(PageRequest.of(0, 100)).getContent());
+    public String users(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String direction,
+            Model model) {
+        int pageSize = UiSorting.pageSize(size);
+        var order = UiSorting.of(sort, direction, USER_SORT, org.springframework.data.domain.Sort.by("login"));
+        model.addAttribute("users", users.list(PageRequest.of(Math.max(page, 0), pageSize, order)));
         model.addAttribute("roles", RoleCode.values());
+        model.addAttribute("sort", sort);
+        model.addAttribute("direction", direction);
+        model.addAttribute("pageSize", pageSize);
         return "ui/admin/users";
     }
 
@@ -87,7 +103,8 @@ public class UiAdminController {
     @GetMapping("/ui/admin/settings")
     @PreAuthorize("hasAnyRole('ADMIN','DPO')")
     public String settings(Model model) {
-        model.addAttribute("settings", settings.all());
+        // UI-16: настройки показываются группами и с русскими подписями, а не списком технических ключей.
+        model.addAttribute("settingGroups", UiSettingsCatalog.groups(settings.all()));
         model.addAttribute(
                 "history",
                 auditService.historyOf(OperatorSettingsService.AGGREGATE_TYPE, OperatorSettingsService.AGGREGATE_ID));

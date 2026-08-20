@@ -10,14 +10,18 @@
         <div th:replace="~{ui/fragments/layout :: flash}"></div>
 
         <form th:action="@{/ui/admin/settings}" method="post" data-warn-unsaved="true">
-            <div class="card mb-3">
-                <div class="card-header">Значения</div>
+            <div class="card mb-3" th:each="group : ${settingGroups}">
+                <div class="card-header" th:text="${group.title}">Реквизиты оператора</div>
                 <div class="card-body">
                     <div class="row g-3">
-                        <div class="col-md-6" th:each="entry : ${settings}">
-                            <label class="form-label" th:for="${entry.key}" th:text="${entry.key}">operator.name</label>
-                            <input class="form-control" th:id="${entry.key}" th:name="${entry.key}"
-                                   th:value="${entry.value}">
+                        <div class="col-md-6" th:each="setting : ${group.settings}">
+                            <label class="form-label" th:for="${setting.key}" th:text="${setting.label}">
+                                Наименование оператора</label>
+                            <input class="form-control" th:id="${setting.key}" th:name="${setting.key}"
+                                   th:value="${setting.value}">
+                            <div class="form-text" th:if="${!#strings.isEmpty(setting.hint)}"
+                                 th:text="${setting.hint}">Период ISO-8601</div>
+                            <div class="form-text text-muted"><code th:text="${setting.key}">operator.name</code></div>
                         </div>
                     </div>
                 </div>
@@ -32,6 +36,9 @@
                 <tr><th scope="col">Когда</th><th scope="col">Кто</th><th scope="col">Что изменено</th></tr>
                 </thead>
                 <tbody>
+                <tr th:if="${#lists.isEmpty(history)}">
+                    <td colspan="3" class="text-muted">Настройки ещё не менялись.</td>
+                </tr>
                 <tr th:each="event : ${history}">
                     <td th:text="${formats.dateTime(event.occurredAt)}">17.08.2026 10:00</td>
                     <td th:text="${event.actorId}">admin</td>

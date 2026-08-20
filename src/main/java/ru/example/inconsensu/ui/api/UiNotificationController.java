@@ -26,6 +26,7 @@ import ru.example.inconsensu.notification.domain.NotificationStatus;
 import ru.example.inconsensu.notification.domain.NotificationTrigger;
 import ru.example.inconsensu.thirdparty.application.ThirdPartyService;
 import ru.example.inconsensu.ui.application.UiNotificationViewService;
+import ru.example.inconsensu.ui.application.UiSorting;
 
 /** UI-13: правила уведомлений и журнал отправленного. */
 @Controller
@@ -65,10 +66,15 @@ public class UiNotificationController {
             @RequestParam(required = false) NotificationChannel channel,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String direction,
             Model model) {
         model.addAttribute("tab", "journal".equals(tab) ? "journal" : "rules");
         model.addAttribute("rules", view.rules());
-        model.addAttribute("notifications", view.journal(status, ruleId, channel, from, to, page(page, size)));
+        model.addAttribute(
+                "notifications", view.journal(status, ruleId, channel, from, to, page(page, size, sort, direction)));
+        model.addAttribute("sort", sort);
+        model.addAttribute("direction", direction);
         model.addAttribute("triggers", NotificationTrigger.values());
         model.addAttribute("channels", NotificationChannel.values());
         model.addAttribute("statuses", NotificationStatus.values());
@@ -93,10 +99,19 @@ public class UiNotificationController {
         return "ui/notifications/message";
     }
 
+    /** UI-0.8: колонки журнала, по которым разрешена сортировка. */
+    private static final java.util.Map<String, String> JOURNAL_SORT = java.util.Map.of(
+            "createdAt", "createdAt", "recipient", "recipient", "subject", "subjectLine", "status", "status");
+
     /** UI-0.8: размеры страницы фиксированы — 20, 50 или 100. */
-    private static PageRequest page(int page, int size) {
-        int normalized = size == 50 || size == 100 ? size : 20;
-        return PageRequest.of(Math.max(page, 0), normalized);
+    private static PageRequest page(int page, int size, String sort, String direction) {
+        var order = UiSorting.of(
+                sort,
+                direction,
+                JOURNAL_SORT,
+                org.springframework.data.domain.Sort.by(
+                        org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+        return PageRequest.of(Math.max(page, 0), UiSorting.pageSize(size), order);
     }
 
     @PostMapping("/ui/notifications/rules")

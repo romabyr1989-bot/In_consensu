@@ -88,13 +88,13 @@
             <table class="table bg-white align-middle">
                 <thead>
                 <tr>
-                    <th scope="col">Код</th>
-                    <th scope="col">Название</th>
-                    <th scope="col">Версия</th>
-                    <th scope="col">Статус</th>
+                    <th th:replace="~{ui/fragments/layout :: sortHeader('Код', 'code')}"></th>
+                    <th th:replace="~{ui/fragments/layout :: sortHeader('Название', 'title')}"></th>
+                    <th th:replace="~{ui/fragments/layout :: sortHeader('Версия', 'version')}"></th>
+                    <th th:replace="~{ui/fragments/layout :: sortHeader('Статус', 'status')}"></th>
                     <th scope="col">Источники применения</th>
                     <th scope="col">Автор изменений</th>
-                    <th scope="col">Изменено</th>
+                    <th th:replace="~{ui/fragments/layout :: sortHeader('Изменено', 'updatedAt')}"></th>
                     <th scope="col"></th>
                 </tr>
                 </thead>

@@ -64,8 +64,13 @@
 
         <table class="table bg-white align-middle">
             <thead>
-            <tr><th scope="col">Когда</th><th scope="col">Агрегат</th><th scope="col">Событие</th>
-                <th scope="col">Актор</th><th scope="col">Payload</th></tr>
+            <tr>
+                <th th:replace="~{ui/fragments/layout :: sortHeader('Когда', 'occurredAt')}"></th>
+                <th th:replace="~{ui/fragments/layout :: sortHeader('Агрегат', 'aggregate')}"></th>
+                <th th:replace="~{ui/fragments/layout :: sortHeader('Событие', 'eventType')}"></th>
+                <th th:replace="~{ui/fragments/layout :: sortHeader('Актор', 'actor')}"></th>
+                <th scope="col">Payload</th>
+            </tr>
             </thead>
             <tbody>
             <tr th:each="event : ${events.content}">
