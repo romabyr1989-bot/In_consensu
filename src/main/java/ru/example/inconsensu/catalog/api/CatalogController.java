@@ -17,11 +17,13 @@ import ru.example.inconsensu.catalog.application.CatalogExportService;
 import ru.example.inconsensu.catalog.application.CatalogStatsService;
 import ru.example.inconsensu.common.error.ApiException;
 import ru.example.inconsensu.common.error.ErrorCode;
+import ru.example.inconsensu.common.security.Authorities;
 
 /** §9: статистика и экспорт каталога. Доступны всем сотрудникам. */
 @RestController
 @RequestMapping("/api/v1/catalog")
-@PreAuthorize("isAuthenticated()")
+// Статистика и выгрузка каталога — «все сотрудники» §9, то есть без INTEGRATION.
+@PreAuthorize(Authorities.EMPLOYEE)
 public class CatalogController {
 
     private final CatalogStatsService stats;

@@ -46,18 +46,16 @@ public class ConsentResponseAssembler {
     public List<ConsentResponse> toResponses(List<ConsentQueryService.ConsentView> views) {
         ZoneId zone = properties.timezone();
         Map<UUID, ConsentType> typeCache = new HashMap<>();
-        Map<UUID, String> thirdPartyCache = new HashMap<>();
+        Map<UUID, ru.example.inconsensu.thirdparty.domain.ThirdParty> thirdPartyCache = new HashMap<>();
         Map<UUID, ConsentForm> formCache = new HashMap<>();
 
         return views.stream()
                 .map(view -> {
                     var consent = view.consent();
                     ConsentType type = typeCache.computeIfAbsent(consent.getConsentTypeId(), types::get);
-                    String thirdPartyName = consent.getThirdPartyId() == null
+                    var thirdParty = consent.getThirdPartyId() == null
                             ? null
-                            : thirdPartyCache.computeIfAbsent(
-                                    consent.getThirdPartyId(),
-                                    id -> thirdParties.get(id).getName());
+                            : thirdPartyCache.computeIfAbsent(consent.getThirdPartyId(), thirdParties::get);
                     ConsentForm form = consent.getFormId() == null
                             ? null
                             : formCache.computeIfAbsent(consent.getFormId(), forms::get);
@@ -67,7 +65,8 @@ public class ConsentResponseAssembler {
                             zone,
                             type.getCode(),
                             type.getNameRu(),
-                            thirdPartyName,
+                            thirdParty == null ? null : thirdParty.getName(),
+                            thirdParty == null ? null : thirdParty.getRole().name(),
                             form == null ? null : form.getCode(),
                             form == null ? null : form.getVersionNumber());
                 })

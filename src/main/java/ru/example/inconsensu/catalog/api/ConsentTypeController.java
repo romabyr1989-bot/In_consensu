@@ -24,11 +24,13 @@ import ru.example.inconsensu.catalog.application.ConsentTypeService;
 import ru.example.inconsensu.common.api.PageResponse;
 import ru.example.inconsensu.common.domain.CommunicationChannel;
 import ru.example.inconsensu.common.domain.ConsentCategory;
+import ru.example.inconsensu.common.security.Authorities;
 
 /** §9: типы согласий. Чтение — всем сотрудникам, изменение — ADMIN, DPO, LAWYER (Приложение E). */
 @RestController
 @RequestMapping("/api/v1/consent-types")
-@PreAuthorize("isAuthenticated()")
+// Каталог типов согласий закрыт для служебной роли INTEGRATION (Приложение E).
+@PreAuthorize(Authorities.EMPLOYEE)
 public class ConsentTypeController {
 
     public record ConsentTypeRequest(

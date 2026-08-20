@@ -2261,6 +2261,8 @@ components:
           type: array
           items:
             type: string
+        item:
+          $ref: "#/components/schemas/FormItem"
         signature:
           $ref: "#/components/schemas/Signature"
     ConsentFormResponse:
@@ -2355,6 +2357,8 @@ components:
           type: string
           format: uuid
         thirdPartyName:
+          type: string
+        thirdPartyRole:
           type: string
         typeCode:
           type: string
@@ -2652,6 +2656,30 @@ components:
           type: integer
           format: int32
         messageRu:
+          type: string
+    FormItem:
+      type: object
+      properties:
+        consentTypeCode:
+          type: string
+        consentTypeName:
+          type: string
+        id:
+          type: string
+          format: uuid
+        mandatory:
+          type: boolean
+        pdnCategories:
+          type: array
+          items:
+            type: string
+        purposes:
+          type: array
+          items:
+            type: string
+        text:
+          type: string
+        validity:
           type: string
     FormRef:
       type: object

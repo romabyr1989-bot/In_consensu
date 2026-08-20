@@ -16,6 +16,9 @@ public record ConsentResponse(
         String typeNameRu,
         UUID thirdPartyId,
         String thirdPartyName,
+        // Приложение A показывает роль третьего лица рядом с именем: обработчик по поручению,
+        // самостоятельный получатель и компания экосистемы — разные основания передачи (§2, FR-7.5).
+        String thirdPartyRole,
         List<String> pdnCategories,
         List<String> purposes,
         String status,
@@ -39,6 +42,7 @@ public record ConsentResponse(
             String typeCode,
             String typeNameRu,
             String thirdPartyName,
+            String thirdPartyRole,
             String formCode,
             Integer formVersion) {
         var consent = view.consent();
@@ -50,6 +54,7 @@ public record ConsentResponse(
                 typeNameRu,
                 consent.getThirdPartyId(),
                 thirdPartyName,
+                thirdPartyRole,
                 consent.getPdnCategories(),
                 consent.getPurposes(),
                 view.status().name(),

@@ -33,11 +33,13 @@ import ru.example.inconsensu.common.api.ApiTime;
 import ru.example.inconsensu.common.api.PageResponse;
 import ru.example.inconsensu.common.config.InConsensuProperties;
 import ru.example.inconsensu.common.domain.ConsentSource;
+import ru.example.inconsensu.common.security.Authorities;
 
 /** §9: формы согласий и их согласование (FR-1.2 … FR-1.6, FR-2.1 … FR-2.3). */
 @RestController
 @RequestMapping("/api/v1/forms")
-@PreAuthorize("isAuthenticated()")
+// Формы закрыты для служебной роли INTEGRATION (Приложение E).
+@PreAuthorize(Authorities.EMPLOYEE)
 public class ConsentFormController {
 
     public record ItemRequest(

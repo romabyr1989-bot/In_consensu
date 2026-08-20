@@ -218,4 +218,45 @@ class AccessHardeningIT extends AbstractIntegrationTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).contains("\"size\":200");
     }
+
+    /**
+     * Приложение E: служебная роль INTEGRATION не читает каталог, формы и справочник третьих лиц, а
+     * карточку получает только по внешнему идентификатору.
+     *
+     * <p>Раньше на классах стояло `isAuthenticated()`, и служебная учётная запись видела всё это наравне
+     * с сотрудниками.
+     */
+    @Test
+    void service_role_reads_only_what_the_matrix_allows() {
+        HttpHeaders integration = accounts.authorizationFor(RoleCode.INTEGRATION.name());
+
+        for (String closed :
+                List.of("/api/v1/consent-types", "/api/v1/forms", "/api/v1/catalog/stats", "/api/v1/third-parties")) {
+            assertThat(restTemplate
+                            .exchange(closed, HttpMethod.GET, new HttpEntity<>(integration), String.class)
+                            .getStatusCode())
+                    .as("для INTEGRATION закрыт %s", closed)
+                    .isEqualTo(HttpStatus.FORBIDDEN);
+        }
+
+        // Регистрация согласий и поиск по внешнему идентификатору службе по-прежнему нужны.
+        assertThat(restTemplate
+                        .exchange(
+                                "/api/v1/subjects/by-external-id/CRM-NO-SUCH",
+                                HttpMethod.GET,
+                                new HttpEntity<>(integration),
+                                String.class)
+                        .getStatusCode())
+                .isEqualTo(HttpStatus.NOT_FOUND);
+
+        assertThat(restTemplate
+                        .exchange(
+                                "/api/v1/subjects/" + UUID.randomUUID() + "/card",
+                                HttpMethod.GET,
+                                new HttpEntity<>(integration),
+                                String.class)
+                        .getStatusCode())
+                .as("карточка по внутреннему идентификатору службе не положена")
+                .isEqualTo(HttpStatus.FORBIDDEN);
+    }
 }

@@ -24,12 +24,14 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import ru.example.inconsensu.common.api.PageResponse;
 import ru.example.inconsensu.common.domain.ThirdPartyRole;
+import ru.example.inconsensu.common.security.Authorities;
 import ru.example.inconsensu.thirdparty.application.ThirdPartyService;
 
 /** §9: справочник третьих лиц. Чтение — всем, изменение — ADMIN, DPO, LAWYER (Приложение E). */
 @RestController
 @RequestMapping("/api/v1/third-parties")
-@PreAuthorize("isAuthenticated()")
+// Справочник третьих лиц закрыт для служебной роли INTEGRATION (Приложение E).
+@PreAuthorize(Authorities.EMPLOYEE)
 public class ThirdPartyController {
 
     public record ThirdPartyRequest(

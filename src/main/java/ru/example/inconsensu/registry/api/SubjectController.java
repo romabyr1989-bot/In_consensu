@@ -24,6 +24,7 @@ import ru.example.inconsensu.common.api.ChannelView;
 import ru.example.inconsensu.common.api.PageResponse;
 import ru.example.inconsensu.common.api.TransferView;
 import ru.example.inconsensu.common.domain.ContactType;
+import ru.example.inconsensu.common.security.Authorities;
 import ru.example.inconsensu.registry.application.ConsentQueryService;
 import ru.example.inconsensu.registry.application.SubjectCardService;
 import ru.example.inconsensu.registry.application.SubjectService;
@@ -31,6 +32,8 @@ import ru.example.inconsensu.registry.application.SubjectService;
 /** §9: субъекты — поиск, карточка по идентификатору и upsert по external_id (FR-5.2, FR-4.4). */
 @RestController
 @RequestMapping("/api/v1/subjects")
+// Приложение E: служебной роли INTEGRATION карточка доступна только по external_id, поэтому обращения
+// по внутреннему идентификатору и поиск закрыты для неё отдельными проверками ниже.
 @PreAuthorize("isAuthenticated()")
 public class SubjectController {
 
@@ -83,6 +86,7 @@ public class SubjectController {
     }
 
     /** Единое поле поиска UI-3: телефон, email, ФИО или внешний идентификатор различаются автоматически. */
+    @PreAuthorize(Authorities.EMPLOYEE)
     @GetMapping
     public PageResponse<SubjectResponse> search(
             @RequestParam(name = "query", required = false) String query,
@@ -91,6 +95,7 @@ public class SubjectController {
         return PageResponse.of(service.search(query, pageable), subject -> SubjectResponse.of(subject, fullContacts));
     }
 
+    @PreAuthorize(Authorities.EMPLOYEE)
     @GetMapping("/{id}")
     public SubjectResponse get(@PathVariable UUID id) {
         return SubjectResponse.of(service.get(id));
@@ -102,6 +107,7 @@ public class SubjectController {
     }
 
     /** FR-5.1: сводная картина по клиенту — что действует, что отозвано, что скоро закончится. */
+    @PreAuthorize(Authorities.EMPLOYEE)
     @GetMapping("/{id}/card")
     public SubjectCardResponse card(@PathVariable UUID id) {
         return toResponse(cards.cardOf(id));
@@ -125,6 +131,7 @@ public class SubjectController {
                 .body(pdf);
     }
 
+    @PreAuthorize(Authorities.EMPLOYEE)
     @GetMapping("/{id}/history")
     public List<ConsentResponse> history(@PathVariable UUID id) {
         return assembler.toResponses(consents.historyOf(id));
