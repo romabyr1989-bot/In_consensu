@@ -13,14 +13,41 @@ import ru.example.inconsensu.ui.application.UiDashboardService;
 @Controller
 public class UiHomeController {
 
-    private final UiDashboardService dashboard;
+    /** Тот же пароль, что заводит загрузчик демо-данных: вымышленные учётные записи профиля `demo`. */
+    private static final String DEMO_PASSWORD =
+            ru.example.inconsensu.integration.application.DemoDataLoader.DEMO_PASSWORD;
 
-    public UiHomeController(UiDashboardService dashboard) {
+    private final UiDashboardService dashboard;
+    private final org.springframework.core.env.Environment environment;
+
+    public UiHomeController(UiDashboardService dashboard, org.springframework.core.env.Environment environment) {
         this.dashboard = dashboard;
+        this.environment = environment;
     }
 
+    /**
+     * Страница входа (UI-1).
+     *
+     * <p>В демонстрационном профиле поля заполняются заранее и рядом перечислены учётные записи всех
+     * ролей: демо существует, чтобы его смотрели, а не подбирали пароль. Подстановка строго под профилем
+     * `demo` — в эксплуатации пароль в разметке недопустим (NFR-3), поэтому проверяется активный профиль,
+     * а не настройка, которую можно случайно включить.
+     */
     @GetMapping("/ui/login")
-    public String login() {
+    public String login(Model model) {
+        if (environment.matchesProfiles("demo")) {
+            model.addAttribute(
+                    "demoLogin",
+                    ru.example.inconsensu.common.domain.RoleCode.ADMIN.name().toLowerCase(java.util.Locale.ROOT));
+            model.addAttribute("demoPassword", DEMO_PASSWORD);
+            // INTEGRATION в подсказку не попадает: по UI-0.3 у служебной роли нет рабочего места,
+            // и предлагать её логин на странице входа значит звать в тупик.
+            model.addAttribute(
+                    "demoRoles",
+                    java.util.Arrays.stream(ru.example.inconsensu.common.domain.RoleCode.values())
+                            .filter(role -> role != ru.example.inconsensu.common.domain.RoleCode.INTEGRATION)
+                            .toList());
+        }
         return "ui/login";
     }
 
