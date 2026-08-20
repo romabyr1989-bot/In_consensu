@@ -312,6 +312,29 @@ class UiRevocationIT extends AbstractIntegrationTest {
                 .andExpect(content().string(org.hamcrest.Matchers.not(containsString(">FIO<"))));
     }
 
+    /** UI-4: лента истории называет источник получения согласия и обстоятельства отзыва. */
+    @Test
+    void history_feed_describes_the_source_and_the_revocation() throws Exception {
+        Consent consent = registerAdvertisingConsent();
+        MockHttpSession session = loginAs(RoleCode.ADMIN.name());
+
+        mockMvc.perform(post("/ui/consents/" + consent.getId() + "/revoke")
+                        .session(session)
+                        .with(csrf())
+                        .header("HX-Request", "true")
+                        .param("reason", "клиент попросил прекратить рассылку")
+                        .param("revocationSource", "CALL_CENTER")
+                        .param("caseNumber", "ОБР-UI-ЛЕНТА"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/ui/subjects/" + consent.getSubjectId() + "/tab/history")
+                        .session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("источник — заявка на сайте")))
+                .andExpect(content().string(containsString("источник обращения — звонок в колл-центр")))
+                .andExpect(content().string(containsString("клиент попросил прекратить рассылку")));
+    }
+
     /** UI-3: панель расширенных фильтров сужает выборку запросом, а не отбором готовой страницы. */
     @Test
     void advanced_filters_narrow_the_search() throws Exception {
@@ -347,17 +370,18 @@ class UiRevocationIT extends AbstractIntegrationTest {
     /** UI-2: плитка дашборда открывает отфильтрованный список, а не общий поиск. */
     @Test
     void dashboard_tile_opens_the_filtered_list_without_a_query() throws Exception {
-        Consent consent = registerAdvertisingConsent();
+        registerAdvertisingConsent();
         MockHttpSession session = loginAs(RoleCode.ADMIN.name());
-        String externalId = subjects.get(consent.getSubjectId()).getExternalId();
 
         mockMvc.perform(get("/ui/").session(session))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("/ui/subjects?status=ACTIVE")));
 
+        // Проверяется, что список открывается без поискового запроса и показывает строки. Ждать здесь
+        // конкретного клиента нельзя: страница одна, а клиентов в прогоне создают и соседние тесты.
         mockMvc.perform(get("/ui/subjects?status=ACTIVE").session(session))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString(externalId)));
+                .andExpect(content().string(containsString("Открыть карточку")));
     }
 
     /** Прогон поиска через POST и последующий переход по выданной ссылке — как это делает браузер. */

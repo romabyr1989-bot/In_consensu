@@ -3,6 +3,7 @@ package ru.example.inconsensu.ui.application;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
@@ -266,14 +267,50 @@ public class UiSubjectViewService {
         return new HistoryEntry(
                 formats.dateTime(event.getOccurredAt()),
                 event.getEventType().nameRu(),
-                typeName == null
-                        ? event.getEventType().nameRu()
-                        : event.getEventType().nameRu() + ": " + typeName,
+                description(event, consentId, typeName),
                 event.getActorType().nameRu()
                         + (event.getActorId() == null || event.getActorId().isBlank()
                                 ? ""
                                 : " · " + event.getActorId()),
                 consentId);
+    }
+
+    /**
+     * Описание события ленты (UI-4): «Получено согласие «Реклама по email», источник — личный кабинет»,
+     * «Отозвано по звонку в колл-центр, обращение — ОБР-2026/17».
+     *
+     * <p>Раньше строка сводилась к «тип события: название типа согласия»: ни источника получения, ни
+     * источника обращения при отзыве в ленте не было, хотя §16 приводит их прямо в примерах.
+     */
+    private String description(ru.example.inconsensu.audit.domain.AuditEvent event, UUID consentId, String typeName) {
+        String base = event.getEventType().nameRu();
+        if (typeName == null) {
+            return base;
+        }
+        String title = base + " «" + typeName + "»";
+        Optional<ConsentQueryService.ConsentView> found =
+                consentId == null ? Optional.empty() : consents.find(consentId);
+        if (found.isEmpty()) {
+            return title;
+        }
+        var consent = found.get().consent();
+        return switch (event.getEventType()) {
+            case REVOKED -> title
+                    + (consent.getRevocationSource() == null
+                            ? ""
+                            : ", источник обращения — "
+                                    + consent.getRevocationSource().nameRu().toLowerCase(java.util.Locale.ROOT))
+                    + (consent.getRevocationReason() == null
+                                    || consent.getRevocationReason().isBlank()
+                            ? ""
+                            : ", причина: " + consent.getRevocationReason());
+            case SUPERSEDED -> title + ", заменено новым согласием";
+            default -> title + ", источник — "
+                    + consent.getSource().nameRu().toLowerCase(java.util.Locale.ROOT)
+                    + (consent.getSourceRef() == null || consent.getSourceRef().isBlank()
+                            ? ""
+                            : " " + consent.getSourceRef());
+        };
     }
 
     /** Идентификатор агрегата — строка: у формы или настроек это не UUID. */

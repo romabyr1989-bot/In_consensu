@@ -72,9 +72,12 @@ class UiTablesIT extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Ничего не найдено")));
 
-        mockMvc.perform(get("/ui/import").session(loginAs(RoleCode.ADMIN.name())))
+        // Журнал уведомлений за давно прошедший день пуст независимо от того, что успели создать соседние
+        // тесты: проверка не должна зависеть от порядка классов в прогоне.
+        mockMvc.perform(get("/ui/notifications?tab=journal&from=2000-01-01&to=2000-01-02")
+                        .session(loginAs(RoleCode.DPO.name())))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Импорт ещё не запускался")));
+                .andExpect(content().string(containsString("Уведомлений не найдено")));
     }
 
     @Test

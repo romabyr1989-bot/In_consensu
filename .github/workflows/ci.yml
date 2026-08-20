@@ -39,12 +39,28 @@ jobs:
           sudo -u postgres psql -c "CREATE USER inconsensu WITH PASSWORD 'inconsensu' SUPERUSER;"
           sudo -u postgres psql -c "CREATE DATABASE inconsensu_test OWNER inconsensu;"
 
-      - name: make verify
+      # Шаги разделены намеренно: логи сборки доступны не всем, а имя упавшего шага видно всегда —
+      # по нему сразу понятно, что сломалось: формат, юнит-тесты, интеграционные или покрытие.
+      - name: Форматирование и стиль
+        run: make lint
+
+      - name: Юнит-тесты
+        run: ./mvnw -B -ntp test
+
+      - name: Интеграционные тесты, покрытие и синхронность спецификации
         env:
           INCONSENSU_TEST_DB_URL: jdbc:postgresql://localhost:5432/inconsensu_test
           INCONSENSU_TEST_DB_USER: inconsensu
           INCONSENSU_TEST_DB_PASSWORD: inconsensu
         run: make verify
+
+      - name: Список упавших тестов
+        if: failure()
+        run: |
+          for report in target/surefire-reports/*.txt target/failsafe-reports/*.txt; do
+            [ -f "$report" ] || continue
+            grep -l "FAILURE\|ERROR" "$report" >/dev/null 2>&1 && { echo "=== $report"; cat "$report"; }
+          done
 
       - name: Отчёты тестов и покрытия
         if: always()
