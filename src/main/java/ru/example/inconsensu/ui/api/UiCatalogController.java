@@ -79,12 +79,15 @@ public class UiCatalogController {
     public String types(
             @RequestParam(required = false) ConsentCategory category,
             @RequestParam(required = false) Boolean active,
+            @RequestParam(required = false) String edit,
             Model model) {
         model.addAttribute("types", view.types(category, active));
         model.addAttribute("selectedCategory", category);
         model.addAttribute("selectedActive", active);
         model.addAttribute("categories", ConsentCategory.values());
         model.addAttribute("channels", CommunicationChannel.values());
+        // UI-6: форма одна на создание и правку; код задаётся только при создании.
+        model.addAttribute("editing", edit == null || edit.isBlank() ? null : types.getByCode(edit));
         return "ui/catalog/types";
     }
 
@@ -101,6 +104,7 @@ public class UiCatalogController {
             @RequestParam(required = false) String dependsOnCode,
             @RequestParam(defaultValue = "false") boolean businessSignificant,
             @RequestParam(defaultValue = "false") boolean update,
+            @RequestParam(defaultValue = "0") int sortOrder,
             RedirectAttributes redirect) {
         ConsentTypeService.ConsentTypeForm form = new ConsentTypeService.ConsentTypeForm(
                 nameRu,
@@ -111,7 +115,9 @@ public class UiCatalogController {
                 blankToNull(defaultValidity),
                 blankToNull(dependsOnCode),
                 businessSignificant,
-                0);
+                // Порядок сортировки приходит из формы: жёсткий ноль при правке обнулял бы его и
+                // перемешивал список типов в конструкторе форм.
+                sortOrder);
         try {
             if (update) {
                 types.update(code, form);
@@ -122,6 +128,10 @@ public class UiCatalogController {
             }
         } catch (ApiException e) {
             redirect.addFlashAttribute("flashError", e.getMessage());
+            if (update) {
+                // Возвращаем на ту же форму правки, иначе введённое пропадёт вместе с сообщением.
+                return "redirect:/ui/catalog/types?edit=" + code;
+            }
         }
         return "redirect:/ui/catalog/types";
     }

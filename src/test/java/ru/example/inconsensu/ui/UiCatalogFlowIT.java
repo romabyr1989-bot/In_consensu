@@ -18,6 +18,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.example.inconsensu.catalog.application.ConsentFormService;
+import ru.example.inconsensu.common.domain.ConsentCategory;
 import ru.example.inconsensu.common.domain.FormStatus;
 import ru.example.inconsensu.common.domain.RoleCode;
 import ru.example.inconsensu.iam.application.OperatorSettingsService;
@@ -44,6 +45,9 @@ class UiCatalogFlowIT extends AbstractIntegrationTest {
 
     @Autowired
     private ConsentFormService forms;
+
+    @Autowired
+    private ru.example.inconsensu.catalog.application.ConsentTypeService types;
 
     @BeforeEach
     void fillOperatorRequisites() {
@@ -157,5 +161,48 @@ class UiCatalogFlowIT extends AbstractIntegrationTest {
                         .andReturn()
                         .getRequest()
                         .getSession(false);
+    }
+
+    /**
+     * UI-6: тип согласия правится из интерфейса, код при этом неизменяем (FR-1.1).
+     *
+     * <p>Форма редактирования была недоступна: серверная часть уже принимала `update=true`, но ни одна
+     * страница этот признак не отправляла. Заодно проверяется порядок сортировки: он приходит из формы, а
+     * раньше в него жёстко подставлялся ноль, и правка перемешала бы список типов в конструкторе.
+     */
+    @Test
+    void consent_type_can_be_edited_from_the_interface_without_losing_its_order() throws Exception {
+        MockHttpSession session = loginAs(RoleCode.DPO.name());
+        String code = "UI_EDIT_" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+
+        mockMvc.perform(post("/ui/catalog/types")
+                        .session(session)
+                        .with(csrf())
+                        .param("code", code)
+                        .param("nameRu", "До правки")
+                        .param("category", ConsentCategory.OTHER.name())
+                        .param("sortOrder", "777"))
+                .andExpect(status().is3xxRedirection());
+
+        // Форма правки открывается по ссылке из таблицы и приходит заполненной.
+        mockMvc.perform(get("/ui/catalog/types").param("edit", code).session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Изменить тип согласия: " + code)))
+                .andExpect(content().string(containsString("До правки")));
+
+        mockMvc.perform(post("/ui/catalog/types")
+                        .session(session)
+                        .with(csrf())
+                        .param("code", code)
+                        .param("nameRu", "После правки")
+                        .param("category", ConsentCategory.OTHER.name())
+                        .param("update", "true")
+                        .param("sortOrder", "777"))
+                .andExpect(status().is3xxRedirection());
+
+        assertThat(types.getByCode(code).getNameRu()).isEqualTo("После правки");
+        assertThat(types.getByCode(code).getSortOrder())
+                .as("порядок сортировки не должен обнуляться при правке")
+                .isEqualTo(777);
     }
 }

@@ -44,6 +44,7 @@
                     <th scope="col">Третье лицо</th>
                     <th scope="col">Срок</th>
                     <th scope="col">Зависит от</th>
+                    <th scope="col">Значим для бизнеса</th>
                     <th scope="col">Согласий: действует / истекает / отозвано</th>
                     <th scope="col">Активен</th>
                     <th scope="col"></th>
@@ -61,6 +62,7 @@
                     <td th:text="${row.type.requiresThirdParty} ? 'нужно' : '—'">—</td>
                     <td th:text="${row.type.defaultValidity} ?: 'до отзыва'">до отзыва</td>
                     <td th:text="${row.type.dependsOn != null} ? ${row.type.dependsOn.code} : '—'">—</td>
+                    <td th:text="${row.type.businessSignificant} ? 'да' : 'нет'">нет</td>
                     <td>
                         <span class="badge bg-success" th:text="${row.active}" title="Действующие">10</span>
                         <span class="badge bg-warning text-dark" th:text="${row.expiringSoon}"
@@ -72,9 +74,13 @@
                         <span class="badge bg-secondary" th:unless="${row.type.active}">выключен</span>
                     </td>
                     <td class="text-end" sec:authorize="hasAnyRole('LAWYER','DPO','ADMIN')">
+                        <a class="btn btn-sm btn-link" th:href="@{/ui/catalog/types(edit=${row.type.code})}">Изменить</a>
+                        <!-- UI-6: в подтверждении названо число действующих согласий: деактивация типа
+                             оставляет их в силе, и сотрудник должен понимать масштаб. -->
                         <form th:action="@{/ui/catalog/types/{code}/deactivate(code=${row.type.code})}" method="post"
                               th:if="${row.type.active}"
-                              data-confirm="Тип будет деактивирован. Новые согласия по нему регистрировать нельзя, уже выданные сохранятся. Продолжить?">
+                              th:data-confirm="'Тип «' + ${row.type.nameRu} + '» будет деактивирован. Действующих согласий по нему сейчас: '
+                                  + ${row.active} + '. Новые регистрировать будет нельзя, выданные сохранятся. Продолжить?'">
                             <button class="btn btn-sm btn-outline-danger" type="submit">Деактивировать</button>
                         </form>
                     </td>
@@ -84,53 +90,71 @@
         </div>
 
         <div class="card" sec:authorize="hasAnyRole('LAWYER','DPO','ADMIN')">
-            <div class="card-header">Новый тип согласия</div>
+            <div class="card-header"
+                 th:text="${editing != null} ? 'Изменить тип согласия: ' + ${editing.code} : 'Новый тип согласия'">Новый тип согласия</div>
             <div class="card-body">
                 <form th:action="@{/ui/catalog/types}" method="post" class="row g-3">
+                    <!-- Код неизменяем после создания (FR-1.1), порядок сортировки переносится как есть. -->
+                    <input type="hidden" name="update" th:if="${editing != null}" value="true">
+                    <input type="hidden" name="sortOrder" th:if="${editing != null}" th:value="${editing.sortOrder}">
                     <div class="col-md-3">
                         <label class="form-label" for="code">Код <span aria-hidden="true">*</span></label>
-                        <input class="form-control" id="code" name="code" required>
+                        <input class="form-control" id="code" name="code" required th:value="${editing?.code}"
+                               th:readonly="${editing != null}">
                     </div>
                     <div class="col-md-5">
                         <label class="form-label" for="nameRu">Название <span aria-hidden="true">*</span></label>
-                        <input class="form-control" id="nameRu" name="nameRu" required>
+                        <input class="form-control" id="nameRu" name="nameRu" required th:value="${editing?.nameRu}">
                     </div>
                     <div class="col-md-4">
                         <label class="form-label" for="category">Категория <span aria-hidden="true">*</span></label>
                         <select class="form-select" id="category" name="category" required>
                             <option th:each="category : ${categories}" th:value="${category}"
-                                    th:text="${category.nameRu()}">Базовое</option>
+                                    th:text="${category.nameRu()}"
+                                    th:selected="${editing != null and editing.category == category}">Базовое</option>
                         </select>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label" for="channels">Каналы</label>
                         <select class="form-select" id="channels" name="channels" multiple size="4">
                             <option th:each="channel : ${channels}" th:value="${channel}"
-                                    th:text="${channel.nameRu()}">Телефонный звонок</option>
+                                    th:text="${channel.nameRu()}"
+                                    th:selected="${editing != null and editing.channels.contains(channel)}">Телефонный звонок</option>
                         </select>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label" for="defaultValidity">Срок по умолчанию (ISO-8601)</label>
-                        <input class="form-control" id="defaultValidity" name="defaultValidity" placeholder="P1Y">
+                        <input class="form-control" id="defaultValidity" name="defaultValidity" placeholder="P1Y"
+                               th:value="${editing?.defaultValidity}">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label" for="dependsOnCode">Зависит от типа</label>
-                        <input class="form-control" id="dependsOnCode" name="dependsOnCode" placeholder="PDN_PROCESSING">
+                        <input class="form-control" id="dependsOnCode" name="dependsOnCode" placeholder="PDN_PROCESSING"
+                               th:value="${editing?.dependsOn?.code}">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="description">Описание</label>
+                        <textarea class="form-control" id="description" name="description" rows="2"
+                                  th:text="${editing?.description}"></textarea>
                     </div>
                     <div class="col-12">
                         <div class="form-check form-check-inline">
                             <input class="form-check-input" type="checkbox" id="requiresThirdParty"
-                                   name="requiresThirdParty" value="true">
+                                   name="requiresThirdParty" value="true"
+                                   th:checked="${editing != null and editing.requiresThirdParty}">
                             <label class="form-check-label" for="requiresThirdParty">Требует третье лицо</label>
                         </div>
                         <div class="form-check form-check-inline">
                             <input class="form-check-input" type="checkbox" id="businessSignificant"
-                                   name="businessSignificant" value="true">
+                                   name="businessSignificant" value="true"
+                                   th:checked="${editing != null and editing.businessSignificant}">
                             <label class="form-check-label" for="businessSignificant">Значим для бизнеса</label>
                         </div>
                     </div>
                     <div class="col-12">
-                        <button class="btn btn-primary" type="submit">Создать тип</button>
+                        <button class="btn btn-primary" type="submit"
+                                th:text="${editing != null} ? 'Сохранить изменения' : 'Создать тип'">Создать тип</button>
+                        <a class="btn btn-link" th:if="${editing != null}" th:href="@{/ui/catalog/types}">Отмена</a>
                     </div>
                 </form>
             </div>
