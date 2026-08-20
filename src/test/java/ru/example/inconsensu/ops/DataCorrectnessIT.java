@@ -52,27 +52,29 @@ class DataCorrectnessIT extends AbstractIntegrationTest {
         Consent imported = RunAs.roles(
                 "test-integration",
                 List.of("INTEGRATION"),
-                () -> registration.registerImported(new ConsentRegistrationService.ImportedConsent(
-                        subject.getId(),
-                        typeId,
+                () -> registration.registerImported(
                         null,
-                        null,
-                        null,
-                        ConsentSource.CLIENT_BASE_IMPORT,
-                        "legacy",
-                        Instant.now().minus(Duration.ofDays(800)),
-                        Instant.now().minus(Duration.ofDays(1)),
-                        null,
-                        List.of("EMAIL"),
-                        List.of("информирование"),
-                        Map.of(
-                                "importJobId",
-                                UUID.randomUUID().toString(),
-                                "legacySystem",
-                                "CRM",
-                                "note",
-                                "перенос базы"),
-                        "expired-" + UUID.randomUUID())));
+                        new ConsentRegistrationService.ImportedConsent(
+                                subject.getId(),
+                                typeId,
+                                null,
+                                null,
+                                null,
+                                ConsentSource.CLIENT_BASE_IMPORT,
+                                "legacy",
+                                Instant.now().minus(Duration.ofDays(800)),
+                                Instant.now().minus(Duration.ofDays(1)),
+                                null,
+                                List.of("EMAIL"),
+                                List.of("информирование"),
+                                Map.of(
+                                        "importJobId",
+                                        UUID.randomUUID().toString(),
+                                        "legacySystem",
+                                        "CRM",
+                                        "note",
+                                        "перенос базы"),
+                                "expired-" + UUID.randomUUID())));
 
         assertThat(imported.getStatus())
                 .as("статус материализуется сразу при создании")
@@ -137,27 +139,29 @@ class DataCorrectnessIT extends AbstractIntegrationTest {
         return RunAs.roles(
                 "test-integration",
                 List.of("INTEGRATION"),
-                () -> registration.registerImported(new ConsentRegistrationService.ImportedConsent(
-                        subject.getId(),
-                        typeId,
+                () -> registration.registerImported(
                         null,
-                        null,
-                        null,
-                        ConsentSource.CLIENT_BASE_IMPORT,
-                        "legacy",
-                        grantedAt,
-                        null,
-                        null,
-                        List.of("EMAIL"),
-                        List.of("информирование"),
-                        Map.of(
-                                "importJobId",
-                                UUID.randomUUID().toString(),
-                                "legacySystem",
-                                "CRM",
-                                "note",
-                                "перенос базы"),
-                        tag + "-" + UUID.randomUUID())));
+                        new ConsentRegistrationService.ImportedConsent(
+                                subject.getId(),
+                                typeId,
+                                null,
+                                null,
+                                null,
+                                ConsentSource.CLIENT_BASE_IMPORT,
+                                "legacy",
+                                grantedAt,
+                                null,
+                                null,
+                                List.of("EMAIL"),
+                                List.of("информирование"),
+                                Map.of(
+                                        "importJobId",
+                                        UUID.randomUUID().toString(),
+                                        "legacySystem",
+                                        "CRM",
+                                        "note",
+                                        "перенос базы"),
+                                tag + "-" + UUID.randomUUID())));
     }
 
     private SubjectService.SubjectForm newSubject() {

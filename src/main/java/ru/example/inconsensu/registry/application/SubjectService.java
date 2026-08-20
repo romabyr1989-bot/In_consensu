@@ -100,6 +100,38 @@ public class SubjectService {
         return withContacts(found);
     }
 
+    /**
+     * Поиск по явно названному признаку (§9: `GET /subjects` с `phone`, `email`, `externalId`).
+     *
+     * <p>Единое поле `query` с автоопределением нужно интерфейсу (UI-3), а машинному клиенту — точный
+     * признак: он знает, что именно у него на руках, и не должен зависеть от эвристики. Первый
+     * заполненный параметр и определяет поиск; каждый вызов пишется в журнал доступа к ПДн (FR-5.2).
+     */
+    @Transactional(readOnly = true)
+    public Page<Subject> searchBy(String query, String phone, String email, String externalId, Pageable pageable) {
+        if (phone != null && !phone.isBlank()) {
+            return logged(searchByContact(ContactType.PHONE, ContactNormalizer.normalizePhone(phone), pageable));
+        }
+        if (email != null && !email.isBlank()) {
+            return logged(searchByContact(
+                    ContactType.EMAIL, ContactNormalizer.normalize(ContactType.EMAIL, email), pageable));
+        }
+        if (externalId != null && !externalId.isBlank()) {
+            return logged(repository
+                    .findByExternalId(externalId.trim())
+                    .map(subject -> (Page<Subject>) new PageImpl<>(List.of(subject), pageable, 1))
+                    .orElseGet(() -> new PageImpl<>(List.of(), pageable, 0)));
+        }
+        return search(query, pageable);
+    }
+
+    /** Каждый поиск — одна запись в журнале доступа к ПДн (FR-5.2). */
+    private Page<Subject> logged(Page<Subject> found) {
+        pdnAccessLogService.recordBulk(
+                "/api/v1/subjects?query", (int) Math.min(found.getTotalElements(), Integer.MAX_VALUE));
+        return withContacts(found);
+    }
+
     /** Контакты догружаются одним запросом: ответ формируется уже вне транзакции (FR-5.2, UI-3). */
     private Page<Subject> withContacts(Page<Subject> found) {
         if (found.isEmpty()) {

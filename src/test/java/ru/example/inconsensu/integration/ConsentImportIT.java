@@ -3,6 +3,7 @@ package ru.example.inconsensu.integration;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,9 +54,13 @@ class ConsentImportIT extends AbstractIntegrationTest {
     /** Импорт запускается синхронно: тест проверяет результат, а не гонку с фоновым потоком. */
     /** Задача выполняется в фоне, поэтому тест дожидается её завершения, а не запускает её второй раз. */
     private ImportJob runImport(String content, boolean dryRun) {
+        return runImport(content, dryRun, Duration.ofSeconds(10));
+    }
+
+    private ImportJob runImport(String content, boolean dryRun, Duration timeout) {
         ImportJob job = importService.start(
                 "clients.csv", content.getBytes(StandardCharsets.UTF_8), "CLIENT_BASE_IMPORT", dryRun);
-        for (int attempt = 0; attempt < 100; attempt++) {
+        for (int attempt = 0; attempt < timeout.toMillis() / 100; attempt++) {
             ImportJob current = importService.get(job.getId());
             if (current.getStatus() == ImportJobStatus.COMPLETED || current.getStatus() == ImportJobStatus.FAILED) {
                 return current;
@@ -197,5 +202,39 @@ class ConsentImportIT extends AbstractIntegrationTest {
                         .getContent())
                 .isNotEmpty()
                 .allSatisfy(job -> assertThat(job.getSource()).isEqualTo("CLIENT_BASE_IMPORT"));
+    }
+
+    /**
+     * Критерий приёмки этапа 3 (§13): импорт ста тысяч строк проходит.
+     *
+     * <p>Прогон пробный: проверяются разбор файла, справочники и правила по каждой строке — тот самый путь,
+     * к которому относится цель NFR-1 «≥ 5 000 строк в секунду». Боевая запись ста тысяч согласий заняла
+     * бы около часа и в суиту не помещается; измеренная пропускная способность записи зафиксирована в
+     * `docs/performance.md`.
+     */
+    @Test
+    void a_file_of_one_hundred_thousand_rows_is_processed() {
+        int rows = 100_000;
+        String prefix = "CRM-BULK-" + UUID.randomUUID().toString().substring(0, 6);
+        StringBuilder csv = new StringBuilder(
+                "external_id,last_name,first_name,middle_name,phone,email,consent_type_code,form_code,form_version,"
+                        + "granted_at,valid_until,source,source_ref,third_party_inn,pdn_categories,document_ref,note\n");
+        for (int i = 0; i < rows; i++) {
+            csv.append(prefix)
+                    .append(i)
+                    .append(",Массовый,Пётр,,,,PDN_PROCESSING,")
+                    .append(form.getCode())
+                    .append(",1,12.03.2025,,CLIENT_BASE_IMPORT,Б-")
+                    .append(i)
+                    .append(",,FIO,,перенос\n");
+        }
+
+        ImportJob job = runImport(csv.toString(), true, Duration.ofMinutes(5));
+
+        assertThat(job.getStatus()).isEqualTo(ImportJobStatus.COMPLETED);
+        assertThat(job.getTotal()).isEqualTo(rows);
+        assertThat(job.getRejected()).isZero();
+        // Пробный прогон ничего не пишет: ни одного субъекта из файла в базе быть не должно (FR-4.5).
+        assertThat(subjects.findByExternalId(prefix + "0")).isEmpty();
     }
 }

@@ -1482,6 +1482,21 @@ paths:
         schema:
           type: string
       - in: query
+        name: phone
+        required: false
+        schema:
+          type: string
+      - in: query
+        name: email
+        required: false
+        schema:
+          type: string
+      - in: query
+        name: externalId
+        required: false
+        schema:
+          type: string
+      - in: query
         name: pageable
         required: true
         schema:

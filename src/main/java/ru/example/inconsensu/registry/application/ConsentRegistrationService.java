@@ -402,7 +402,7 @@ public class ConsentRegistrationService {
      * в выгрузке он уже зафиксирован, и пересчёт исказил бы историю. Способ подписания — IMPORTED_LEGACY.
      */
     @Transactional
-    public Consent registerImported(ImportedConsent imported) {
+    public Consent registerImported(ConsentForm form, ImportedConsent imported) {
         Optional<Consent> existing = consents.findByIdempotencyKey(imported.idempotencyKey());
         if (existing.isPresent()) {
             return existing.get();
@@ -410,8 +410,8 @@ public class ConsentRegistrationService {
 
         // FR-2.3 действует и на импорте: исключение сделано для архивной версии, а не для любого статуса.
         // Раньше проверка стояла только в обычной регистрации, и импорт привязывал согласие даже к черновику.
-        if (imported.formId() != null) {
-            requireUsableForm(forms.get(imported.formId()), imported.source(), imported.grantedAt());
+        if (form != null) {
+            requireUsableForm(form, imported.source(), imported.grantedAt());
         }
 
         requireValidEvidence(SignatureType.IMPORTED_LEGACY, imported.evidence());

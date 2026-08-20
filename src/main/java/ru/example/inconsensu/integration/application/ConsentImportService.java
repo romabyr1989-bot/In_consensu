@@ -102,6 +102,8 @@ public class ConsentImportService {
                 return;
             }
 
+            // Справочники и форма читаются один раз на задачу, а не на каждую строку (NFR-1).
+            ImportCache cache = new ImportCache();
             for (ImportRow row : rows) {
                 if (!row.valid()) {
                     rejected++;
@@ -109,7 +111,7 @@ public class ConsentImportService {
                     continue;
                 }
                 try {
-                    rowProcessor.importRow(jobId, row, dryRun);
+                    rowProcessor.importRow(jobId, row, dryRun, cache);
                     imported++;
                 } catch (ApiException e) {
                     rejected++;

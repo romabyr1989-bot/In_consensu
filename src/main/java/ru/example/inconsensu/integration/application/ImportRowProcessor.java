@@ -53,15 +53,15 @@ public class ImportRowProcessor {
 
     /** Одна строка — одна транзакция (FR-4.5): ошибка в строке не роняет весь файл. */
     @Transactional
-    public void importRow(UUID jobId, ImportRow row, boolean dryRun) {
-        ConsentType type = types.getByCode(row.consentTypeCode());
+    public void importRow(UUID jobId, ImportRow row, boolean dryRun, ImportCache cache) {
+        ConsentType type = cache.type(row.consentTypeCode(), () -> types.getByCode(row.consentTypeCode()));
         if (!type.isActive()) {
             throw new ApiException(ErrorCode.VALIDATION_FAILED, "Тип согласия деактивирован: " + row.consentTypeCode());
         }
 
-        ConsentForm form = resolveForm(row, row.grantedAt());
+        ConsentForm form = resolveForm(row, row.grantedAt(), cache);
         ConsentFormItem item = resolveItem(form, type);
-        ThirdParty thirdParty = resolveThirdParty(row, type);
+        ThirdParty thirdParty = resolveThirdParty(row, type, cache);
 
         List<String> categories =
                 row.pdnCategories().isEmpty() && item != null ? item.getPdnCategories() : row.pdnCategories();
@@ -86,21 +86,23 @@ public class ImportRowProcessor {
 
         // FR-4.5: строка без контакта не должна стирать уже загруженные — контакты дополняются.
         Subject subject = subjects.upsertMerging(subjectFormOf(row));
-        registration.registerImported(new ConsentRegistrationService.ImportedConsent(
-                subject.getId(),
-                type.getId(),
-                form == null ? null : form.getId(),
-                item == null ? null : item.getId(),
-                form == null ? null : form.getRenderedChecksum(),
-                row.source(),
-                row.sourceRef(),
-                row.grantedAt(),
-                row.validUntil(),
-                thirdParty == null ? null : thirdParty.getId(),
-                categories,
-                item == null ? List.of() : item.getPurposes(),
-                evidence,
-                row.idempotencyKey()));
+        registration.registerImported(
+                form,
+                new ConsentRegistrationService.ImportedConsent(
+                        subject.getId(),
+                        type.getId(),
+                        form == null ? null : form.getId(),
+                        item == null ? null : item.getId(),
+                        form == null ? null : form.getRenderedChecksum(),
+                        row.source(),
+                        row.sourceRef(),
+                        row.grantedAt(),
+                        row.validUntil(),
+                        thirdParty == null ? null : thirdParty.getId(),
+                        categories,
+                        item == null ? List.of() : item.getPurposes(),
+                        evidence,
+                        row.idempotencyKey()));
     }
 
     /**
@@ -110,15 +112,20 @@ public class ImportRowProcessor {
      * Подстановка текущей опубликованной записала бы клиенту условия, которых он не видел. Пригодность
      * найденной версии проверяет регистрация: правило FR-2.3 одно на оба пути.
      */
-    private ConsentForm resolveForm(ImportRow row, java.time.Instant grantedAt) {
+    private ConsentForm resolveForm(ImportRow row, java.time.Instant grantedAt, ImportCache cache) {
         if (row.formCode() == null) {
             return null;
         }
+        return cache.form(row.formCode(), row.formVersion(), grantedAt, () -> loadForm(row, grantedAt))
+                .orElseThrow(() -> new ApiException(
+                        ErrorCode.VALIDATION_FAILED, "Нет опубликованной версии формы " + row.formCode()));
+    }
+
+    private ConsentForm loadForm(ImportRow row, java.time.Instant grantedAt) {
         if (row.formVersion() == null) {
             return forms.versionEffectiveAt(row.formCode(), grantedAt)
                     .or(() -> forms.publishedVersionOf(row.formCode()))
-                    .orElseThrow(() -> new ApiException(
-                            ErrorCode.VALIDATION_FAILED, "Нет опубликованной версии формы " + row.formCode()));
+                    .orElse(null);
         }
         return forms.versionsOf(row.formCode()).stream()
                 .filter(candidate -> candidate.getVersionNumber() == row.formVersion())
@@ -132,7 +139,8 @@ public class ImportRowProcessor {
         if (form == null) {
             return null;
         }
-        return forms.get(form.getId()).getItems().stream()
+        // Форма уже загружена и лежит в кэше прогона: перечитывать её на каждую строку незачем.
+        return form.getItems().stream()
                 .filter(item -> item.getConsentType().getId().equals(type.getId()))
                 .findFirst()
                 .orElseThrow(() -> new ApiException(
@@ -140,14 +148,16 @@ public class ImportRowProcessor {
                         "В форме " + form.getCode() + " нет пункта с типом " + type.getCode()));
     }
 
-    private ThirdParty resolveThirdParty(ImportRow row, ConsentType type) {
+    private ThirdParty resolveThirdParty(ImportRow row, ConsentType type, ImportCache cache) {
         if (row.thirdPartyInn() == null) {
             if (type.isRequiresThirdParty()) {
                 throw new ApiException(ErrorCode.VALIDATION_FAILED, "Для передачи данных требуется ИНН третьего лица");
             }
             return null;
         }
-        return thirdParties.getByInn(row.thirdPartyInn());
+        return cache.thirdParty(row.thirdPartyInn(), () -> thirdParties.getByInn(row.thirdPartyInn()))
+                .orElseThrow(() -> new ApiException(
+                        ErrorCode.VALIDATION_FAILED, "Третье лицо с ИНН " + row.thirdPartyInn() + " не найдено"));
     }
 
     private SubjectService.SubjectForm subjectFormOf(ImportRow row) {

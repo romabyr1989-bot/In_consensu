@@ -85,14 +85,25 @@ public class SubjectController {
         this.properties = properties;
     }
 
-    /** Единое поле поиска UI-3: телефон, email, ФИО или внешний идентификатор различаются автоматически. */
+    /**
+     * Поиск субъектов (§9).
+     *
+     * <p>`query` — единое поле интерфейса UI-3 с автоопределением вида запроса. `phone`, `email` и
+     * `externalId` названы в контракте §9 отдельно: машинный клиент знает, что именно у него на руках, и
+     * не должен зависеть от эвристики. Заполненный явный признак имеет приоритет над `query`.
+     */
     @PreAuthorize(Authorities.EMPLOYEE)
     @GetMapping
     public PageResponse<SubjectResponse> search(
             @RequestParam(name = "query", required = false) String query,
+            @RequestParam(name = "phone", required = false) String phone,
+            @RequestParam(name = "email", required = false) String email,
+            @RequestParam(name = "externalId", required = false) String externalId,
             @PageableDefault(size = 20) Pageable pageable) {
         boolean fullContacts = SubjectResponse.currentRoleSeesFullContacts();
-        return PageResponse.of(service.search(query, pageable), subject -> SubjectResponse.of(subject, fullContacts));
+        return PageResponse.of(
+                service.searchBy(query, phone, email, externalId, pageable),
+                subject -> SubjectResponse.of(subject, fullContacts));
     }
 
     @PreAuthorize(Authorities.EMPLOYEE)
