@@ -30,8 +30,10 @@ import ru.example.inconsensu.common.error.ErrorCode;
 import ru.example.inconsensu.common.error.ValidationErrorItem;
 import ru.example.inconsensu.registry.domain.Consent;
 import ru.example.inconsensu.registry.domain.EvidenceValidator;
+import ru.example.inconsensu.registry.domain.RegistrationReceipt;
 import ru.example.inconsensu.registry.domain.Subject;
 import ru.example.inconsensu.registry.infrastructure.ConsentRepository;
+import ru.example.inconsensu.registry.infrastructure.RegistrationReceiptRepository;
 import ru.example.inconsensu.thirdparty.application.ThirdPartyService;
 import ru.example.inconsensu.thirdparty.domain.ThirdParty;
 
@@ -63,6 +65,7 @@ public class ConsentRegistrationService {
     public record RegistrationResult(List<Consent> created, List<UUID> declinedItems, boolean idempotentReplay) {}
 
     private final ConsentRepository consents;
+    private final RegistrationReceiptRepository receipts;
     private final ConsentQueryService queries;
     private final SubjectService subjects;
     private final ConsentFormService forms;
@@ -74,6 +77,7 @@ public class ConsentRegistrationService {
 
     public ConsentRegistrationService(
             ConsentRepository consents,
+            RegistrationReceiptRepository receipts,
             ConsentQueryService queries,
             SubjectService subjects,
             ConsentFormService forms,
@@ -83,6 +87,7 @@ public class ConsentRegistrationService {
             ApplicationEventPublisher events,
             Clock clock) {
         this.consents = consents;
+        this.receipts = receipts;
         this.queries = queries;
         this.subjects = subjects;
         this.forms = forms;
@@ -100,9 +105,12 @@ public class ConsentRegistrationService {
         }
 
         // FR-4.1: повторный запрос с тем же ключом возвращает исходный результат, а не создаёт дубли.
-        List<Consent> existing = consents.findByIdempotencyKeyStartingWith(idempotencyKey + KEY_SEPARATOR);
-        if (!existing.isEmpty()) {
-            return new RegistrationResult(existing, List.of(), true);
+        // Признак обработки — квитанция, а не наличие согласий: запрос, все пункты которого отклонены,
+        // согласий не создаёт, и по ним повтор не отличить от первого обращения.
+        Optional<RegistrationReceipt> receipt = receipts.findByIdempotencyKey(idempotencyKey);
+        if (receipt.isPresent()) {
+            List<Consent> existing = consents.findByIdempotencyKeyStartingWith(idempotencyKey + KEY_SEPARATOR);
+            return new RegistrationResult(existing, receipt.get().getDeclinedItemIds(), true);
         }
 
         Instant now = clock.instant();
@@ -157,6 +165,7 @@ public class ConsentRegistrationService {
                     registerItem(idempotencyKey, request, form, item, subject, grantedAt, signatureType, evidenceJson));
         }
 
+        receipts.save(new RegistrationReceipt(UUID.randomUUID(), idempotencyKey, subject.getId(), declined, now));
         return new RegistrationResult(created, declined, false);
     }
 

@@ -8,7 +8,7 @@
     <main class="ic-content">
         <h1 class="h4 mb-3">Клиенты</h1>
 
-        <form class="row g-2 mb-4" th:action="@{/ui/subjects}" method="get">
+        <form class="row g-2 mb-4" th:action="@{/ui/subjects/search}" method="post">
             <div class="col-12 col-lg-6">
                 <label class="form-label" for="query">Поиск клиента</label>
                 <input class="form-control" id="query" name="query" th:value="${query}"
@@ -81,7 +81,7 @@
             <ul class="pagination">
                 <li class="page-item" th:each="index : ${#numbers.sequence(0, results.totalPages - 1)}"
                     th:classappend="${index == results.number} ? 'active'">
-                    <a class="page-link" th:href="@{/ui/subjects(query=${query},page=${index},size=${size})}"
+                    <a class="page-link" th:href="@{/ui/subjects(searchId=${searchId},page=${index},size=${size})}"
                        th:text="${index + 1}">1</a>
                 </li>
             </ul>

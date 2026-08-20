@@ -143,24 +143,65 @@ class UiRevocationIT extends AbstractIntegrationTest {
         String externalId = subjects.get(consent.getSubjectId()).getExternalId();
 
         // UI-3: поиск по внешнему идентификатору и по ФИО — оба способа ведут к одной карточке.
-        mockMvc.perform(get("/ui/subjects").param("query", "Травин").session(session))
-                .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Травин Иван Сергеевич")))
-                .andExpect(content().string(containsString("Открыть карточку")));
+        assertThat(searchFor("Травин", session))
+                .contains("Травин Иван Сергеевич")
+                .contains("Открыть карточку");
 
-        String byExternalId = mockMvc.perform(
-                        get("/ui/subjects").param("query", externalId).session(session))
+        assertThat(searchFor(externalId, session))
+                .as("поиск по внешнему идентификатору «%s» обязан находить клиента", externalId)
+                .contains("Открыть карточку");
+
+        assertThat(searchFor("Тр", session)).contains("не менее 3");
+    }
+
+    /**
+     * UI-0.10: ПДн не попадают в адресную строку.
+     *
+     * <p>Поиск ведётся по телефону, email и ФИО, поэтому форма отправляется методом POST, а в URL уходит
+     * только идентификатор запроса. Раньше значение стояло в query-строке и оседало в истории браузера,
+     * заголовке Referer и журналах прокси.
+     */
+    @Test
+    void search_keeps_personal_data_out_of_the_address_bar() throws Exception {
+        registerAdvertisingConsent();
+        MockHttpSession session = loginAs(RoleCode.MANAGER.name());
+
+        String redirect = mockMvc.perform(post("/ui/subjects/search")
+                        .param("query", "+7 916 000-00-11")
+                        .session(session)
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andReturn()
+                .getResponse()
+                .getRedirectedUrl();
+
+        assertThat(redirect).doesNotContain("916").doesNotContain("query=");
+        assertThat(redirect).startsWith("/ui/subjects?searchId=");
+
+        // Ссылки пагинации тоже ведут по идентификатору, а не по значению.
+        String page = mockMvc.perform(get(redirect).session(session))
                 .andExpect(status().isOk())
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
-        assertThat(byExternalId)
-                .as("поиск по внешнему идентификатору «%s» обязан находить клиента", externalId)
-                .contains("Открыть карточку");
+        assertThat(page).doesNotContain("/ui/subjects?query=");
+    }
 
-        mockMvc.perform(get("/ui/subjects").param("query", "Тр").session(session))
+    /** Прогон поиска через POST и последующий переход по выданной ссылке — как это делает браузер. */
+    private String searchFor(String query, MockHttpSession session) throws Exception {
+        String redirect = mockMvc.perform(post("/ui/subjects/search")
+                        .param("query", query)
+                        .session(session)
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection())
+                .andReturn()
+                .getResponse()
+                .getRedirectedUrl();
+        return mockMvc.perform(get(redirect).session(session))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("не менее 3")));
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
     }
 
     private MockHttpSession loginAs(String roleCode) throws Exception {

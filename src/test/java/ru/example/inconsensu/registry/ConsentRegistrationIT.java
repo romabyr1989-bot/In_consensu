@@ -148,6 +148,57 @@ class ConsentRegistrationIT extends AbstractIntegrationTest {
                         first.created().stream().map(Consent::getId).toList());
     }
 
+    /**
+     * FR-4.1: повтор обязан вернуть исходный результат независимо от того, создались ли согласия.
+     *
+     * <p>Ключ идемпотентности раньше хранился только внутри созданных согласий, поэтому запрос со всеми
+     * отклонёнными пунктами не оставлял следа: повтор выполнялся заново и писал вторые события DECLINED.
+     */
+    @Test
+    void repeating_a_request_where_every_item_was_declined_changes_nothing() {
+        String key = UUID.randomUUID().toString();
+        var subject = newSubject();
+        var items = List.of(
+                new ConsentRegistrationService.ItemDecision(
+                        itemOf("PDN_PROCESSING").getId(), false),
+                new ConsentRegistrationService.ItemDecision(
+                        itemOf("ADVERTISING_EMAIL").getId(), false));
+
+        var first = registration.register(key, request(subject, items));
+        assertThat(first.idempotentReplay()).isFalse();
+        assertThat(first.created()).isEmpty();
+        assertThat(first.declinedItems()).hasSize(2);
+
+        var replay = registration.register(key, request(subject, items));
+
+        assertThat(replay.idempotentReplay())
+                .as("повтор обязан опознаваться и без единого созданного согласия")
+                .isTrue();
+        assertThat(replay.created()).isEmpty();
+        assertThat(replay.declinedItems()).containsExactlyElementsOf(first.declinedItems());
+    }
+
+    /** Повтор при частичном отказе возвращает тот же состав отклонённых пунктов, а не пустой список. */
+    @Test
+    void replay_of_a_partial_refusal_repeats_the_declined_items() {
+        String key = UUID.randomUUID().toString();
+        var subject = newSubject();
+        var items = List.of(
+                new ConsentRegistrationService.ItemDecision(
+                        itemOf("PDN_PROCESSING").getId(), true),
+                new ConsentRegistrationService.ItemDecision(
+                        itemOf("ADVERTISING_EMAIL").getId(), false));
+
+        var first = registration.register(key, request(subject, items));
+        var replay = registration.register(key, request(subject, items));
+
+        assertThat(replay.declinedItems()).containsExactlyElementsOf(first.declinedItems());
+        assertThat(replay.created())
+                .extracting(Consent::getId)
+                .containsExactlyElementsOf(
+                        first.created().stream().map(Consent::getId).toList());
+    }
+
     @Test
     void new_consent_of_the_same_type_supersedes_the_previous_one() {
         var subject = newSubject();

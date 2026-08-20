@@ -1,5 +1,6 @@
 package ru.example.inconsensu.ui.api;
 
+import jakarta.servlet.http.HttpSession;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -19,6 +20,7 @@ import ru.example.inconsensu.common.error.ApiException;
 import ru.example.inconsensu.registry.application.RevocationService;
 import ru.example.inconsensu.registry.application.SubjectCardService;
 import ru.example.inconsensu.registry.domain.Subject;
+import ru.example.inconsensu.ui.application.UiSearchCriteria;
 import ru.example.inconsensu.ui.application.UiSubjectViewService;
 
 /**
@@ -36,21 +38,53 @@ public class UiSubjectController {
     private final UiSubjectViewService view;
     private final SubjectCardService cards;
     private final RevocationService revocation;
+    private final UiSearchCriteria searchCriteria;
 
-    public UiSubjectController(UiSubjectViewService view, SubjectCardService cards, RevocationService revocation) {
+    public UiSubjectController(
+            UiSubjectViewService view,
+            SubjectCardService cards,
+            RevocationService revocation,
+            UiSearchCriteria searchCriteria) {
         this.view = view;
         this.cards = cards;
         this.revocation = revocation;
+        this.searchCriteria = searchCriteria;
+    }
+
+    /**
+     * Приём поискового запроса (UI-3).
+     *
+     * <p>Форма отправляется методом POST, а не GET: телефон, email и ФИО не должны попадать в адресную
+     * строку, историю браузера, заголовок Referer и журналы прокси (UI-0.10). Значение остаётся в сессии,
+     * наружу уходит только идентификатор запроса.
+     */
+    @PostMapping("/ui/subjects/search")
+    public String submitSearch(
+            @RequestParam(required = false) String query,
+            @RequestParam(defaultValue = "20") int size,
+            HttpSession session) {
+        if (query == null || query.isBlank()) {
+            return "redirect:/ui/subjects";
+        }
+        UUID searchId = searchCriteria.remember(session, query.trim());
+        return "redirect:/ui/subjects?searchId=" + searchId + "&size=" + size;
     }
 
     @GetMapping("/ui/subjects")
     public String search(
-            @RequestParam(required = false) String query,
+            @RequestParam(required = false) UUID searchId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
+            HttpSession session,
             Model model) {
+        String query = searchCriteria.recall(session, searchId);
         model.addAttribute("query", query);
+        model.addAttribute("searchId", searchId);
         model.addAttribute("size", size);
+        if (searchId != null && query == null) {
+            // Сессия истекла или ссылку открыли в другом сеансе: показываем пустую форму, а не 500.
+            model.addAttribute("searchHint", "Запрос устарел — введите его заново.");
+        }
         if (query != null && !query.isBlank()) {
             try {
                 Page<UiSubjectViewService.SubjectRow> results =

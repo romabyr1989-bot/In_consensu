@@ -24,7 +24,8 @@
              alt="" height="24">
         <span>In consensu · <span th:text="${branding.operatorName}">Центр управления согласиями</span></span>
     </a>
-    <form class="d-flex ms-4 flex-grow-1" style="max-width: 520px" th:action="@{/ui/subjects}" method="get"
+    <!-- POST, а не GET: поиск идёт по телефону, email и ФИО, а им нельзя попадать в URL (UI-0.10). -->
+    <form class="d-flex ms-4 flex-grow-1" style="max-width: 520px" th:action="@{/ui/subjects/search}" method="post"
           role="search">
         <label class="visually-hidden" for="global-search">Поиск клиента</label>
         <input class="form-control" type="search" id="global-search" name="query"
