@@ -12,7 +12,7 @@
         <table class="table bg-white align-middle">
             <thead>
             <tr><th scope="col">Название</th><th scope="col">Адрес</th><th scope="col">События</th>
-                <th scope="col">Активна</th><th scope="col"></th></tr>
+                <th scope="col">Последняя доставка</th><th scope="col">Активна</th><th scope="col"></th></tr>
             </thead>
             <tbody>
             <tr th:each="subscription : ${subscriptions}">
@@ -22,6 +22,16 @@
                     <span class="badge bg-light text-dark me-1" th:each="type : ${subscription.eventTypes}"
                           th:text="${type}">consent.revoked</span>
                     <span class="text-muted small" th:if="${subscription.eventTypes.isEmpty()}">все события</span>
+                </td>
+                <td>
+                    <span class="text-muted small" th:if="${#strings.isEmpty(subscription.lastDeliveryAt)}"
+                          th:text="${subscription.lastDeliveryResult}">доставок не было</span>
+                    <span th:unless="${#strings.isEmpty(subscription.lastDeliveryAt)}">
+                        <span th:text="${subscription.lastDeliveryAt}">17.08.2026 10:00</span>
+                        <span class="badge"
+                              th:classappend="${subscription.lastDeliverySuccessful} ? 'bg-success' : 'bg-danger'"
+                              th:text="${subscription.lastDeliveryResult}">код 200</span>
+                    </span>
                 </td>
                 <td>
                     <span class="badge bg-success" th:if="${subscription.active}">активна</span>
@@ -42,8 +52,22 @@
                     </form>
                 </td>
             </tr>
+            <tr th:if="${#lists.isEmpty(subscriptions)}">
+                <td colspan="6" class="text-muted">Подписок ещё нет. Создайте первую формой ниже.</td>
+            </tr>
             </tbody>
         </table>
+
+        <!-- UI-14: секрет виден один раз, поэтому рядом с ним кнопка копирования. -->
+        <div class="alert alert-warning d-flex justify-content-between align-items-center"
+             th:if="${flashSecret != null}">
+            <span>
+                Секрет подписи: <code th:text="${flashSecret}">секрет</code>.
+                Скопируйте его сейчас — второй раз он не показывается.
+            </span>
+            <button class="btn btn-sm btn-outline-secondary" type="button" th:data-copy="${flashSecret}">
+                Скопировать</button>
+        </div>
 
         <div class="card mb-4">
             <div class="card-header">Новая подписка</div>

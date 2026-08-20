@@ -11,5 +11,8 @@ public interface WebhookDeliveryRepository extends JpaRepository<WebhookDelivery
 
     Page<WebhookDelivery> findBySubscriptionIdOrderByDeliveredAtDesc(UUID subscriptionId, Pageable pageable);
 
+    /** Последняя доставка подписки: её результат UI-14 требует в списке подписок. */
+    java.util.Optional<WebhookDelivery> findFirstBySubscriptionIdOrderByDeliveredAtDesc(UUID subscriptionId);
+
     List<WebhookDelivery> findByOutboxEventIdOrderByAttemptAsc(UUID outboxEventId);
 }

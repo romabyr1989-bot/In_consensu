@@ -70,6 +70,12 @@ public class WebhookSubscriptionService {
         return subscriptions.findById(id).orElseThrow(() -> ApiException.notFound("Подписка не найдена"));
     }
 
+    /** Последняя доставка подписки и её результат (UI-14). */
+    @Transactional(readOnly = true)
+    public java.util.Optional<WebhookDelivery> lastDeliveryOf(UUID subscriptionId) {
+        return deliveries.findFirstBySubscriptionIdOrderByDeliveredAtDesc(subscriptionId);
+    }
+
     @Transactional(readOnly = true)
     public Page<WebhookDelivery> deliveriesOf(UUID subscriptionId, Pageable pageable) {
         get(subscriptionId);

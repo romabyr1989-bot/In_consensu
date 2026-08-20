@@ -16,6 +16,7 @@ import ru.example.inconsensu.common.domain.EventTypes;
 import ru.example.inconsensu.common.error.ApiException;
 import ru.example.inconsensu.notification.application.OutboxQueryService;
 import ru.example.inconsensu.notification.application.WebhookSubscriptionService;
+import ru.example.inconsensu.ui.application.UiWebhookViewService;
 
 /** UI-14: подписки на события, тестовая отправка и журнал доставок. */
 @Controller
@@ -35,24 +36,47 @@ public class UiWebhookController {
     private final WebhookSubscriptionService subscriptions;
     private final OutboxQueryService outbox;
 
-    public UiWebhookController(WebhookSubscriptionService subscriptions, OutboxQueryService outbox) {
+    private final UiWebhookViewService view;
+
+    public UiWebhookController(
+            WebhookSubscriptionService subscriptions, OutboxQueryService outbox, UiWebhookViewService view) {
         this.subscriptions = subscriptions;
         this.outbox = outbox;
+        this.view = view;
     }
 
     @GetMapping("/ui/webhooks")
     public String list(Model model) {
-        model.addAttribute("subscriptions", subscriptions.list());
+        model.addAttribute("subscriptions", view.subscriptions());
         model.addAttribute("eventTypes", EVENT_TYPES.stream().sorted().toList());
         model.addAttribute("failed", outbox.failed(20));
         return "ui/webhooks/list";
     }
 
     @GetMapping("/ui/webhooks/{id}/deliveries")
-    public String deliveries(@PathVariable UUID id, @RequestParam(defaultValue = "0") int page, Model model) {
+    public String deliveries(
+            @PathVariable UUID id,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            Model model) {
+        int normalized = size == 50 || size == 100 ? size : 20;
         model.addAttribute("subscription", subscriptions.get(id));
-        model.addAttribute("deliveries", subscriptions.deliveriesOf(id, PageRequest.of(page, 50)));
+        model.addAttribute("deliveries", view.deliveries(id, PageRequest.of(Math.max(page, 0), normalized)));
+        model.addAttribute("pageSize", normalized);
         return "ui/webhooks/deliveries";
+    }
+
+    /**
+     * UI-14: повторная доставка события прямо со страницы доставок.
+     *
+     * <p>Повторяется событие outbox, а не строка журнала: журнал доставок — это след попыток, и
+     * «повторить попытку» означает вернуть в очередь само событие.
+     */
+    @PostMapping("/ui/webhooks/{id}/deliveries/{eventId}/retry")
+    public String retryDelivery(@PathVariable UUID id, @PathVariable UUID eventId, RedirectAttributes redirect) {
+        outbox.retry(eventId);
+        redirect.addFlashAttribute("flashMessage", "Событие возвращено в очередь доставки");
+        return "redirect:/ui/webhooks/" + id + "/deliveries";
     }
 
     @PostMapping("/ui/webhooks")
@@ -64,8 +88,10 @@ public class UiWebhookController {
         try {
             var created = subscriptions.create(new WebhookSubscriptionService.SubscriptionForm(
                     name, url, eventTypes == null ? Set.of() : eventTypes, Map.of(), true));
-            // UI-14: секрет показывается один раз — дальше его можно только заменить.
-            redirect.addFlashAttribute("flashMessage", "Подписка создана. Секрет подписи: " + created.secret());
+            // UI-14: секрет показывается один раз — дальше его можно только заменить, поэтому он выводится
+            // отдельным блоком с кнопкой копирования, а не строкой в тексте сообщения.
+            redirect.addFlashAttribute("flashMessage", "Подписка создана");
+            redirect.addFlashAttribute("flashSecret", created.secret());
         } catch (ApiException e) {
             redirect.addFlashAttribute("flashError", e.getMessage());
         }
@@ -87,7 +113,8 @@ public class UiWebhookController {
     @PostMapping("/ui/webhooks/{id}/rotate-secret")
     public String rotateSecret(@PathVariable UUID id, RedirectAttributes redirect) {
         var created = subscriptions.rotateSecret(id);
-        redirect.addFlashAttribute("flashMessage", "Новый секрет подписи: " + created.secret());
+        redirect.addFlashAttribute("flashMessage", "Секрет подписи заменён");
+        redirect.addFlashAttribute("flashSecret", created.secret());
         return "redirect:/ui/webhooks";
     }
 
