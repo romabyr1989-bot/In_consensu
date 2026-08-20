@@ -20,4 +20,8 @@ public interface ThirdPartyRepository extends JpaRepository<ThirdParty, UUID> {
     /** Договоры, истекающие в ближайшие N дней: триггер THIRD_PARTY_CONTRACT_EXPIRING (FR-7.1). */
     @Query("select t from ThirdParty t where t.active = true and t.contractValidUntil between :from and :to")
     List<ThirdParty> findWithContractEndingBetween(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    /** Договоры, срок которых уже истёк: FR-7.1 требует уведомить DPO о самом факте, а не только заранее. */
+    @Query("select t from ThirdParty t where t.active = true and t.contractValidUntil < :today")
+    List<ThirdParty> findWithExpiredContract(@Param("today") LocalDate today);
 }

@@ -74,6 +74,12 @@ public class ThirdPartyService {
         return repository.findAll(Sort.by("name"));
     }
 
+    /** Третьи лица с уже истёкшим договором (FR-7.1). */
+    @Transactional(readOnly = true)
+    public List<ThirdParty> contractsAlreadyExpired() {
+        return repository.findWithExpiredContract(LocalDate.now(clock));
+    }
+
     @Transactional(readOnly = true)
     public ThirdParty get(UUID id) {
         return repository.findById(id).orElseThrow(() -> ApiException.notFound("Третье лицо не найдено"));

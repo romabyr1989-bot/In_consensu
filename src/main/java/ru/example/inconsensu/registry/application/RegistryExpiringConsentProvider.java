@@ -51,23 +51,21 @@ public class RegistryExpiringConsentProvider implements ExpiringConsentPort {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ExpiringConsent> findExpiringIn(int daysBefore, UUID consentTypeId) {
+    public List<ExpiringConsent> findExpiringIn(int daysBefore, UUID consentTypeId, UUID thirdPartyId) {
         LocalDate target = LocalDate.ofInstant(clock.instant(), zone).plusDays(daysBefore);
         Instant from = target.atStartOfDay(zone).toInstant();
         Instant to = target.plusDays(1).atStartOfDay(zone).toInstant();
-        return enrich(load(from, to, consentTypeId));
+        return enrich(load(from, to, consentTypeId, thirdPartyId));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ExpiringConsent> findExpiredBetween(Instant from, Instant to, UUID consentTypeId) {
-        return enrich(load(from, to, consentTypeId));
+    public List<ExpiringConsent> findExpiredBetween(Instant from, Instant to, UUID consentTypeId, UUID thirdPartyId) {
+        return enrich(load(from, to, consentTypeId, thirdPartyId));
     }
 
-    private List<Consent> load(Instant from, Instant to, UUID consentTypeId) {
-        return consentTypeId == null
-                ? consents.findExpiringBetween(from, to)
-                : consents.findExpiringBetweenByType(from, to, consentTypeId);
+    private List<Consent> load(Instant from, Instant to, UUID consentTypeId, UUID thirdPartyId) {
+        return consents.findExpiringBetweenFiltered(from, to, consentTypeId, thirdPartyId);
     }
 
     private List<ExpiringConsent> enrich(List<Consent> found) {

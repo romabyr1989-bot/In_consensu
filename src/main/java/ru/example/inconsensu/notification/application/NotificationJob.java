@@ -90,6 +90,9 @@ public class NotificationJob {
                 result.contracts());
     }
 
+    /** Порог для уже истёкшего договора: отличает такое уведомление от предупреждений «за N дней». */
+    private static final int EXPIRED_CONTRACT_THRESHOLD = -1;
+
     /** Вынесено отдельно, чтобы тест и ручной запуск не ждали cron. */
     @Transactional
     public ScanResult scanNow() {
@@ -97,7 +100,7 @@ public class NotificationJob {
         for (NotificationRule rule : rules.findByActiveTrueAndTriggerTypeOrderByNameAsc(NotificationTrigger.EXPIRING)) {
             for (Integer threshold : rule.getDaysBefore()) {
                 for (ExpiringConsentPort.ExpiringConsent consent :
-                        consents.findExpiringIn(threshold, rule.getConsentTypeId())) {
+                        consents.findExpiringIn(threshold, rule.getConsentTypeId(), rule.getThirdPartyId())) {
                     expiring += notify(rule, consent, threshold, EventTypes.CONSENT_EXPIRING);
                 }
             }
@@ -108,7 +111,7 @@ public class NotificationJob {
         Instant from = to.minus(Duration.ofDays(1));
         for (NotificationRule rule : rules.findByActiveTrueAndTriggerTypeOrderByNameAsc(NotificationTrigger.EXPIRED)) {
             for (ExpiringConsentPort.ExpiringConsent consent :
-                    consents.findExpiredBetween(from, to, rule.getConsentTypeId())) {
+                    consents.findExpiredBetween(from, to, rule.getConsentTypeId(), rule.getThirdPartyId())) {
                 expired += notify(rule, consent, 0, EventTypes.CONSENT_EXPIRED);
             }
         }
@@ -117,9 +120,16 @@ public class NotificationJob {
         for (NotificationRule rule :
                 rules.findByActiveTrueAndTriggerTypeOrderByNameAsc(NotificationTrigger.THIRD_PARTY_CONTRACT_EXPIRING)) {
             for (Integer threshold : rule.getDaysBefore()) {
-                for (ExpiringContractPort.ExpiringContract contract : contracts.findContractsExpiringIn(threshold)) {
+                for (ExpiringContractPort.ExpiringContract contract :
+                        contracts.findContractsExpiringIn(threshold, rule.getThirdPartyId())) {
                     contractsNotified += notifyContract(rule, contract, threshold);
                 }
+            }
+            // FR-7.1 требует уведомить и о самом факте истечения, а не только заранее: договор, который
+            // уже закончился, не попадает ни в один порог «за N дней» и раньше оставался незамеченным.
+            for (ExpiringContractPort.ExpiringContract contract :
+                    contracts.findContractsAlreadyExpired(rule.getThirdPartyId())) {
+                contractsNotified += notifyContract(rule, contract, EXPIRED_CONTRACT_THRESHOLD);
             }
         }
         return new ScanResult(expiring, expired, contractsNotified);

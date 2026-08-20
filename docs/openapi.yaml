@@ -3405,6 +3405,8 @@ components:
           enum:
           - EXPIRING
           - EXPIRED
+          - GRANTED
+          - REVOKED
           - THIRD_PARTY_CONTRACT_EXPIRING
           - DELIVERY_FAILED
       required:

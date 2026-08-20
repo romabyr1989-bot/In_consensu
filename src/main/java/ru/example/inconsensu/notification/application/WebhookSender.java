@@ -2,6 +2,7 @@ package ru.example.inconsensu.notification.application;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.util.Map;
 import java.util.UUID;
@@ -54,15 +55,20 @@ public class WebhookSender {
     public WebhookDelivery send(
             WebhookSubscription subscription, UUID outboxEventId, String eventType, String body, int attempt) {
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setContentType(new MediaType(MediaType.APPLICATION_JSON, StandardCharsets.UTF_8));
         headers.set(EVENT_HEADER, eventType);
         headers.set(DELIVERY_HEADER, outboxEventId.toString());
         headers.set(signatureHeader, WebhookSignature.sign(subscription.getSecret(), body));
         customHeaders(subscription).forEach(headers::set);
 
+        // Тело отправляется байтами UTF-8, а не строкой: без явной кодировки Spring писал его в
+        // ISO-8859-1, длина не сходилась с Content-Length, и доставка события с русским текстом
+        // обрывалась. Те же байты подписываются HMAC — иначе подпись не сошлась бы у потребителя.
+        byte[] payload = body.getBytes(StandardCharsets.UTF_8);
+
         try {
             ResponseEntity<String> response =
-                    restTemplate.postForEntity(subscription.getUrl(), new HttpEntity<>(body, headers), String.class);
+                    restTemplate.postForEntity(subscription.getUrl(), new HttpEntity<>(payload, headers), String.class);
             return delivery(
                     subscription,
                     outboxEventId,

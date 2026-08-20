@@ -2,15 +2,12 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Заканчивается срок согласия</title>
+    <title>Получено согласие</title>
 </head>
 <body style="margin:0;padding:24px;background:#f5f6f8;font-family:Arial,Helvetica,sans-serif;color:#1f2328;">
 <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:8px;padding:24px;">
-    <h2 style="margin:0 0 16px;font-size:18px;">Заканчивается срок согласия</h2>
-    <p style="margin:0 0 16px;">
-        До окончания срока осталось <b th:text="${daysBefore}">30</b> дн.
-        Чтобы продолжить обработку после этой даты, согласие нужно переподписать.
-    </p>
+    <h2 style="margin:0 0 16px;font-size:18px;">Получено согласие</h2>
+    <p style="margin:0 0 16px;">Зарегистрировано новое согласие клиента.</p>
     <table style="border-collapse:collapse;width:100%;font-size:14px;">
         <tr>
             <td style="padding:6px 0;color:#6b7280;width:200px;">Клиент</td>
@@ -23,14 +20,6 @@
         <tr>
             <td style="padding:6px 0;color:#6b7280;">Тип согласия</td>
             <td style="padding:6px 0;" th:text="${consentTypeName}">Реклама по email</td>
-        </tr>
-        <tr th:if="${thirdPartyName != null and !thirdPartyName.isEmpty()}">
-            <td style="padding:6px 0;color:#6b7280;">Третье лицо</td>
-            <td style="padding:6px 0;" th:text="${thirdPartyName}">ООО «Вымпел-Аналитика»</td>
-        </tr>
-        <tr>
-            <td style="padding:6px 0;color:#6b7280;">Действует до</td>
-            <td style="padding:6px 0;" th:text="${validUntil}">01.09.2026</td>
         </tr>
     </table>
     <p style="margin:20px 0 0;">

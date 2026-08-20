@@ -20,6 +20,7 @@ import ru.example.inconsensu.common.domain.EventTypes;
 import ru.example.inconsensu.common.domain.RevocationSource;
 import ru.example.inconsensu.common.error.ApiException;
 import ru.example.inconsensu.common.error.ErrorCode;
+import ru.example.inconsensu.common.error.ValidationErrorItem;
 import ru.example.inconsensu.iam.application.OperatorSettingsService;
 import ru.example.inconsensu.registry.domain.Consent;
 import ru.example.inconsensu.registry.infrastructure.ConsentRepository;
@@ -121,6 +122,7 @@ public class RevocationService {
         if (reason == null || reason.isBlank()) {
             throw new ApiException(ErrorCode.VALIDATION_FAILED, "Укажите причину отзыва согласия (FR-8.2)");
         }
+        requireEvidenceFor(source, evidence);
 
         consent.revoke(now, reason, source);
         consents.save(consent);
@@ -129,6 +131,26 @@ public class RevocationService {
         List<Consent> cascaded = cascadeEnabled() ? cascadeFrom(consent, now, caseNumber) : List.of();
 
         return new RevocationResult(consent, cascaded, now, now.plus(PROCESSING_STOP_PERIOD), caseNumber);
+    }
+
+    /**
+     * Состав доказательств отзыва по источнику обращения (FR-8.2).
+     *
+     * <p>Письменное заявление обязано иметь ссылку на скан: иначе отзыв — необратимое и юридически
+     * значимое действие — остаётся без документа, на который можно сослаться при проверке. Для звонка и
+     * обращения по email доказательством служит номер обращения, он обязателен отдельно.
+     */
+    private static void requireEvidenceFor(RevocationSource source, Map<String, Object> evidence) {
+        if (source != RevocationSource.WRITTEN_REQUEST) {
+            return;
+        }
+        Object documentRef = evidence == null ? null : evidence.get("documentRef");
+        if (documentRef == null || documentRef.toString().isBlank()) {
+            throw ApiException.validation(
+                    "Неполный состав доказательств отзыва по письменному заявлению",
+                    List.of(new ValidationErrorItem(
+                            "evidence.documentRef", "Укажите ссылку на скан заявления (FR-8.2)")));
+        }
     }
 
     /**
@@ -200,6 +222,14 @@ public class RevocationService {
         // payload, что в журнал: доказательства отзыва содержат телефон, IP и адрес — в webhook им нельзя (NFR-3).
         Map<String, Object> external = new LinkedHashMap<>(payload);
         external.remove("evidence");
+        // Тип согласия и третье лицо нужны и правилу уведомления (FR-9.1), и тексту письма DPO (FR-8.5).
+        external.put("consentTypeId", consent.getConsentTypeId().toString());
+        external.put("typeName", types.get(consent.getConsentTypeId()).getNameRu());
+        // Только идентификатор: имя партнёра живёт в модуле thirdparty, а обращаться туда из registry
+        // нельзя — зависимость уже инвертирована портами в обратную сторону (ADR-0023).
+        if (consent.getThirdPartyId() != null) {
+            external.put("thirdPartyId", consent.getThirdPartyId().toString());
+        }
         events.publishEvent(CusEvent.of(
                 ConsentRegistrationService.AGGREGATE_TYPE,
                 consent.getId().toString(),

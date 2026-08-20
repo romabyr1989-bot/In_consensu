@@ -188,6 +188,21 @@ public class ConsentFormService {
         return repository.findFirstByCodeAndStatusOrderByVersionNumberDesc(code, FormStatus.PUBLISHED);
     }
 
+    /**
+     * Версия формы, действовавшая на указанный момент (FR-2.3).
+     *
+     * <p>Нужна импорту исторических согласий: полученное три года назад согласие ссылается на версию,
+     * которая давно в архиве, и подставлять вместо неё текущую опубликованную — значит записать клиенту
+     * условия, которых он не видел.
+     */
+    @Transactional(readOnly = true)
+    public Optional<ConsentForm> versionEffectiveAt(String code, java.time.Instant moment) {
+        return repository.findByCodeOrderByVersionNumberAsc(code).stream()
+                .filter(form -> form.getStatus() == FormStatus.PUBLISHED || form.getStatus() == FormStatus.ARCHIVED)
+                .filter(form -> form.isEffectiveAt(moment))
+                .reduce((first, second) -> second);
+    }
+
     @Transactional
     public ConsentForm createDraft(String code, FormDraft draft) {
         if (repository.existsByCode(code)) {

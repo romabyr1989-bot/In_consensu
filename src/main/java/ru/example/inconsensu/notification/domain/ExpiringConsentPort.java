@@ -13,10 +13,10 @@ import java.util.UUID;
 public interface ExpiringConsentPort {
 
     /** Согласия, у которых до окончания срока осталось ровно {@code daysBefore} дней (FR-9.1). */
-    List<ExpiringConsent> findExpiringIn(int daysBefore, UUID consentTypeId);
+    List<ExpiringConsent> findExpiringIn(int daysBefore, UUID consentTypeId, UUID thirdPartyId);
 
     /** Согласия, срок которых истёк за интервал; интервал полуоткрытый: [from, to). */
-    List<ExpiringConsent> findExpiredBetween(Instant from, Instant to, UUID consentTypeId);
+    List<ExpiringConsent> findExpiredBetween(Instant from, Instant to, UUID consentTypeId, UUID thirdPartyId);
 
     /**
      * @param thirdPartyName заполнено только для согласий на передачу третьему лицу (FR-9.2)

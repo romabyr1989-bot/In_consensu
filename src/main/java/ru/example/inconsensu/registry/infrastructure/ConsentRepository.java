@@ -84,16 +84,26 @@ public interface ConsentRepository extends JpaRepository<Consent, UUID>, JpaSpec
             """)
     List<Consent> findExpiringBetween(@Param("from") Instant from, @Param("to") Instant to);
 
+    /**
+     * Истекающие согласия с условиями правила уведомления (FR-9.1).
+     *
+     * <p>Оба условия необязательны и уходят в запрос: фильтр по третьему лицу раньше не применялся вовсе,
+     * и суженное правило рассылало уведомления по всем согласиям подряд.
+     */
     @Query(
             """
             select c from Consent c
             where c.supersededById is null and c.revokedAt is null
-              and c.consentTypeId = :consentTypeId
+              and (:consentTypeId is null or c.consentTypeId = :consentTypeId)
+              and (:thirdPartyId is null or c.thirdPartyId = :thirdPartyId)
               and c.validUntil >= :from and c.validUntil < :to
             order by c.validUntil, c.id
             """)
-    List<Consent> findExpiringBetweenByType(
-            @Param("from") Instant from, @Param("to") Instant to, @Param("consentTypeId") UUID consentTypeId);
+    List<Consent> findExpiringBetweenFiltered(
+            @Param("from") Instant from,
+            @Param("to") Instant to,
+            @Param("consentTypeId") UUID consentTypeId,
+            @Param("thirdPartyId") UUID thirdPartyId);
 
     long countByStatus(ConsentStatus status);
 

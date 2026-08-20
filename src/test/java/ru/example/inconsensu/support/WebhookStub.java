@@ -1,9 +1,7 @@
 package ru.example.inconsensu.support;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -83,17 +81,42 @@ public final class WebhookStub implements AutoCloseable {
         }
     }
 
+    /**
+     * Заголовки читаются построчно, тело — байтами.
+     *
+     * <p>{@code Content-Length} задан в байтах, а не в символах. Раньше тело вычитывалось из
+     * {@code Reader} тем же числом символов: на латинице это совпадало, а на кириллице символов меньше,
+     * чем байтов, — стаб ждал недостающие, не отвечал вовсе, и отправитель обрывал запрос по таймауту.
+     * Поэтому здесь ровно один поток байтов, а декодирование — уже после чтения.
+     */
+    /** Строка запроса и заголовки — ASCII; читаются побайтно, чтобы не буферизовать тело. */
+    private static String readLine(InputStream in) throws IOException {
+        java.io.ByteArrayOutputStream line = new java.io.ByteArrayOutputStream();
+        int current;
+        while ((current = in.read()) >= 0) {
+            if (current == '\n') {
+                break;
+            }
+            if (current != '\r') {
+                line.write(current);
+            }
+        }
+        if (current < 0 && line.size() == 0) {
+            return null;
+        }
+        return line.toString(StandardCharsets.UTF_8);
+    }
+
     private void handle(Socket socket) throws IOException {
         InputStream in = socket.getInputStream();
-        BufferedReader reader = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
 
-        String requestLine = reader.readLine();
+        String requestLine = readLine(in);
         if (requestLine == null) {
             return;
         }
         Map<String, String> headers = new LinkedHashMap<>();
         String line;
-        while ((line = reader.readLine()) != null && !line.isEmpty()) {
+        while ((line = readLine(in)) != null && !line.isEmpty()) {
             int colon = line.indexOf(':');
             if (colon > 0) {
                 headers.put(
@@ -103,17 +126,17 @@ public final class WebhookStub implements AutoCloseable {
         }
 
         int length = Integer.parseInt(headers.getOrDefault("content-length", "0"));
-        char[] body = new char[length];
+        byte[] body = new byte[length];
         int read = 0;
         while (read < length) {
-            int chunk = reader.read(body, read, length - read);
+            int chunk = in.read(body, read, length - read);
             if (chunk < 0) {
                 break;
             }
             read += chunk;
         }
         synchronized (received) {
-            received.add(new Received(headers, new String(body, 0, Math.max(read, 0))));
+            received.add(new Received(headers, new String(body, 0, Math.max(read, 0), StandardCharsets.UTF_8)));
         }
 
         int code = responseCode.get();

@@ -81,6 +81,12 @@ public class TestForms {
         return RunAs.roles("test-dpo", List.of("DPO"), () -> workflow.publish(draft.getId()));
     }
 
+    /** Черновик следующей версии опубликованной формы: нужен проверкам правила FR-2.3. */
+    public ConsentForm draftNewVersionOf(String code) {
+        ConsentForm published = forms.publishedVersionOf(code).orElseThrow();
+        return RunAs.roles("test-lawyer", List.of("LAWYER"), () -> forms.createNewVersion(published.getId()));
+    }
+
     /** Форма с пунктом передачи данных конкретному третьему лицу — нужна сценариям §7.7. */
     public ConsentForm publishFormWithTransfer(java.util.UUID thirdPartyId, List<String> categories) {
         return publish(List.of(

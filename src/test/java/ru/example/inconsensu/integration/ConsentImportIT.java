@@ -131,6 +131,33 @@ class ConsentImportIT extends AbstractIntegrationTest {
         assertThat(subjects.findByExternalId(good)).isPresent();
     }
 
+    /**
+     * FR-2.3: исключение для импорта разрешает архивную версию, а не любой статус.
+     *
+     * <p>Раньше путь импорта вовсе не проверял пригодность формы, и строка со ссылкой на черновик
+     * записывала клиенту условия, которые никто не согласовывал и не публиковал.
+     */
+    @Test
+    void import_refuses_to_bind_a_consent_to_a_draft_version() {
+        ConsentForm draft = testForms.draftNewVersionOf(form.getCode());
+        String externalId = "CRM-" + UUID.randomUUID().toString().substring(0, 8);
+        String content =
+                """
+                external_id,last_name,first_name,middle_name,phone,email,consent_type_code,form_code,form_version,\
+                granted_at,valid_until,source,source_ref,third_party_inn,pdn_categories,document_ref,note
+                %s,Травин,Иван,Сергеевич,,,PDN_PROCESSING,%s,%d,\
+                12.03.2025,,CLIENT_BASE_IMPORT,БАЗА-2019,,FIO,,перенос
+                """
+                        .formatted(externalId, draft.getCode(), draft.getVersionNumber());
+
+        ImportJob job = runImport(content, false);
+
+        assertThat(job.getImported()).isZero();
+        assertThat(job.getRejected()).isEqualTo(1);
+        assertThat(job.getReport()).contains("опубликованной форме");
+        assertThat(subjects.findByExternalId(externalId)).isEmpty();
+    }
+
     @Test
     void json_file_is_accepted_as_well_as_csv() {
         String externalId = "CRM-" + UUID.randomUUID().toString().substring(0, 8);

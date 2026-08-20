@@ -233,8 +233,21 @@ public class ConsentRegistrationService {
                 saved.getId().toString(),
                 EventTypes.CONSENT_GRANTED,
                 subject.getId(),
-                Map.of("typeCode", type.getCode(), "consentId", saved.getId().toString())));
+                grantedPayload(type, saved)));
         return saved;
+    }
+
+    /** Состав события о выдаче: типа хватает и правилу уведомления (FR-9.1), и письму (FR-8.5). */
+    private static Map<String, Object> grantedPayload(ConsentType type, Consent saved) {
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("typeCode", type.getCode());
+        payload.put("typeName", type.getNameRu());
+        payload.put("consentTypeId", type.getId().toString());
+        payload.put("consentId", saved.getId().toString());
+        if (saved.getThirdPartyId() != null) {
+            payload.put("thirdPartyId", saved.getThirdPartyId().toString());
+        }
+        return payload;
     }
 
     /**
@@ -295,16 +308,24 @@ public class ConsentRegistrationService {
                 .toInstant();
     }
 
-    /** FR-2.3: регистрировать можно только по опубликованной действующей версии; импорт — исключение. */
+    /**
+     * FR-2.3: регистрировать можно только по опубликованной действующей версии; импорт — исключение.
+     *
+     * <p>Для импорта исторических согласий окно действия опубликованной версии не проверяется: формы
+     * заводятся в системе при внедрении и получают `valid_from` = момент публикации, поэтому иначе
+     * отвергался бы любой перенос ранее собранных согласий. Статус проверяется в обоих случаях —
+     * ссылка на черновик недопустима: его никто не согласовывал и не публиковал. Вопрос о том, нужно ли
+     * заводить архивные версии задним числом, вынесен в OPEN_QUESTIONS (вопрос 18).
+     */
     private void requireUsableForm(ConsentForm form, ConsentSource source, Instant grantedAt) {
+        boolean historicalImport = source == ConsentSource.CLIENT_BASE_IMPORT;
         if (form.getStatus() == FormStatus.PUBLISHED) {
-            if (!form.isEffectiveAt(grantedAt)) {
+            if (!historicalImport && !form.isEffectiveAt(grantedAt)) {
                 throw new ApiException(
                         ErrorCode.CONFLICT, "Версия формы не действовала на дату выражения согласия (FR-2.3)");
             }
             return;
         }
-        boolean historicalImport = source == ConsentSource.CLIENT_BASE_IMPORT;
         if (historicalImport && form.getStatus() == FormStatus.ARCHIVED && form.isEffectiveAt(grantedAt)) {
             return;
         }
@@ -362,6 +383,12 @@ public class ConsentRegistrationService {
         Optional<Consent> existing = consents.findByIdempotencyKey(imported.idempotencyKey());
         if (existing.isPresent()) {
             return existing.get();
+        }
+
+        // FR-2.3 действует и на импорте: исключение сделано для архивной версии, а не для любого статуса.
+        // Раньше проверка стояла только в обычной регистрации, и импорт привязывал согласие даже к черновику.
+        if (imported.formId() != null) {
+            requireUsableForm(forms.get(imported.formId()), imported.source(), imported.grantedAt());
         }
 
         List<String> missing = EvidenceValidator.missingFields(SignatureType.IMPORTED_LEGACY, imported.evidence());

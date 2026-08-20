@@ -59,7 +59,7 @@ public class ImportRowProcessor {
             throw new ApiException(ErrorCode.VALIDATION_FAILED, "Тип согласия деактивирован: " + row.consentTypeCode());
         }
 
-        ConsentForm form = resolveForm(row);
+        ConsentForm form = resolveForm(row, row.grantedAt());
         ConsentFormItem item = resolveItem(form, type);
         ThirdParty thirdParty = resolveThirdParty(row, type);
 
@@ -103,12 +103,20 @@ public class ImportRowProcessor {
                 row.idempotencyKey()));
     }
 
-    private ConsentForm resolveForm(ImportRow row) {
+    /**
+     * Версия формы для импортируемой строки (FR-2.3, FR-4.5).
+     *
+     * <p>Без явного номера берётся версия, действовавшая на дату согласия, — она может быть архивной.
+     * Подстановка текущей опубликованной записала бы клиенту условия, которых он не видел. Пригодность
+     * найденной версии проверяет регистрация: правило FR-2.3 одно на оба пути.
+     */
+    private ConsentForm resolveForm(ImportRow row, java.time.Instant grantedAt) {
         if (row.formCode() == null) {
             return null;
         }
         if (row.formVersion() == null) {
-            return forms.publishedVersionOf(row.formCode())
+            return forms.versionEffectiveAt(row.formCode(), grantedAt)
+                    .or(() -> forms.publishedVersionOf(row.formCode()))
                     .orElseThrow(() -> new ApiException(
                             ErrorCode.VALIDATION_FAILED, "Нет опубликованной версии формы " + row.formCode()));
         }
