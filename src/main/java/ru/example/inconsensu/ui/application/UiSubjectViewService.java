@@ -51,6 +51,7 @@ public class UiSubjectViewService {
     public record ChannelTile(
             CommunicationChannel channel, String nameRu, boolean allowed, String validUntil, String reasonRu) {}
 
+    /** @param thirdPartyContractExpired FR-7.1: договор с партнёром закончился, передача больше не законна */
     public record ConsentRow(
             ConsentQueryService.ConsentView view,
             String typeNameRu,
@@ -59,7 +60,8 @@ public class UiSubjectViewService {
             String grantedAt,
             String validUntil,
             String source,
-            boolean revocable) {}
+            boolean revocable,
+            boolean thirdPartyContractExpired) {}
 
     public record SubjectRow(
             Subject subject,
@@ -108,12 +110,23 @@ public class UiSubjectViewService {
                     count(effective, ConsentStatus.ACTIVE),
                     count(effective, ConsentStatus.EXPIRING),
                     count(effective, ConsentStatus.REVOKED),
-                    channelFlags(subject.getId()));
+                    channelFlags(subject));
         });
     }
 
     @Transactional(readOnly = true)
     public CardView card(UUID subjectId) {
+        return card(subjectId, false);
+    }
+
+    /**
+     * Карточка клиента (UI-4).
+     *
+     * @param showSuperseded добавить к списку заменённые согласия: по умолчанию они скрыты, иначе таблица
+     *     у давнего клиента разрастается историей, а нужен текущий срез
+     */
+    @Transactional(readOnly = true)
+    public CardView card(UUID subjectId, boolean showSuperseded) {
         SubjectCardService.SubjectCard card = cards.cardOf(subjectId);
         boolean fullContacts = ContactAccessPolicy.seesFullContacts(CurrentUser.roles());
         return new CardView(
@@ -121,7 +134,10 @@ public class UiSubjectViewService {
                 contactsOf(card.subject(), fullContacts),
                 tiles(card.channels()),
                 card.summaryRu(),
-                card.consents().stream().map(this::row).toList(),
+                card.consents().stream()
+                        .filter(view -> showSuperseded || view.status() != ConsentStatus.SUPERSEDED)
+                        .map(this::row)
+                        .toList(),
                 card.transfers());
     }
 
@@ -184,7 +200,9 @@ public class UiSubjectViewService {
                                         || consent.getSourceRef().isBlank()
                                 ? ""
                                 : " " + consent.getSourceRef()),
-                view.status() == ConsentStatus.ACTIVE || view.status() == ConsentStatus.EXPIRING);
+                view.status() == ConsentStatus.ACTIVE || view.status() == ConsentStatus.EXPIRING,
+                consent.getThirdPartyId() != null
+                        && thirdParties.get(consent.getThirdPartyId()).isContractExpired(thirdParties.today()));
     }
 
     private String thirdPartyName(UUID thirdPartyId) {
@@ -210,8 +228,15 @@ public class UiSubjectViewService {
                 .toList();
     }
 
-    private Map<CommunicationChannel, Boolean> channelFlags(UUID subjectId) {
-        return cards.cardOf(subjectId).channels().stream()
+    /**
+     * Индикаторы каналов в строке результата (UI-3).
+     *
+     * <p>Карточка строится по уже загруженному субъекту: перегрузка по идентификатору перечитывает его и
+     * пишет запись в журнал доступа к ПДн, из-за чего один поиск оставлял там не одну запись, как требует
+     * FR-5.2, а одну плюс по записи на каждую найденную строку.
+     */
+    private Map<CommunicationChannel, Boolean> channelFlags(Subject subject) {
+        return cards.cardOf(subject).channels().stream()
                 .collect(
                         Collectors.toMap(ChannelDecision::channel, ChannelDecision::allowed, (first, second) -> first));
     }

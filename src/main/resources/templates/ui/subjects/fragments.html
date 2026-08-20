@@ -93,6 +93,13 @@
 
 <!-- UI-4, вкладка «Согласия» -->
 <div th:fragment="consents">
+    <!-- UI-4: по умолчанию показывается текущий срез; заменённые добавляются переключателем. -->
+    <div class="form-check form-switch mb-2">
+        <input class="form-check-input" type="checkbox" id="show-superseded" th:checked="${showSuperseded}"
+               th:hx-get="@{/ui/subjects/{id}/tab/consents(id=${card.subject.id},superseded=${!showSuperseded})}"
+               hx-target="#card-tab" hx-swap="innerHTML">
+        <label class="form-check-label" for="show-superseded">Показать заменённые</label>
+    </div>
     <table class="table align-middle">
         <thead>
         <tr>
@@ -112,6 +119,9 @@
                      th:text="${row.thirdPartyName} + ': ' + ${#strings.listJoin(row.categories, ', ')}">
                     ООО «Моменто»: ФИО, телефон
                 </div>
+                <!-- FR-7.1: передача по действующему согласию, но договор с партнёром закончился. -->
+                <span class="badge bg-danger" th:if="${row.thirdPartyContractExpired}"
+                      aria-label="договор с третьим лицом истёк">договор с третьим лицом истёк</span>
             </td>
             <td>
                 <span class="badge"
@@ -124,6 +134,10 @@
             <td th:text="${row.validUntil}">бессрочно / до отзыва</td>
             <td th:text="${row.source}">Договор Д-2025/4471</td>
             <td class="text-end">
+                <!-- UI-4: сотруднику нужен документ, который подписал клиент, а не только название типа. -->
+                <button class="btn btn-sm btn-link"
+                        th:hx-get="@{/ui/consents/{id}/text(id=${row.view.consent.id})}"
+                        hx-target="#ic-modal-content" hx-swap="innerHTML">Текст согласия</button>
                 <a class="btn btn-sm btn-link" th:href="@{/ui/consents/{id}(id=${row.view.consent.id})}">Досье</a>
                 <button class="btn btn-sm btn-outline-danger" th:if="${row.revocable}"
                         sec:authorize="hasAnyRole('MANAGER','DPO','ADMIN')"

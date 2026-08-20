@@ -99,8 +99,9 @@ public class UiSubjectController {
     }
 
     @GetMapping("/ui/subjects/{id}")
-    public String card(@PathVariable UUID id, Model model) {
-        model.addAttribute("card", view.card(id));
+    public String card(@PathVariable UUID id, @RequestParam(defaultValue = "false") boolean superseded, Model model) {
+        model.addAttribute("card", view.card(id, superseded));
+        model.addAttribute("showSuperseded", superseded);
         return "ui/subjects/card";
     }
 
@@ -111,7 +112,7 @@ public class UiSubjectController {
             @PathVariable String tab,
             @RequestParam(defaultValue = "false") boolean superseded,
             Model model) {
-        model.addAttribute("card", view.card(id));
+        model.addAttribute("card", view.card(id, superseded));
         model.addAttribute("showSuperseded", superseded);
         return switch (tab) {
             case "transfers" -> "ui/subjects/fragments :: transfers";
@@ -163,6 +164,7 @@ public class UiSubjectController {
                 : List.of(revocation.revoke(id, reason, revocationSource, caseNumber, evidence));
 
         model.addAttribute("card", view.card(subjectId));
+        model.addAttribute("showSuperseded", false);
         model.addAttribute("revocationMessage", view.revocationMessage(results));
         return "ui/subjects/fragments :: cardBody";
     }
@@ -171,6 +173,7 @@ public class UiSubjectController {
     @GetMapping("/ui/subjects/{id}/channels")
     public String channels(@PathVariable UUID id, Model model) {
         model.addAttribute("card", view.card(id));
+        model.addAttribute("showSuperseded", false);
         return "ui/subjects/fragments :: channels";
     }
 

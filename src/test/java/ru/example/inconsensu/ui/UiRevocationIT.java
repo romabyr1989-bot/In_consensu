@@ -48,6 +48,9 @@ class UiRevocationIT extends AbstractIntegrationTest {
     private TestAccounts accounts;
 
     @Autowired
+    private ru.example.inconsensu.audit.infrastructure.PdnAccessLogRepository accessLog;
+
+    @Autowired
     private TestForms testForms;
 
     @Autowired
@@ -185,6 +188,27 @@ class UiRevocationIT extends AbstractIntegrationTest {
                 .getResponse()
                 .getContentAsString();
         assertThat(page).doesNotContain("/ui/subjects?query=");
+    }
+
+    /**
+     * FR-5.2, UI-3: один поиск — одна запись в журнале доступа к ПДн.
+     *
+     * <p>Индикаторы каналов в строке результата строились через карточку по идентификатору, а та
+     * перечитывает субъекта и пишет свою запись: поиск оставлял в журнале одну запись плюс по одной на
+     * каждую найденную строку.
+     */
+    @Test
+    void one_search_leaves_exactly_one_record_in_the_personal_data_access_log() throws Exception {
+        registerAdvertisingConsent();
+        MockHttpSession session = loginAs(RoleCode.MANAGER.name());
+
+        long before = accessLog.count();
+        searchFor("Травин", session);
+        long after = accessLog.count();
+
+        assertThat(after - before)
+                .as("поиск фиксируется одной записью независимо от числа найденных клиентов")
+                .isEqualTo(1);
     }
 
     /** Прогон поиска через POST и последующий переход по выданной ссылке — как это делает браузер. */

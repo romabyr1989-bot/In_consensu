@@ -25,4 +25,16 @@ public class UiConsentController {
         model.addAttribute("dossier", evidence.of(id));
         return "ui/consents/dossier";
     }
+
+    /**
+     * Точный текст формы, по которой дано согласие (UI-4, FR-1.6).
+     *
+     * <p>Открывается модальным окном из строки согласия: сотруднику нужно видеть не только название типа,
+     * но и документ, который подписал клиент, — с версией, датой публикации и контрольной суммой.
+     */
+    @GetMapping("/ui/consents/{id}/text")
+    public String consentText(@PathVariable UUID id, Model model) {
+        model.addAttribute("dossier", evidence.of(id));
+        return "ui/consents/fragments :: consentText";
+    }
 }
