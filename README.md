@@ -116,7 +116,7 @@ SMTP-сервер для тестов поднимать не нужно: поч
 
 | Переменная | По умолчанию | Назначение |
 |---|---|---|
-| `INCONSENSU_TEST_DB_URL` | `jdbc:postgresql://localhost:5432/inconsensu_test` | база, на которой идут интеграционные тесты |
+| `INCONSENSU_TEST_DB_URL` | `jdbc:postgresql://localhost:5432/inconsensu_test` | база интеграционных тестов; **очищается в начале каждого прогона** (ADR-0079), поэтому отдельная от рабочей |
 | `INCONSENSU_TEST_DB_USER` / `INCONSENSU_TEST_DB_PASSWORD` | `inconsensu` / `inconsensu` | учётные данные к ней |
 
 Установка на сервер — [`docs/install.md`](docs/install.md): исполняемый JAR, служба systemd и внешняя

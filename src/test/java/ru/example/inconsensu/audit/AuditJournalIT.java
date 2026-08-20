@@ -83,6 +83,16 @@ class AuditJournalIT extends AbstractIntegrationTest {
     }
 
     @Test
+    void daily_anchors_cannot_be_updated_or_deleted() {
+        anchorJob.createAnchor(LocalDate.now().minusDays(2));
+
+        assertThatThrownBy(() -> jdbcTemplate.update("update audit_anchor set day_hash = 'x'"))
+                .hasMessageContaining("только для добавления");
+        assertThatThrownBy(() -> jdbcTemplate.update("delete from audit_anchor"))
+                .hasMessageContaining("только для добавления");
+    }
+
+    @Test
     void daily_anchor_is_written_once_and_survives_verification() {
         // Anchored day is in the past on purpose: an anchor of the current day would go stale as soon as any other
         // test appends an event, and verifyAll() would then report a false BROKEN.

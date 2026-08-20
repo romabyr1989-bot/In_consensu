@@ -9,8 +9,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -77,37 +79,44 @@ class UiAccessIT extends AbstractIntegrationTest {
                 .andExpect(status().isForbidden());
     }
 
-    @Test
-    void closed_sections_answer_403_for_roles_without_the_right() throws Exception {
-        Map<String, String> closedFor = Map.of(
-                "/ui/webhooks", RoleCode.MANAGER.name(),
-                "/ui/import", RoleCode.MARKETING.name(),
-                "/ui/notifications", RoleCode.LAWYER.name(),
-                "/ui/admin/users", RoleCode.DPO.name(),
-                "/ui/audit", RoleCode.MARKETING.name());
+    /**
+     * Таблица §16.2 целиком: раздел меню -> роли, которым он открыт. Всем прочим ролям положен 403.
+     *
+     * <p>Список — вся таблица, а не выборка: §16.5 требует подтверждать доступ «тестами на 403 для каждой
+     * роли», и выборочные пары пропускали бы как раз ту роль, для которой правило написали неверно.
+     */
+    private static final Map<String, Set<RoleCode>> MENU = menuOfSection162();
 
-        for (Map.Entry<String, String> entry : closedFor.entrySet()) {
-            org.assertj.core.api.Assertions.assertThat(statusOf(entry.getKey(), loginAs(entry.getValue())))
-                    .as("%s должен быть закрыт для роли %s", entry.getKey(), entry.getValue())
-                    .isEqualTo(403);
-        }
+    private static Map<String, Set<RoleCode>> menuOfSection162() {
+        Set<RoleCode> everyEmployee = Set.of(
+                RoleCode.ADMIN, RoleCode.DPO, RoleCode.LAWYER, RoleCode.MANAGER, RoleCode.MARKETING, RoleCode.AUDITOR);
+        Map<String, Set<RoleCode>> menu = new LinkedHashMap<>();
+        menu.put("/ui/", everyEmployee);
+        menu.put("/ui/subjects", everyEmployee);
+        menu.put("/ui/catalog/types", everyEmployee);
+        menu.put("/ui/catalog/forms", everyEmployee);
+        menu.put("/ui/third-parties", everyEmployee);
+        menu.put("/ui/import", Set.of(RoleCode.DPO, RoleCode.ADMIN));
+        menu.put("/ui/notifications", Set.of(RoleCode.DPO, RoleCode.ADMIN));
+        menu.put("/ui/webhooks", Set.of(RoleCode.ADMIN));
+        menu.put("/ui/audit", Set.of(RoleCode.AUDITOR, RoleCode.DPO, RoleCode.ADMIN));
+        menu.put("/ui/admin/users", Set.of(RoleCode.ADMIN));
+        menu.put("/ui/admin/settings", Set.of(RoleCode.ADMIN, RoleCode.DPO));
+        return menu;
     }
 
     @Test
-    void open_sections_are_available_to_the_roles_of_the_menu() throws Exception {
-        Map<String, String> openFor = Map.of(
-                "/ui/webhooks", RoleCode.ADMIN.name(),
-                "/ui/import", RoleCode.DPO.name(),
-                "/ui/notifications", RoleCode.DPO.name(),
-                "/ui/admin/users", RoleCode.ADMIN.name(),
-                "/ui/audit", RoleCode.AUDITOR.name(),
-                "/ui/catalog/forms", RoleCode.LAWYER.name(),
-                "/ui/third-parties", RoleCode.MANAGER.name());
-
-        for (Map.Entry<String, String> entry : openFor.entrySet()) {
-            org.assertj.core.api.Assertions.assertThat(statusOf(entry.getKey(), loginAs(entry.getValue())))
-                    .as("%s должен открываться для роли %s", entry.getKey(), entry.getValue())
-                    .isEqualTo(200);
+    void every_role_sees_exactly_the_sections_of_section_16_2() throws Exception {
+        for (RoleCode role : RoleCode.values()) {
+            MockHttpSession session = loginAs(role.name());
+            for (Map.Entry<String, Set<RoleCode>> section : MENU.entrySet()) {
+                // INTEGRATION — служебная роль без рабочего места, для неё закрыт весь интерфейс.
+                boolean allowed =
+                        role != RoleCode.INTEGRATION && section.getValue().contains(role);
+                org.assertj.core.api.Assertions.assertThat(statusOf(section.getKey(), session))
+                        .as("%s для роли %s", section.getKey(), role)
+                        .isEqualTo(allowed ? 200 : 403);
+            }
         }
     }
 

@@ -25,6 +25,8 @@ public abstract class AbstractIntegrationTest {
 
     @DynamicPropertySource
     static void datasourceProperties(DynamicPropertyRegistry registry) {
+        // Выполняется до создания контекста: прогон должен начинаться с пустой базы, как когда её поднимал контейнер.
+        TestDatabase.prepareOnce();
         registry.add("spring.datasource.url", TestDatabase::url);
         registry.add("spring.datasource.username", TestDatabase::user);
         registry.add("spring.datasource.password", TestDatabase::password);

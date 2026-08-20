@@ -5,6 +5,7 @@ import com.icegreen.greenmail.util.ServerSetup;
 import jakarta.mail.internet.MimeMessage;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -36,13 +37,38 @@ public final class Mailpit {
         registry.add("inconsensu.notifications.mail.enabled", () -> true);
     }
 
+    /** Сколько ждать письма: отправка идёт своим потоком, и на загруженной машине она отстаёт от теста. */
+    private static final Duration DELIVERY_TIMEOUT = Duration.ofSeconds(15);
+
+    private static final Duration POLL_INTERVAL = Duration.ofMillis(100);
+
     /**
      * Письма, содержащие подстроку, как один текст.
      *
      * <p>Возвращается сырое содержимое сообщений: сценарии проверяют и адресата, и тему, и вложение, а
      * искать их по отдельности означало бы повторять разбор MIME в каждом тесте.
+     *
+     * <p>Поиск ждёт появления письма, а не смотрит почтовый ящик один раз: отправка завершается позже
+     * вызова, который её инициировал, и мгновенная проверка давала пустой ящик ровно тогда, когда машина
+     * занята. Пустой результат возвращается только по истечении таймаута — тест увидит внятный отказ.
      */
     public static String search(org.springframework.boot.test.web.client.TestRestTemplate rest, String query) {
+        long deadline = System.nanoTime() + DELIVERY_TIMEOUT.toNanos();
+        while (true) {
+            String found = matching(query);
+            if (!found.isEmpty() || System.nanoTime() > deadline) {
+                return found;
+            }
+            try {
+                Thread.sleep(POLL_INTERVAL.toMillis());
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                return found;
+            }
+        }
+    }
+
+    private static String matching(String query) {
         return Arrays.stream(SERVER.getReceivedMessages())
                 .map(Mailpit::raw)
                 .filter(message -> message.contains(query))

@@ -55,6 +55,7 @@ class ContactEncryptionIT {
      */
     @DynamicPropertySource
     static void isolatedSchema(DynamicPropertyRegistry registry) {
+        TestDatabase.resetSchema(SCHEMA);
         registry.add("spring.datasource.url", () -> TestDatabase.urlWithSchema(SCHEMA));
         registry.add("spring.datasource.username", TestDatabase::user);
         registry.add("spring.datasource.password", TestDatabase::password);
