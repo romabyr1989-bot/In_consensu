@@ -260,7 +260,12 @@ public class SubjectService {
                         ErrorCode.VALIDATION_FAILED,
                         "Для поиска по ФИО введите не менее " + MIN_NAME_QUERY_LENGTH + " символов");
             }
-            return repository.searchByFullNamePrefix(trimmed.toLowerCase(Locale.ROOT) + "%", pageable);
+            // Сортировку выбирает сотрудник: нативному запросу её не передать, поэтому при явной сортировке
+            // берётся его двойник на JPQL, а порядок по умолчанию по-прежнему идёт по индексу.
+            String prefix = trimmed.toLowerCase(Locale.ROOT) + "%";
+            return pageable.getSort().isSorted()
+                    ? repository.searchByFullNamePrefixSorted(prefix, pageable)
+                    : repository.searchByFullNamePrefix(prefix, pageable);
         }
         return new PageImpl<>(List.of(), pageable, 0);
     }

@@ -248,8 +248,9 @@ public class FormWorkflowService {
                         event.getOccurredAt(),
                         event.getEventType().name(),
                         event.getEventType().nameRu(),
-                        payloadValue(event.getPayload(), "fromStatus"),
-                        payloadValue(event.getPayload(), "status"),
+                        // По-русски: лента показывалась сотруднику как «(DRAFT → ON_REVIEW)», то есть кодами (UI-0.4).
+                        statusRu(payloadValue(event.getPayload(), "fromStatus")),
+                        statusRu(payloadValue(event.getPayload(), "status")),
                         event.getActorId(),
                         null,
                         null,
@@ -264,12 +265,35 @@ public class FormWorkflowService {
                         null,
                         null,
                         approval.getUserLogin(),
-                        approval.getRoleRequired(),
+                        roleRu(approval.getRoleRequired()),
                         approval.getDecision().name(),
                         approval.getComment())));
 
         entries.sort(java.util.Comparator.comparing(HistoryEntry::at));
         return entries;
+    }
+
+    /** Статус формы по-русски; неизвестный код возвращается как есть — лента не должна терять запись. */
+    private static String statusRu(String status) {
+        if (status == null || status.isBlank()) {
+            return status;
+        }
+        try {
+            return FormStatus.valueOf(status).nameRu();
+        } catch (IllegalArgumentException unknown) {
+            return status;
+        }
+    }
+
+    private static String roleRu(String role) {
+        if (role == null || role.isBlank()) {
+            return role;
+        }
+        try {
+            return ru.example.inconsensu.common.domain.RoleCode.valueOf(role).nameRu();
+        } catch (IllegalArgumentException unknown) {
+            return role;
+        }
     }
 
     /** Значение поля из JSON журнала без разбора всей структуры: payload — плоская карта строк и чисел. */

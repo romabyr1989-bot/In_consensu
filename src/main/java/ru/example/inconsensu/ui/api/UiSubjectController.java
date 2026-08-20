@@ -27,6 +27,7 @@ import ru.example.inconsensu.registry.application.SubjectService;
 import ru.example.inconsensu.registry.domain.Subject;
 import ru.example.inconsensu.thirdparty.application.ThirdPartyService;
 import ru.example.inconsensu.ui.application.UiSearchCriteria;
+import ru.example.inconsensu.ui.application.UiSorting;
 import ru.example.inconsensu.ui.application.UiSubjectViewService;
 
 /**
@@ -70,6 +71,10 @@ public class UiSubjectController {
      * строку, историю браузера, заголовок Referer и журналы прокси (UI-0.10). Значение остаётся в сессии,
      * наружу уходит только идентификатор запроса.
      */
+    /** UI-0.8: колонки списка клиентов, по которым разрешена сортировка. */
+    private static final java.util.Map<String, String> SUBJECT_SORT =
+            java.util.Map.of("lastName", "lastName", "externalId", "externalId");
+
     /** UI-0.8: размеры страницы — 20, 50 или 100. */
     private static int normalizeSize(int size) {
         return size == 50 || size == 100 ? size : PAGE_SIZE;
@@ -101,6 +106,8 @@ public class UiSubjectController {
                             iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE)
                     java.time.LocalDate expiringBefore,
             @RequestParam(defaultValue = "false") boolean revokedOnly,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String direction,
             HttpSession session,
             Model model) {
         String query = searchCriteria.recall(session, searchId);
@@ -130,6 +137,8 @@ public class UiSubjectController {
         model.addAttribute("selectedExpiringBefore", expiringBefore);
         model.addAttribute("revokedOnly", revokedOnly);
         model.addAttribute("filtersApplied", !filter.isEmpty());
+        model.addAttribute("sort", sort);
+        model.addAttribute("direction", direction);
         if (searchId != null && query == null) {
             // Сессия истекла или ссылку открыли в другом сеансе: показываем пустую форму, а не 500.
             model.addAttribute("searchHint", "Запрос устарел — введите его заново.");
@@ -137,8 +146,17 @@ public class UiSubjectController {
         // UI-2: список открывается и по одним фильтрам — тогда поискового запроса нет вовсе.
         if ((query != null && !query.isBlank()) || !filter.isEmpty()) {
             try {
-                Page<UiSubjectViewService.SubjectRow> results =
-                        view.search(query, filter, PageRequest.of(page, normalizeSize(size)));
+                Page<UiSubjectViewService.SubjectRow> results = view.search(
+                        query,
+                        filter,
+                        PageRequest.of(
+                                Math.max(page, 0),
+                                normalizeSize(size),
+                                UiSorting.of(
+                                        sort,
+                                        direction,
+                                        SUBJECT_SORT,
+                                        org.springframework.data.domain.Sort.by("lastName", "firstName", "id"))));
                 model.addAttribute("results", results);
             } catch (ApiException e) {
                 // Подсказка о формате запроса — часть экрана, а не ошибка сервера (UI-3).

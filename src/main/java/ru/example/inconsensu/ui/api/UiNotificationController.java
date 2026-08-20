@@ -70,7 +70,7 @@ public class UiNotificationController {
             @RequestParam(required = false) String direction,
             Model model) {
         model.addAttribute("tab", "journal".equals(tab) ? "journal" : "rules");
-        model.addAttribute("rules", view.rules());
+        model.addAttribute("rules", view.rules(sort, UiSorting.descending(direction)));
         model.addAttribute(
                 "notifications", view.journal(status, ruleId, channel, from, to, page(page, size, sort, direction)));
         model.addAttribute("sort", sort);

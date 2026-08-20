@@ -367,6 +367,23 @@ class UiRevocationIT extends AbstractIntegrationTest {
                 .andExpect(content().string(org.hamcrest.Matchers.not(containsString("Открыть карточку"))));
     }
 
+    /** UI-0.8: таблица результатов поиска сортируется по колонкам, и ссылка хранит фильтр. */
+    @Test
+    void search_results_table_is_sortable() throws Exception {
+        registerAdvertisingConsent();
+        MockHttpSession session = loginAs(RoleCode.ADMIN.name());
+
+        mockMvc.perform(get("/ui/subjects?status=ACTIVE").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("sort=lastName")))
+                .andExpect(content().string(containsString("status=ACTIVE")));
+
+        mockMvc.perform(get("/ui/subjects?status=ACTIVE&sort=externalId&direction=desc")
+                        .session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Открыть карточку")));
+    }
+
     /** UI-2: плитка дашборда открывает отфильтрованный список, а не общий поиск. */
     @Test
     void dashboard_tile_opens_the_filtered_list_without_a_query() throws Exception {

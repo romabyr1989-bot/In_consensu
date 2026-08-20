@@ -73,16 +73,8 @@
             </tbody>
         </table>
 
-        <nav th:if="${entries.totalPages > 1}" aria-label="Страницы журнала">
-            <ul class="pagination">
-                <li class="page-item" th:each="number : ${#numbers.sequence(0, entries.totalPages - 1)}"
-                    th:classappend="${number == entries.number} ? 'active'">
-                    <a class="page-link" th:text="${number + 1}"
-                       th:href="@{/ui/audit/access-log(page=${number},size=${pageSize},endpoint=${selectedEndpoint},
-                           subjectId=${selectedSubjectId},from=${selectedFrom},to=${selectedTo})}">1</a>
-                </li>
-            </ul>
-        </nav>
+        <div th:replace="~{ui/fragments/layout :: pagination(${entries})}"></div>
+        <div th:replace="~{ui/fragments/layout :: pageSize}"></div>
     </main>
 </div>
 </body>

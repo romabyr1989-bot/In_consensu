@@ -33,10 +33,12 @@ public class UiModelAdvice {
 
     @ModelAttribute
     public void common(Model model, Authentication authentication, jakarta.servlet.http.HttpServletRequest request) {
-        // UI-0.8: ссылки сортировки и пагинации обязаны сохранять уже выбранные фильтры, поэтому каркас
-        // отдаёт текущие параметры экрана без sort, direction и page — их подставляет сама ссылка.
-        model.addAttribute("tableQuery", tableQuery(request));
-        model.addAttribute("tableParams", tableParams(request));
+        // UI-0.8: ссылка сортировки, пагинация и выбор размера страницы обязаны сохранять всё остальное
+        // состояние экрана. Каждая из них выбрасывает только то, что задаёт сама: иначе переход на вторую
+        // страницу сбрасывал бы сортировку, а смена сортировки — размер страницы и фильтры.
+        model.addAttribute("sortQuery", queryWithout(request, SORT_LINK_PARAMS));
+        model.addAttribute("pageQuery", queryWithout(request, PAGE_LINK_PARAMS));
+        model.addAttribute("pageSizeParams", paramsWithout(request, PAGE_SIZE_FORM_PARAMS));
         model.addAttribute("branding", branding.branding());
         // UI-0.4: даты форматируются одним способом и в таймзоне оператора. #temporals.format в шаблоне
         // берёт таймзону JVM, из-за чего одно и то же время печаталось по-разному на сервере и у оператора.
@@ -60,12 +62,19 @@ public class UiModelAdvice {
                         : 0);
     }
 
-    private static final Set<String> TABLE_STATE_PARAMS = Set.of("sort", "direction", "page", "size");
+    /** Ссылка сортировки задаёт колонку, направление и возвращает на первую страницу. */
+    private static final Set<String> SORT_LINK_PARAMS = Set.of("sort", "direction", "page");
 
-    /** Параметры экрана, кроме состояния таблицы: готовая строка вида «status=ACTIVE&amp;». */
-    private static String tableQuery(jakarta.servlet.http.HttpServletRequest request) {
+    /** Ссылка пагинации задаёт только номер страницы. */
+    private static final Set<String> PAGE_LINK_PARAMS = Set.of("page");
+
+    /** Форма размера страницы задаёт размер и возвращает на первую страницу. */
+    private static final Set<String> PAGE_SIZE_FORM_PARAMS = Set.of("size", "page");
+
+    /** Параметры экрана без перечисленных: готовая строка вида «status=ACTIVE&amp;size=50&amp;». */
+    private static String queryWithout(jakarta.servlet.http.HttpServletRequest request, Set<String> excluded) {
         StringBuilder query = new StringBuilder();
-        tableParams(request)
+        paramsWithout(request, excluded)
                 .forEach((name, value) -> query.append(java.net.URLEncoder.encode(name, StandardCharsets.UTF_8))
                         .append('=')
                         .append(java.net.URLEncoder.encode(value, StandardCharsets.UTF_8))
@@ -73,10 +82,11 @@ public class UiModelAdvice {
         return query.toString();
     }
 
-    private static java.util.Map<String, String> tableParams(jakarta.servlet.http.HttpServletRequest request) {
+    private static java.util.Map<String, String> paramsWithout(
+            jakarta.servlet.http.HttpServletRequest request, Set<String> excluded) {
         java.util.Map<String, String> params = new java.util.LinkedHashMap<>();
         request.getParameterMap().forEach((name, values) -> {
-            if (!TABLE_STATE_PARAMS.contains(name) && values.length > 0 && !values[0].isBlank()) {
+            if (!excluded.contains(name) && values.length > 0 && !values[0].isBlank()) {
                 params.put(name, values[0]);
             }
         });

@@ -11,8 +11,14 @@
 
         <table class="table bg-white align-middle">
             <thead>
-            <tr><th scope="col">Название</th><th scope="col">Адрес</th><th scope="col">События</th>
-                <th scope="col">Последняя доставка</th><th scope="col">Активна</th><th scope="col"></th></tr>
+            <tr>
+                <th th:replace="~{ui/fragments/layout :: sortHeader('Название', 'name')}"></th>
+                <th th:replace="~{ui/fragments/layout :: sortHeader('Адрес', 'url')}"></th>
+                <th scope="col">События</th>
+                <th th:replace="~{ui/fragments/layout :: sortHeader('Последняя доставка', 'lastDelivery')}"></th>
+                <th th:replace="~{ui/fragments/layout :: sortHeader('Активна', 'active')}"></th>
+                <th scope="col"></th>
+            </tr>
             </thead>
             <tbody>
             <tr th:each="subscription : ${subscriptions}">

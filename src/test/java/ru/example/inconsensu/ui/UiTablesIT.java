@@ -34,7 +34,11 @@ class UiTablesIT extends AbstractIntegrationTest {
             new String[] {"/ui/import", RoleCode.ADMIN.name()},
             new String[] {"/ui/audit", RoleCode.AUDITOR.name()},
             new String[] {"/ui/audit/access-log", RoleCode.AUDITOR.name()},
-            new String[] {"/ui/notifications?tab=journal", RoleCode.DPO.name()});
+            new String[] {"/ui/notifications?tab=journal", RoleCode.DPO.name()},
+            new String[] {"/ui/notifications", RoleCode.DPO.name()},
+            new String[] {"/ui/webhooks", RoleCode.ADMIN.name()});
+    // Список клиентов проверяется в UiRevocationIT: его таблица появляется только при найденных строках,
+    // а клиента для этого нужно сначала завести.
 
     @Autowired
     private MockMvc mockMvc;
@@ -58,11 +62,29 @@ class UiTablesIT extends AbstractIntegrationTest {
     }
 
     @Test
-    void sorting_keeps_the_chosen_filters_in_the_link() throws Exception {
-        // Ссылка сортировки обязана нести уже выбранный фильтр: иначе она сбрасывала бы выборку.
-        mockMvc.perform(get("/ui/catalog/forms?status=PUBLISHED").session(loginAs(RoleCode.ADMIN.name())))
+    void sorting_keeps_the_chosen_filters_and_page_size() throws Exception {
+        // Ссылка сортировки обязана нести и фильтр, и размер страницы: иначе она сбрасывает выборку.
+        mockMvc.perform(get("/ui/catalog/forms?status=PUBLISHED&size=50").session(loginAs(RoleCode.ADMIN.name())))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("status=PUBLISHED&amp;sort=")));
+                .andExpect(content().string(containsString("status=PUBLISHED")))
+                .andExpect(content().string(containsString("size=50")))
+                .andExpect(content().string(containsString("sort=")));
+    }
+
+    /** UI-0.8: переход по страницам не должен терять сортировку, размер страницы и фильтры. */
+    @Test
+    void pagination_keeps_sorting_and_filters() throws Exception {
+        String body = mockMvc.perform(get("/ui/audit?aggregateType=consent&size=20&sort=occurredAt&direction=desc")
+                        .session(loginAs(RoleCode.AUDITOR.name())))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        // Пагинация показывается только при нескольких страницах, поэтому проверяется форма выбора размера:
+        // она обязана сохранять и сортировку, и фильтр.
+        assertThat(body).contains("name=\"sort\"").contains("value=\"occurredAt\"");
+        assertThat(body).contains("name=\"aggregateType\"");
     }
 
     @Test

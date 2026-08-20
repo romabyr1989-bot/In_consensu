@@ -89,17 +89,8 @@
             </tbody>
         </table>
 
-        <nav th:if="${events.totalPages > 1}" aria-label="Страницы событий">
-            <ul class="pagination">
-                <li class="page-item" th:each="number : ${#numbers.sequence(0, events.totalPages - 1)}"
-                    th:classappend="${number == events.number} ? 'active'">
-                    <a class="page-link" th:text="${number + 1}"
-                       th:href="@{/ui/audit(page=${number},size=${pageSize},aggregateType=${selectedAggregateType},
-                           eventType=${selectedEventType},actorId=${selectedActorId},subjectId=${selectedSubjectId},
-                           from=${selectedFrom},to=${selectedTo})}">1</a>
-                </li>
-            </ul>
-        </nav>
+        <div th:replace="~{ui/fragments/layout :: pagination(${events})}"></div>
+        <div th:replace="~{ui/fragments/layout :: pageSize}"></div>
     </main>
 </div>
 </body>

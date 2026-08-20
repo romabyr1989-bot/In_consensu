@@ -37,21 +37,30 @@ public interface SubjectRepository extends JpaRepository<Subject, UUID> {
             select distinct s from Subject s
             join SubjectContact c on c.subject = s
             where c.type = :type and c.valueNormalized = :value
-            order by s.lastName, s.firstName, s.id
             """)
     Page<Subject> searchByContact(
             @Param("type") ru.example.inconsensu.common.domain.ContactType type,
             @Param("value") String value,
             Pageable pageable);
 
+    /**
+     * Префиксный поиск по ФИО с сортировкой из таблицы (UI-0.8).
+     *
+     * <p>Двойник нативного запроса на JPQL: нативному нельзя добавить сортировку из {@code Pageable}, а
+     * колонку выбирает сотрудник. Порядок по умолчанию идёт нативным запросом — он попадает в индекс
+     * {@code subject_full_name_prefix_idx}.
+     */
+    @Query("select s from Subject s "
+            + "where lower(concat(s.lastName, ' ', s.firstName, ' ', coalesce(s.middleName, ''))) like :prefix")
+    Page<Subject> searchByFullNamePrefixSorted(@Param("prefix") String prefix, Pageable pageable);
+
     /** Клиенты по списку идентификаторов: плитка дашборда открывает список без поискового запроса (UI-2). */
-    @Query("select s from Subject s where s.id in :ids order by s.lastName, s.firstName, s.id")
+    @Query("select s from Subject s where s.id in :ids")
     Page<Subject> findAllByIdIn(@Param("ids") java.util.Collection<UUID> ids, Pageable pageable);
 
     /** То же в пределах заданного множества: панель фильтров UI-3 сужает поиск по признакам согласий. */
     @Query("select distinct s from Subject s join SubjectContact c on c.subject = s "
-            + "where c.type = :type and c.valueNormalized = :value and s.id in :ids "
-            + "order by s.lastName, s.firstName, s.id")
+            + "where c.type = :type and c.valueNormalized = :value and s.id in :ids")
     Page<Subject> searchByContactAmong(
             @Param("type") ru.example.inconsensu.common.domain.ContactType type,
             @Param("value") String value,
@@ -60,8 +69,7 @@ public interface SubjectRepository extends JpaRepository<Subject, UUID> {
 
     /** То же по HMAC контакта при включённом шифровании (NFR-3). */
     @Query("select distinct s from Subject s join SubjectContact c on c.subject = s "
-            + "where c.type = :type and c.searchHmac = :hmac and s.id in :ids "
-            + "order by s.lastName, s.firstName, s.id")
+            + "where c.type = :type and c.searchHmac = :hmac and s.id in :ids")
     Page<Subject> searchByContactHmacAmong(
             @Param("type") ru.example.inconsensu.common.domain.ContactType type,
             @Param("hmac") String hmac,
@@ -70,8 +78,7 @@ public interface SubjectRepository extends JpaRepository<Subject, UUID> {
 
     /** Префиксный поиск по ФИО в пределах множества (UI-3). */
     @Query("select s from Subject s where s.id in :ids "
-            + "and lower(concat(s.lastName, ' ', s.firstName, ' ', coalesce(s.middleName, ''))) like :prefix "
-            + "order by s.lastName, s.firstName, s.id")
+            + "and lower(concat(s.lastName, ' ', s.firstName, ' ', coalesce(s.middleName, ''))) like :prefix")
     Page<Subject> searchByFullNamePrefixAmong(
             @Param("prefix") String prefix, @Param("ids") java.util.Collection<UUID> ids, Pageable pageable);
 
@@ -114,7 +121,6 @@ public interface SubjectRepository extends JpaRepository<Subject, UUID> {
             select distinct s from Subject s
             join SubjectContact c on c.subject = s
             where c.type = :type and c.searchHmac = :hmac
-            order by s.lastName, s.firstName, s.id
             """)
     Page<Subject> searchByContactHmac(
             @Param("type") ru.example.inconsensu.common.domain.ContactType type,

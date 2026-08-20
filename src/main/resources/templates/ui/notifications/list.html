@@ -26,9 +26,14 @@
         <table class="table bg-white align-middle">
             <thead>
             <tr>
-                <th scope="col">Название</th><th scope="col">Повод</th><th scope="col">Пороги, дней</th>
-                <th scope="col">Фильтры</th><th scope="col">Получатели</th><th scope="col">Каналы</th>
-                <th scope="col">Активно</th><th scope="col"></th>
+                <th th:replace="~{ui/fragments/layout :: sortHeader('Название', 'name')}"></th>
+                <th th:replace="~{ui/fragments/layout :: sortHeader('Повод', 'trigger')}"></th>
+                <th scope="col">Пороги, дней</th>
+                <th scope="col">Фильтры</th>
+                <th scope="col">Получатели</th>
+                <th scope="col">Каналы</th>
+                <th th:replace="~{ui/fragments/layout :: sortHeader('Активно', 'active')}"></th>
+                <th scope="col"></th>
             </tr>
             </thead>
             <tbody>
@@ -229,17 +234,8 @@
             </tbody>
         </table>
 
-        <nav th:if="${notifications.totalPages > 1}" aria-label="Страницы журнала">
-            <ul class="pagination">
-                <li class="page-item" th:each="number : ${#numbers.sequence(0, notifications.totalPages - 1)}"
-                    th:classappend="${number == notifications.number} ? 'active'">
-                    <a class="page-link" th:text="${number + 1}"
-                       th:href="@{/ui/notifications(tab='journal',page=${number},size=${pageSize},
-                           status=${selectedStatus},ruleId=${selectedRuleId},channel=${selectedChannel},
-                           from=${selectedFrom},to=${selectedTo})}">1</a>
-                </li>
-            </ul>
-        </nav>
+        <div th:replace="~{ui/fragments/layout :: pagination(${notifications})}"></div>
+        <div th:replace="~{ui/fragments/layout :: pageSize}"></div>
         </div>
     </main>
 </div>

@@ -102,8 +102,8 @@
             <table class="table table-hover align-middle bg-white">
                 <thead>
                 <tr>
-                    <th scope="col">Клиент</th>
-                    <th scope="col">Внешний ид.</th>
+                    <th th:replace="~{ui/fragments/layout :: sortHeader('Клиент', 'lastName')}"></th>
+                    <th th:replace="~{ui/fragments/layout :: sortHeader('Внешний ид.', 'externalId')}"></th>
                     <th scope="col">Контакты</th>
                     <th scope="col">Согласия</th>
                     <th scope="col">Каналы</th>
@@ -144,15 +144,13 @@
             </table>
         </div>
 
-        <nav th:if="${results != null and results.totalPages > 1}" aria-label="Страницы результатов">
-            <ul class="pagination">
-                <li class="page-item" th:each="index : ${#numbers.sequence(0, results.totalPages - 1)}"
-                    th:classappend="${index == results.number} ? 'active'">
-                    <a class="page-link" th:href="@{/ui/subjects(searchId=${searchId},page=${index},size=${size})}"
-                       th:text="${index + 1}">1</a>
-                </li>
-            </ul>
-        </nav>
+        <!--
+          Общий фрагмент: своя пагинация теряла расширенные фильтры и сортировку (UI-0.8). Условие стоит на
+          внешнем элементе: th:replace обрабатывается раньше th:if, и на одном теге проверка не сработала бы.
+        -->
+        <div th:if="${results != null}">
+            <div th:replace="~{ui/fragments/layout :: pagination(${results})}"></div>
+        </div>
     </main>
 </div>
 </body>

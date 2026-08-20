@@ -132,17 +132,8 @@
             <p class="text-muted" th:if="${forms.isEmpty()}">Ничего не найдено. Снимите фильтр статуса.</p>
 
             <!-- UI-0.8: состояние фильтров и страницы держится в адресе, иначе ссылку нельзя переслать. -->
-            <nav th:if="${forms.totalPages > 1}" aria-label="Страницы форм">
-                <ul class="pagination">
-                    <li class="page-item" th:each="index : ${#numbers.sequence(0, forms.totalPages - 1)}"
-                        th:classappend="${index == forms.number} ? 'active'">
-                        <a class="page-link"
-                           th:href="@{/ui/catalog/forms(status=${status},source=${source},typeCode=${typeCode},
-                               thirdPartyId=${thirdPartyId},text=${text},size=${size},page=${index})}"
-                           th:text="${index + 1}">1</a>
-                    </li>
-                </ul>
-            </nav>
+            <div th:replace="~{ui/fragments/layout :: pagination(${forms})}"></div>
+            <div th:replace="~{ui/fragments/layout :: pageSize}"></div>
         </div>
 
         <div class="card" sec:authorize="hasAnyRole('LAWYER','DPO','ADMIN')">

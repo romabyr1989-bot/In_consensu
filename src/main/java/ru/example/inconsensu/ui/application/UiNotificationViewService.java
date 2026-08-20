@@ -86,6 +86,24 @@ public class UiNotificationViewService {
     }
 
     @Transactional(readOnly = true)
+    public List<RuleRow> rules(String sortField, boolean descending) {
+        List<RuleRow> rows = rules();
+        java.util.Comparator<RuleRow> comparator =
+                switch (sortField == null ? "" : sortField) {
+                    case "name" -> java.util.Comparator.comparing(RuleRow::name);
+                    case "trigger" -> java.util.Comparator.comparing(RuleRow::triggerRu);
+                    case "active" -> java.util.Comparator.comparing(RuleRow::active);
+                    default -> null;
+                };
+        if (comparator == null) {
+            return rows;
+        }
+        return rows.stream()
+                .sorted(descending ? comparator.reversed() : comparator)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<RuleRow> rules() {
         Map<UUID, String> typeNames = types.allTypes().stream()
                 .collect(Collectors.toMap(ConsentType::getId, ConsentType::getNameRu, (first, second) -> first));

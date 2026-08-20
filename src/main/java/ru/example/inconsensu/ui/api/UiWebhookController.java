@@ -46,8 +46,15 @@ public class UiWebhookController {
     }
 
     @GetMapping("/ui/webhooks")
-    public String list(Model model) {
-        model.addAttribute("subscriptions", view.subscriptions());
+    public String list(
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String direction,
+            Model model) {
+        model.addAttribute(
+                "subscriptions",
+                view.subscriptions(sort, ru.example.inconsensu.ui.application.UiSorting.descending(direction)));
+        model.addAttribute("sort", sort);
+        model.addAttribute("direction", direction);
         model.addAttribute("eventTypes", EVENT_TYPES.stream().sorted().toList());
         model.addAttribute("failed", outbox.failed(20));
         return "ui/webhooks/list";

@@ -44,6 +44,30 @@ public class UiWebhookViewService {
 
     @Transactional(readOnly = true)
     public List<SubscriptionRow> subscriptions() {
+        return subscriptions(null, false);
+    }
+
+    /** UI-0.8: сортировка по колонкам списка подписок. */
+    @Transactional(readOnly = true)
+    public List<SubscriptionRow> subscriptions(String sortField, boolean descending) {
+        List<SubscriptionRow> rows = allSubscriptions();
+        java.util.Comparator<SubscriptionRow> comparator =
+                switch (sortField == null ? "" : sortField) {
+                    case "name" -> java.util.Comparator.comparing(SubscriptionRow::name);
+                    case "url" -> java.util.Comparator.comparing(SubscriptionRow::url);
+                    case "lastDelivery" -> java.util.Comparator.comparing(SubscriptionRow::lastDeliveryAt);
+                    case "active" -> java.util.Comparator.comparing(SubscriptionRow::active);
+                    default -> null;
+                };
+        if (comparator == null) {
+            return rows;
+        }
+        return rows.stream()
+                .sorted(descending ? comparator.reversed() : comparator)
+                .toList();
+    }
+
+    private List<SubscriptionRow> allSubscriptions() {
         return subscriptions.list().stream()
                 .map(subscription -> {
                     WebhookDelivery last =
