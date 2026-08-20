@@ -26,6 +26,39 @@
                 <label class="form-label" for="text">Поиск по коду, названию и тексту</label>
                 <input class="form-control" id="text" name="text" th:value="${text}">
             </div>
+            <!-- UI-7: фильтры по источнику, типу согласия и третьему лицу; в запросе они поддержаны давно. -->
+            <div class="col-md-3">
+                <label class="form-label" for="source">Источник применения</label>
+                <select class="form-select" id="source" name="source">
+                    <option value="">любой</option>
+                    <option th:each="value : ${sources}" th:value="${value}" th:text="${value.nameRu()}"
+                            th:selected="${value == source}">Заявка на сайте</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="typeCode">Тип согласия</label>
+                <select class="form-select" id="typeCode" name="typeCode">
+                    <option value="">любой</option>
+                    <option th:each="type : ${allTypes}" th:value="${type.code}" th:text="${type.nameRu}"
+                            th:selected="${type.code == typeCode}">Обработка ПДн</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="thirdPartyId">Третье лицо</label>
+                <select class="form-select" id="thirdPartyId" name="thirdPartyId">
+                    <option value="">любое</option>
+                    <option th:each="party : ${thirdParties}" th:value="${party.id}" th:text="${party.name}"
+                            th:selected="${party.id == thirdPartyId}">ООО «Моменто»</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="size">Строк на странице</label>
+                <select class="form-select" id="size" name="size">
+                    <option th:each="value : ${ {20,50,100} }" th:value="${value}" th:text="${value}"
+                            th:selected="${value == size}">20</option>
+                </select>
+            </div>
+            <input type="hidden" name="status" th:value="${status}">
             <div class="col-md-3 align-self-end">
                 <button class="btn btn-primary" type="submit">Найти</button>
                 <a class="btn btn-link" th:href="@{/ui/catalog/forms}">Сбросить фильтры</a>
@@ -35,9 +68,10 @@
         <div class="mb-3">
             <a class="btn btn-sm" th:classappend="${status == null} ? 'btn-primary' : 'btn-outline-primary'"
                th:href="@{/ui/catalog/forms}">Все</a>
-            <a class="btn btn-sm" th:each="value : ${ {'DRAFT','ON_REVIEW','APPROVED','PUBLISHED','ARCHIVED'} }"
-               th:classappend="${status == value} ? 'btn-primary' : 'btn-outline-primary'"
-               th:href="@{/ui/catalog/forms(status=${value})}" th:text="${value}">DRAFT</a>
+            <!-- UI-0.4: в интерфейсе русские названия статусов, а не машинные коды. -->
+            <a class="btn btn-sm" th:each="value : ${statuses}"
+               th:classappend="${status == value.name()} ? 'btn-primary' : 'btn-outline-primary'"
+               th:href="@{/ui/catalog/forms(status=${value.name()})}" th:text="${value.nameRu()}">черновик</a>
         </div>
 
         <div class="card mb-4" sec:authorize="hasAnyRole('LAWYER','DPO')" th:if="${!awaiting.isEmpty()}">
@@ -58,6 +92,8 @@
                     <th scope="col">Название</th>
                     <th scope="col">Версия</th>
                     <th scope="col">Статус</th>
+                    <th scope="col">Источники применения</th>
+                    <th scope="col">Автор изменений</th>
                     <th scope="col">Изменено</th>
                     <th scope="col"></th>
                 </tr>
@@ -74,6 +110,14 @@
                                   (${form.status.name() == 'APPROVED'} ? 'bg-info text-dark' : 'bg-secondary'))"
                               th:text="${form.status.nameRu()}">опубликовано</span>
                     </td>
+                    <td>
+                        <span th:each="channel, it : ${form.sourceChannels}">
+                            <span th:text="${channel.nameRu()}">Заявка на сайте</span><span
+                                th:text="${it.last} ? '' : ', '">, </span>
+                        </span>
+                        <span th:if="${form.sourceChannels.isEmpty()}">—</span>
+                    </td>
+                    <td th:text="${form.updatedBy} ?: '—'">lawyer</td>
                     <td th:text="${#temporals.format(form.updatedAt, 'dd.MM.yyyy HH:mm')}">17.08.2026 10:00</td>
                     <td class="text-end">
                         <a class="btn btn-sm btn-link" th:href="@{/ui/catalog/forms/{id}(id=${form.id})}">Открыть</a>
@@ -86,6 +130,19 @@
                 </tbody>
             </table>
             <p class="text-muted" th:if="${forms.isEmpty()}">Ничего не найдено. Снимите фильтр статуса.</p>
+
+            <!-- UI-0.8: состояние фильтров и страницы держится в адресе, иначе ссылку нельзя переслать. -->
+            <nav th:if="${forms.totalPages > 1}" aria-label="Страницы форм">
+                <ul class="pagination">
+                    <li class="page-item" th:each="index : ${#numbers.sequence(0, forms.totalPages - 1)}"
+                        th:classappend="${index == forms.number} ? 'active'">
+                        <a class="page-link"
+                           th:href="@{/ui/catalog/forms(status=${status},source=${source},typeCode=${typeCode},
+                               thirdPartyId=${thirdPartyId},text=${text},size=${size},page=${index})}"
+                           th:text="${index + 1}">1</a>
+                    </li>
+                </ul>
+            </nav>
         </div>
 
         <div class="card" sec:authorize="hasAnyRole('LAWYER','DPO','ADMIN')">

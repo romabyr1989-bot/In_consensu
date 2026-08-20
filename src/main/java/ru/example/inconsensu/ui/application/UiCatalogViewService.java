@@ -88,11 +88,18 @@ public class UiCatalogViewService {
                 .collect(Collectors.toMap(CatalogStatsService.ThirdPartyStats::id, Function.identity()));
     }
 
-    /** UI-7: фильтры выполняются запросом — иначе пагинация и счётчик страниц врут. */
+    /**
+     * UI-7: фильтры выполняются запросом — иначе пагинация и счётчик страниц врут.
+     *
+     * <p>Источник, тип согласия и третье лицо поддержаны в запросе давно (ADR-0051), но экран передавал
+     * на их месте null: сотрудник не мог отфильтровать каталог форм по партнёру или типу.
+     */
     @Transactional(readOnly = true)
-    public Page<ConsentForm> forms(String status, String text, Pageable pageable) {
+    public Page<ConsentForm> forms(
+            String status, ConsentSource source, String typeCode, UUID thirdPartyId, String text, Pageable pageable) {
         FormStatus filter = status == null || status.isBlank() ? null : FormStatus.valueOf(status);
-        return forms.list(new ConsentFormService.FormFilter(filter, null, null, null, text), pageable);
+        return forms.list(
+                new ConsentFormService.FormFilter(filter, source, blankToNull(typeCode), thirdPartyId, text), pageable);
     }
 
     @Transactional(readOnly = true)

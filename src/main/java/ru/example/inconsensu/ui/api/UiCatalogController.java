@@ -149,14 +149,34 @@ public class UiCatalogController {
     @GetMapping("/ui/catalog/forms")
     public String forms(
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) ConsentSource source,
+            @RequestParam(required = false) String typeCode,
+            @RequestParam(required = false) UUID thirdPartyId,
             @RequestParam(required = false) String text,
             @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
             Model model) {
-        model.addAttribute("forms", view.forms(status, text, PageRequest.of(page, PAGE_SIZE)));
+        model.addAttribute(
+                "forms",
+                view.forms(status, source, typeCode, thirdPartyId, text, PageRequest.of(page, pageSize(size))));
         model.addAttribute("status", status);
+        model.addAttribute("source", source);
+        model.addAttribute("typeCode", typeCode);
+        model.addAttribute("thirdPartyId", thirdPartyId);
         model.addAttribute("text", text);
+        model.addAttribute("size", pageSize(size));
+        model.addAttribute("statuses", ru.example.inconsensu.common.domain.FormStatus.values());
+        model.addAttribute("sources", ConsentSource.values());
+        // Все типы, а не только активные: форма может ссылаться на деактивированный тип (FR-1.1).
+        model.addAttribute("allTypes", types.allTypes());
+        model.addAttribute("thirdParties", view.thirdParties());
         model.addAttribute("awaiting", view.awaitingDecision());
         return "ui/catalog/forms";
+    }
+
+    /** UI-0.8: размер страницы выбирается из 20 / 50 / 100; иное значение приводится к ближайшему разрешённому. */
+    private static int pageSize(int requested) {
+        return List.of(20, 50, 100).contains(requested) ? requested : PAGE_SIZE;
     }
 
     @PostMapping("/ui/catalog/forms")
