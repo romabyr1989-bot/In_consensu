@@ -24,6 +24,7 @@ class FormRequisitesValidatorTest {
                 List.of("рассмотрение заявки"),
                 List.of("FIO", "PHONE"),
                 false,
+                false,
                 null,
                 null,
                 true,
@@ -76,6 +77,7 @@ class FormRequisitesValidatorTest {
                 List.of(),
                 List.of(),
                 false,
+                false,
                 null,
                 null,
                 false,
@@ -119,6 +121,7 @@ class FormRequisitesValidatorTest {
                 List.of("доставка"),
                 List.of("FIO"),
                 false,
+                false,
                 null,
                 null,
                 false,
@@ -139,6 +142,7 @@ class FormRequisitesValidatorTest {
                 "текст",
                 List.of("публикация"),
                 List.of("FIO"),
+                false,
                 false,
                 null,
                 null,
@@ -163,6 +167,7 @@ class FormRequisitesValidatorTest {
                 List.of("цель"),
                 List.of("FIO"),
                 false,
+                false,
                 null,
                 null,
                 false,
@@ -173,6 +178,13 @@ class FormRequisitesValidatorTest {
                 .contains("inactive-type");
     }
 
+    /**
+     * FR-1.4: предупреждения не блокируют отправку.
+     *
+     * <p>Предупреждение о специальных категориях означает «смешаны с обычными внутри одного пункта».
+     * Раньше условие смотрело на число пунктов формы и потому срабатывало как раз на правильном
+     * оформлении — когда специальные категории вынесены в отдельный, чистый пункт.
+     */
     @Test
     void mandatory_advertising_and_mixed_special_categories_are_warnings_not_blockers() {
         FormValidationInput.Item advertising = new FormValidationInput.Item(
@@ -184,28 +196,67 @@ class FormRequisitesValidatorTest {
                 List.of("информирование"),
                 List.of("EMAIL"),
                 false,
+                false,
                 null,
                 null,
                 true,
                 true);
-        FormValidationInput.Item special = new FormValidationInput.Item(
+        FormValidationInput.Item mixed = new FormValidationInput.Item(
                 "PDN_PROCESSING",
                 "Обработка ПДн",
                 ConsentCategory.PROCESSING,
                 false,
                 "текст",
                 List.of("цель"),
-                List.of("HEALTH"),
+                List.of("HEALTH", "EMAIL"),
+                true,
                 true,
                 null,
                 null,
                 false,
                 true);
 
-        FormValidationResult result = FormRequisitesValidator.validate(valid(List.of(advertising, special)));
+        FormValidationResult result = FormRequisitesValidator.validate(valid(List.of(advertising, mixed)));
 
         assertThat(result.valid()).isTrue();
         assertThat(codes(result.warnings())).contains("advertising-mandatory", "special-categories-mixed");
+    }
+
+    /** Специальные категории, вынесенные в отдельный чистый пункт, — правильное оформление (FR-1.4). */
+    @Test
+    void special_categories_in_a_dedicated_item_are_not_a_warning() {
+        FormValidationInput.Item ordinary = new FormValidationInput.Item(
+                "PDN_PROCESSING",
+                "Обработка ПДн",
+                ConsentCategory.PROCESSING,
+                false,
+                "текст",
+                List.of("рассмотрение заявки"),
+                List.of("FIO", "PHONE"),
+                false,
+                false,
+                null,
+                null,
+                true,
+                true);
+        FormValidationInput.Item onlySpecial = new FormValidationInput.Item(
+                "PDN_PROCESSING",
+                "Обработка ПДн",
+                ConsentCategory.PROCESSING,
+                false,
+                "сведения о здоровье",
+                List.of("медицинское сопровождение"),
+                List.of("HEALTH"),
+                true,
+                false,
+                null,
+                null,
+                false,
+                true);
+
+        FormValidationResult result = FormRequisitesValidator.validate(valid(List.of(ordinary, onlySpecial)));
+
+        assertThat(codes(result.warnings())).doesNotContain("special-categories-mixed");
     }
 
     @Test

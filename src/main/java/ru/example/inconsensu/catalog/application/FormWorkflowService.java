@@ -4,11 +4,14 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +39,8 @@ import ru.example.inconsensu.iam.application.OperatorSettingsService;
  */
 @Service
 public class FormWorkflowService {
+
+    private static final Logger LOG = LoggerFactory.getLogger(FormWorkflowService.class);
 
     private static final String REQUIRED_ROLES_SETTING = "inconsensu.approval.required-roles";
 
@@ -81,11 +86,24 @@ public class FormWorkflowService {
         }
         FormStatus before = form.getStatus();
         transition(form, () -> form.submitForReview(clock.instant()));
+
+        // FR-1.4: предупреждения не блокируют, но обязаны выводиться и логироваться. В интерфейсе они
+        // видны в панели конструктора, а после отправки формы след оставался бы только там — поэтому они
+        // попадают и в журнал приложения, и в payload события аудита.
+        List<String> warnings = validation.warnings().stream()
+                .map(FormValidationResult.Finding::messageRu)
+                .toList();
+        if (!warnings.isEmpty()) {
+            LOG.warn("Форма {} отправлена на согласование с предупреждениями: {}", form.getCode(), warnings);
+        }
+
+        Map<String, Object> payload = new LinkedHashMap<>(ConsentFormService.describe(form, before));
+        payload.put("warnings", warnings);
         auditService.record(
                 ConsentFormService.AGGREGATE_TYPE,
                 ConsentFormService.aggregateId(form),
                 AuditEventType.FORM_SUBMITTED,
-                ConsentFormService.describe(form, before));
+                payload);
         return forms.save(form);
     }
 

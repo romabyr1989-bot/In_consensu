@@ -29,6 +29,7 @@ public record FormValidationInput(
             List<String> purposes,
             List<String> pdnCategories,
             boolean specialPdnCategories,
+            boolean mixedPdnCategories,
             String thirdPartyName,
             String thirdPartyAddress,
             boolean mandatory,

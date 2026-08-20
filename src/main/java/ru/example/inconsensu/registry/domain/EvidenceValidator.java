@@ -28,6 +28,9 @@ public final class EvidenceValidator {
         };
     }
 
+    /** E.164: плюс и до пятнадцати цифр, без пробелов и скобок. */
+    private static final java.util.regex.Pattern E164 = java.util.regex.Pattern.compile("\\+[1-9]\\d{1,14}");
+
     /** Возвращает список недостающих полей; пустой список означает, что доказательство полное. */
     public static List<String> missingFields(SignatureType signatureType, Map<String, Object> evidence) {
         Map<String, Object> values = evidence == null ? Map.of() : evidence;
@@ -52,6 +55,25 @@ public final class EvidenceValidator {
             missing.add("documentRef|note");
         }
         return missing;
+    }
+
+    /**
+     * Поля, которые заполнены, но неверного формата (FR-4.2).
+     *
+     * <p>Пока проверяется телефон SMS-подписи: таблица FR-4.2 задаёт его в E.164. Значение в произвольном
+     * виде («8 916 …») не даёт сопоставить доказательство с абонентом, а значит не работает как
+     * доказательство. Отделено от отсутствующих полей: сообщение об ошибке у них разное.
+     */
+    public static List<String> malformedFields(SignatureType signatureType, Map<String, Object> evidence) {
+        Map<String, Object> values = evidence == null ? Map.of() : evidence;
+        List<String> malformed = new ArrayList<>();
+        if (signatureType == SignatureType.SIMPLE_ES_SMS) {
+            Object phone = values.get("phone");
+            if (!isBlank(phone) && !E164.matcher(phone.toString().trim()).matches()) {
+                malformed.add("phone");
+            }
+        }
+        return malformed;
     }
 
     /** Копия доказательства без чувствительных значений — для журналов и отладки (NFR-3). */

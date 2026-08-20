@@ -42,6 +42,23 @@ public class PdnCategoryService {
      * <p>Нужно валидатору форм: смешивание таких категорий с обычными в одном пункте — повод для предупреждения
      * (FR-1.4).
      */
+    /**
+     * Смешаны ли в одном перечне специальные (или биометрические) категории с обычными.
+     *
+     * <p>Именно это предупреждает FR-1.4: «специальные категории включены в общий пункт». Вынесенные в
+     * отдельный, чистый пункт специальные категории — правильное оформление, и ругаться на него нельзя.
+     */
+    @Transactional(readOnly = true)
+    public boolean mixesSpecialWithOrdinary(Collection<String> codes) {
+        if (codes == null || codes.isEmpty()) {
+            return false;
+        }
+        var categories = repository.findByCodeIn(Set.copyOf(codes));
+        boolean special = categories.stream().anyMatch(category -> category.isSpecial() || category.isBiometric());
+        boolean ordinary = categories.stream().anyMatch(category -> !category.isSpecial() && !category.isBiometric());
+        return special && ordinary;
+    }
+
     @Transactional(readOnly = true)
     public boolean anySpecial(Collection<String> codes) {
         if (codes == null || codes.isEmpty()) {

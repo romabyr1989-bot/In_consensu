@@ -82,4 +82,39 @@ class EvidenceValidatorTest {
         assertThat(masked).containsEntry("phone", "***").containsEntry("otpHash", "***");
         assertThat(masked).containsEntry("accountId", "lk-1");
     }
+
+    /**
+     * FR-4.2: телефон SMS-подписи задан в E.164.
+     *
+     * <p>Значение в произвольном виде формально заполнено, но сопоставить его с абонентом нельзя — как
+     * доказательство подписания оно не работает. Раньше формат не проверялся вовсе.
+     */
+    @Test
+    void phone_of_an_sms_signature_must_be_in_e164() {
+        assertThat(EvidenceValidator.malformedFields(SignatureType.SIMPLE_ES_SMS, evidenceWithPhone("+79160000041")))
+                .isEmpty();
+
+        assertThat(EvidenceValidator.malformedFields(SignatureType.SIMPLE_ES_SMS, evidenceWithPhone("8 916 000-00-41")))
+                .containsExactly("phone");
+        assertThat(EvidenceValidator.malformedFields(SignatureType.SIMPLE_ES_SMS, evidenceWithPhone("телефон клиента")))
+                .containsExactly("phone");
+    }
+
+    /** Пустое поле — это отсутствующее доказательство, а не неверный формат: сообщения разные. */
+    @Test
+    void a_missing_phone_is_not_reported_as_malformed() {
+        assertThat(EvidenceValidator.malformedFields(SignatureType.SIMPLE_ES_SMS, Map.of()))
+                .isEmpty();
+        assertThat(EvidenceValidator.missingFields(SignatureType.SIMPLE_ES_SMS, Map.of()))
+                .contains("phone");
+    }
+
+    private static Map<String, Object> evidenceWithPhone(String phone) {
+        return Map.of(
+                "phone", phone,
+                "otpVerifiedAt", "2026-08-20T10:00:00Z",
+                "otpHash", "hash",
+                "ip", "10.0.0.1",
+                "userAgent", "Mozilla");
+    }
 }

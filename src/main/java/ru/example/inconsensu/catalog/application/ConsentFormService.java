@@ -339,6 +339,7 @@ public class ConsentFormService {
                     item.getPurposes(),
                     item.getPdnCategories(),
                     pdnCategories.anySpecial(item.getPdnCategories()),
+                    pdnCategories.mixesSpecialWithOrdinary(item.getPdnCategories()),
                     thirdParty == null ? null : thirdParty.getName(),
                     thirdParty == null ? null : thirdParty.getAddress(),
                     item.isMandatory(),

@@ -123,14 +123,7 @@ public class ConsentRegistrationService {
         requireUsableForm(form, request.source(), grantedAt);
 
         SignatureType signatureType = request.signatureType();
-        List<String> missing = EvidenceValidator.missingFields(signatureType, request.evidence());
-        if (!missing.isEmpty()) {
-            throw ApiException.validation(
-                    "Неполный состав доказательств для способа подписания " + signatureType.nameRu(),
-                    missing.stream()
-                            .map(field -> new ValidationErrorItem("evidence." + field, "Поле обязательно (FR-4.2)"))
-                            .toList());
-        }
+        requireValidEvidence(signatureType, request.evidence());
 
         Subject subject = resolveSubject(request);
         String evidenceJson = toJson(request.evidence());
@@ -274,6 +267,15 @@ public class ConsentRegistrationService {
                                         previous.getId().toString(),
                                         "reason",
                                         "зарегистрировано задним числом"));
+                        // §8.6 и FR-9.4: внешний эффект уходит через outbox в этой же транзакции. Без
+                        // события потребитель видел по этому согласию только consent.granted и наивно
+                        // считал бы его эффективным, хотя оно уже замещено.
+                        events.publishEvent(CusEvent.of(
+                                AGGREGATE_TYPE,
+                                newer.getId().toString(),
+                                EventTypes.CONSENT_SUPERSEDED,
+                                newer.getSubjectId(),
+                                Map.of("supersededByConsentId", previous.getId().toString())));
                         return;
                     }
                     previous.supersedeBy(newer);
@@ -291,6 +293,27 @@ public class ConsentRegistrationService {
                             previous.getSubjectId(),
                             Map.of("supersededByConsentId", newer.getId().toString())));
                 });
+    }
+
+    /**
+     * Состав и формат доказательств по способу подписания (FR-4.2).
+     *
+     * <p>Формат проверяется отдельно от наличия: телефон, записанный как «8 916 …», формально заполнен,
+     * но сопоставить его с абонентом нельзя — как доказательство он не работает.
+     */
+    private static void requireValidEvidence(SignatureType signatureType, Map<String, Object> evidence) {
+        List<ValidationErrorItem> problems = new ArrayList<>();
+        EvidenceValidator.missingFields(signatureType, evidence)
+                .forEach(field ->
+                        problems.add(new ValidationErrorItem("evidence." + field, "Поле обязательно (FR-4.2)")));
+        EvidenceValidator.malformedFields(signatureType, evidence)
+                .forEach(field -> problems.add(new ValidationErrorItem(
+                        "evidence." + field, "Укажите телефон в формате E.164, например +79160000041 (FR-4.2)")));
+        if (!problems.isEmpty()) {
+            problems.sort(java.util.Comparator.comparing(ValidationErrorItem::field));
+            throw ApiException.validation(
+                    "Неверный состав доказательств для способа подписания " + signatureType.nameRu(), problems);
+        }
     }
 
     /** FR-4.3: срок берётся из пункта формы, иначе из типа, иначе согласие бессрочное. */
@@ -391,14 +414,7 @@ public class ConsentRegistrationService {
             requireUsableForm(forms.get(imported.formId()), imported.source(), imported.grantedAt());
         }
 
-        List<String> missing = EvidenceValidator.missingFields(SignatureType.IMPORTED_LEGACY, imported.evidence());
-        if (!missing.isEmpty()) {
-            throw ApiException.validation(
-                    "Неполный состав доказательств для импортированного согласия",
-                    missing.stream()
-                            .map(field -> new ValidationErrorItem("evidence." + field, "Поле обязательно (FR-4.2)"))
-                            .toList());
-        }
+        requireValidEvidence(SignatureType.IMPORTED_LEGACY, imported.evidence());
 
         Consent consent = new Consent(
                 UUID.randomUUID(),
