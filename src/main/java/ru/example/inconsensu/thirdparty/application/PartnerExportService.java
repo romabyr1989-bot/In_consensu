@@ -112,6 +112,20 @@ public class PartnerExportService {
         return export;
     }
 
+    /** Что попадёт в файл: число записей и категории ПДн. Показывается в диалоге подтверждения UI-11. */
+    @Transactional(readOnly = true)
+    public ExportPreview preview(UUID thirdPartyId) {
+        ThirdParty thirdParty = thirdParties.get(thirdPartyId);
+        Set<String> allowed = thirdParty.getAllowedPdnCategories();
+        return new ExportPreview(
+                data.countFor(thirdPartyId, allowed, clock.instant()),
+                List.copyOf(allowed),
+                thirdParty.canReceiveData(thirdParties.today()));
+    }
+
+    /** @param allowedToExport выгрузка возможна: партнёр активен и договор действует (FR-7.1) */
+    public record ExportPreview(long recordsCount, List<String> categories, boolean allowedToExport) {}
+
     @Transactional(readOnly = true)
     public List<PartnerExport> listFor(UUID thirdPartyId) {
         return exports.findByThirdPartyIdOrderByRequestedAtDesc(thirdPartyId);

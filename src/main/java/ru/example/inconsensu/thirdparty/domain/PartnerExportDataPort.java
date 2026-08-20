@@ -22,6 +22,14 @@ public interface PartnerExportDataPort {
      */
     List<ExportRow> rowsFor(UUID thirdPartyId, Set<String> allowedCategories, Instant now);
 
+    /**
+     * Сколько субъектов попадёт в выгрузку сейчас.
+     *
+     * <p>Отдельный счётчик, а не размер {@link #rowsFor}: диалог подтверждения UI-11 показывает число до
+     * выгрузки, и читать ради него сами персональные данные незачем.
+     */
+    long countFor(UUID thirdPartyId, Set<String> allowedCategories, Instant now);
+
     /** @param values значения только разрешённых категорий: ключ — код категории ПДн */
     record ExportRow(String externalId, Map<String, String> values) {}
 }

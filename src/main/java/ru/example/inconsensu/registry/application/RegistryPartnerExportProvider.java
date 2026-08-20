@@ -70,6 +70,17 @@ public class RegistryPartnerExportProvider implements PartnerExportDataPort {
         return rows;
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public long countFor(UUID thirdPartyId, Set<String> allowedCategories, Instant now) {
+        return consents.findUsableByThirdParty(thirdPartyId).stream()
+                .filter(consent -> consent.getPdnCategories().stream().anyMatch(allowedCategories::contains))
+                .filter(consent -> baseConsentUsable(consent.getSubjectId()))
+                .map(Consent::getSubjectId)
+                .distinct()
+                .count();
+    }
+
     private Map<String, String> valuesOf(Subject subject, Set<String> categories) {
         Map<String, String> values = new LinkedHashMap<>();
         if (categories.contains("FIO")) {

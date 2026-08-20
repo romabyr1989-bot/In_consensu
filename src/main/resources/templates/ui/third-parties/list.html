@@ -27,28 +27,28 @@
                 <tr th:each="party : ${thirdParties}">
                     <td><a th:href="@{/ui/third-parties/{id}(id=${party.id})}" th:text="${party.name}">ООО «Моменто»</a></td>
                     <td th:text="${party.inn}">7701234567</td>
-                    <td th:text="${party.role.nameRu()}">Обработчик</td>
+                    <td th:text="${party.roleRu}">Обработчик</td>
                     <td>
                         <span th:text="${party.contractNumber}">ДП-2024/17</span>
-                        <span class="badge bg-danger" th:if="${party.contractValidUntil != null and party.contractValidUntil.isBefore(today)}">истёк</span>
-                        <span class="badge bg-warning text-dark"
-                              th:if="${party.contractValidUntil != null and !party.contractValidUntil.isBefore(today) and party.daysUntilContractEnds(today) != null and party.daysUntilContractEnds(today) <= 30}"
-                              th:text="'истекает через ' + ${party.daysUntilContractEnds(today)} + ' дн.'">истекает</span>
+                        <span class="text-muted small" th:if="${!#strings.isEmpty(party.contractUntil)}"
+                              th:text="'до ' + ${party.contractUntil}">до 31.12.2026</span>
+                        <span class="badge" th:if="${!#strings.isEmpty(party.contractBadge)}"
+                              th:classappend="${party.contractBadgeKind}" th:text="${party.contractBadge}">истекает</span>
                     </td>
-                    <td th:text="${#strings.arrayJoin(party.allowedPdnCategories, ', ')}">ФИО, телефон</td>
-                    <td th:with="counts=${consentCounts.get(party.id)}">
-                        <span class="badge bg-success" th:text="${counts != null} ? ${counts.active} : 0"
-                              title="Действующие">10</span>
-                        <span class="badge bg-warning text-dark"
-                              th:text="${counts != null} ? ${counts.expiringSoon} : 0"
+                    <td th:text="${party.categoriesRu}">ФИО, номер телефона</td>
+                    <td>
+                        <span class="badge bg-success" th:text="${party.consentsActive}" title="Действующие">10</span>
+                        <span class="badge bg-warning text-dark" th:text="${party.consentsExpiring}"
                               title="Истекают в ближайшие 30 дней">1</span>
-                        <span class="badge bg-danger" th:text="${counts != null} ? ${counts.revoked} : 0"
-                              title="Отозванные">2</span>
+                        <span class="badge bg-danger" th:text="${party.consentsRevoked}" title="Отозванные">2</span>
                     </td>
                     <td>
                         <span class="badge bg-success" th:if="${party.active}">активно</span>
                         <span class="badge bg-secondary" th:unless="${party.active}">выключено</span>
                     </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(thirdParties)}">
+                    <td colspan="7" class="text-muted">Третьих лиц ещё нет. Добавьте партнёра формой ниже.</td>
                 </tr>
                 </tbody>
             </table>
