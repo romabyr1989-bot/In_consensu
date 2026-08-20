@@ -2,6 +2,7 @@ package ru.example.inconsensu.catalog;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import ru.example.inconsensu.catalog.domain.FormRenderer;
@@ -76,5 +77,62 @@ class FormRendererTest {
     @Test
     void unknown_placeholder_becomes_empty_rather_than_leaking_its_name() {
         assertThat(FormRenderer.render("A{{unknown.thing}}B", Map.of())).isEqualTo("AB");
+    }
+
+    /**
+     * FR-1.6: контрольная сумма описывает документ целиком.
+     *
+     * <p>Раньше в неё входило только тело, поэтому две версии, различающиеся обязательными блоками ч. 4
+     * ст. 9 152-ФЗ или составом пунктов, давали одинаковую сумму — доказательство не различало условия,
+     * на которых клиент дал согласие.
+     */
+    @Test
+    void checksum_covers_the_mandatory_blocks_and_the_items() {
+        var item = new FormRenderer.CanonicalForm.Item(
+                "PDN_PROCESSING", "Согласие на обработку", List.of("заявка"), List.of("FIO"), null, null, true);
+        var base = new FormRenderer.CanonicalForm(BODY, "сбор, хранение", "до отзыва", List.of(item));
+
+        String baseline = FormRenderer.checksum(FormRenderer.renderCanonical(base, OPERATOR));
+
+        assertThat(FormRenderer.checksum(FormRenderer.renderCanonical(
+                        new FormRenderer.CanonicalForm(BODY, "сбор, хранение, передача", "до отзыва", List.of(item)),
+                        OPERATOR)))
+                .as("изменение перечня действий и способов обработки меняет документ")
+                .isNotEqualTo(baseline);
+
+        assertThat(FormRenderer.checksum(FormRenderer.renderCanonical(
+                        new FormRenderer.CanonicalForm(BODY, "сбор, хранение", "письменно", List.of(item)), OPERATOR)))
+                .as("изменение порядка отзыва меняет документ")
+                .isNotEqualTo(baseline);
+
+        var otherCategories = new FormRenderer.CanonicalForm.Item(
+                "PDN_PROCESSING",
+                "Согласие на обработку",
+                List.of("заявка"),
+                List.of("FIO", "PHONE"),
+                null,
+                null,
+                true);
+        assertThat(FormRenderer.checksum(FormRenderer.renderCanonical(
+                        new FormRenderer.CanonicalForm(BODY, "сбор, хранение", "до отзыва", List.of(otherCategories)),
+                        OPERATOR)))
+                .as("расширение перечня категорий ПДн меняет документ")
+                .isNotEqualTo(baseline);
+    }
+
+    /** Перестановка пунктов меняет документ: нумерация в тексте версии становится другой. */
+    @Test
+    void checksum_depends_on_the_order_of_items() {
+        var first = new FormRenderer.CanonicalForm.Item(
+                "PDN_PROCESSING", "Обработка", List.of("заявка"), List.of("FIO"), null, null, true);
+        var second = new FormRenderer.CanonicalForm.Item(
+                "ADVERTISING_EMAIL", "Реклама", List.of("акции"), List.of("EMAIL"), null, "P1Y", false);
+
+        String direct = FormRenderer.checksum(FormRenderer.renderCanonical(
+                new FormRenderer.CanonicalForm(BODY, null, null, List.of(first, second)), OPERATOR));
+        String reversed = FormRenderer.checksum(FormRenderer.renderCanonical(
+                new FormRenderer.CanonicalForm(BODY, null, null, List.of(second, first)), OPERATOR));
+
+        assertThat(direct).isNotEqualTo(reversed);
     }
 }

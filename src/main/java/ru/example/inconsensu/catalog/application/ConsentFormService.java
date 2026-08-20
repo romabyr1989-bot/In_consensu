@@ -279,7 +279,31 @@ public class ConsentFormService {
     public String renderNow(ConsentForm form) {
         Map<String, String> values = new LinkedHashMap<>(operatorValues());
         values.putAll(thirdPartyValues(form));
-        return FormRenderer.renderCanonical(form.getBody(), values);
+        return FormRenderer.renderCanonical(canonicalForm(form), values);
+    }
+
+    /**
+     * Версия формы целиком для канонического рендера (FR-1.5, FR-1.6).
+     *
+     * <p>В сумму входят и обязательные блоки ч. 4 ст. 9 152-ФЗ, и пункты: иначе две версии, различающиеся
+     * только ими, оказывались бы неотличимы по контрольной сумме.
+     */
+    private FormRenderer.CanonicalForm canonicalForm(ConsentForm form) {
+        List<FormRenderer.CanonicalForm.Item> items = form.getItems().stream()
+                .sorted(java.util.Comparator.comparingInt(ConsentFormItem::getSortOrder))
+                .map(item -> new FormRenderer.CanonicalForm.Item(
+                        item.getConsentType().getCode(),
+                        item.getText(),
+                        item.getPurposes(),
+                        item.getPdnCategories(),
+                        item.getThirdPartyId() == null
+                                ? null
+                                : thirdParties.get(item.getThirdPartyId()).getName(),
+                        item.getValidity(),
+                        item.isMandatory()))
+                .toList();
+        return new FormRenderer.CanonicalForm(
+                form.getBody(), form.getProcessingActions(), form.getRevocationProcedure(), items);
     }
 
     public String checksumOf(ConsentForm form) {
