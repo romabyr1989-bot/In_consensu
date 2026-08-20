@@ -13,24 +13,29 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import ru.example.inconsensu.audit.application.AuditQueryService;
 import ru.example.inconsensu.common.domain.AuditEventType;
+import ru.example.inconsensu.ui.application.UiAuditViewService;
 
 /** UI-15: события аудита, журнал доступа к ПДн и проверка целостности. */
 @Controller
 @PreAuthorize("hasAnyRole('AUDITOR','DPO','ADMIN')")
 public class UiAuditController {
 
-    private static final int PAGE_SIZE = 50;
+    /** UI-0.8: размеры страницы фиксированы — 20, 50 или 100. */
+    private static final int DEFAULT_PAGE_SIZE = 20;
 
     private final AuditQueryService queries;
+    private final UiAuditViewService view;
     private final ru.example.inconsensu.audit.application.AuditVerificationService verifications;
     private final ZoneId zone;
 
     public UiAuditController(
             AuditQueryService queries,
             ru.example.inconsensu.audit.application.AuditVerificationService verifications,
+            UiAuditViewService view,
             java.time.Clock clock) {
         this.queries = queries;
         this.verifications = verifications;
+        this.view = view;
         this.zone = clock.getZone();
     }
 
@@ -43,10 +48,11 @@ public class UiAuditController {
             @RequestParam(required = false) LocalDate from,
             @RequestParam(required = false) LocalDate to,
             @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
             Model model) {
         model.addAttribute(
                 "events",
-                queries.events(
+                view.events(
                         new AuditQueryService.EventFilter(
                                 blankToNull(aggregateType),
                                 null,
@@ -57,9 +63,16 @@ public class UiAuditController {
                                 to == null
                                         ? null
                                         : to.plusDays(1).atStartOfDay(zone).toInstant()),
-                        PageRequest.of(page, PAGE_SIZE, Sort.by(Sort.Direction.DESC, "id"))));
+                        pageRequest(page, size)));
         model.addAttribute("eventTypes", AuditEventType.values());
-        model.addAttribute("filter", new Object[] {aggregateType, eventType, actorId, subjectId, from, to});
+        // Выбранные фильтры возвращаются в форму: иначе поля пусты, а таблица отфильтрована (UI-0.8).
+        model.addAttribute("selectedAggregateType", aggregateType);
+        model.addAttribute("selectedEventType", eventType);
+        model.addAttribute("selectedActorId", actorId);
+        model.addAttribute("selectedSubjectId", subjectId);
+        model.addAttribute("selectedFrom", from);
+        model.addAttribute("selectedTo", to);
+        model.addAttribute("pageSize", normalizeSize(size));
         return "ui/audit/events";
     }
 
@@ -67,14 +80,37 @@ public class UiAuditController {
     public String accessLog(
             @RequestParam(required = false) UUID subjectId,
             @RequestParam(required = false) String endpoint,
+            @RequestParam(required = false) LocalDate from,
+            @RequestParam(required = false) LocalDate to,
             @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
             Model model) {
         model.addAttribute(
                 "entries",
-                queries.accessLog(
-                        new AuditQueryService.AccessFilter(null, subjectId, blankToNull(endpoint), null, null),
-                        PageRequest.of(page, PAGE_SIZE, Sort.by(Sort.Direction.DESC, "id"))));
+                view.accessLog(
+                        new AuditQueryService.AccessFilter(
+                                null,
+                                subjectId,
+                                blankToNull(endpoint),
+                                from == null ? null : from.atStartOfDay(zone).toInstant(),
+                                to == null
+                                        ? null
+                                        : to.plusDays(1).atStartOfDay(zone).toInstant()),
+                        pageRequest(page, size)));
+        model.addAttribute("selectedSubjectId", subjectId);
+        model.addAttribute("selectedEndpoint", endpoint);
+        model.addAttribute("selectedFrom", from);
+        model.addAttribute("selectedTo", to);
+        model.addAttribute("pageSize", normalizeSize(size));
         return "ui/audit/access-log";
+    }
+
+    private static PageRequest pageRequest(int page, int size) {
+        return PageRequest.of(Math.max(page, 0), normalizeSize(size), Sort.by(Sort.Direction.DESC, "id"));
+    }
+
+    private static int normalizeSize(int size) {
+        return size == 50 || size == 100 ? size : DEFAULT_PAGE_SIZE;
     }
 
     @GetMapping("/ui/audit/integrity")

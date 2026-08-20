@@ -13,19 +13,41 @@
             <li class="nav-item"><a class="nav-link" th:href="@{/ui/audit/integrity}">Целостность</a></li>
         </ul>
 
-        <form class="row g-2 mb-3" th:action="@{/ui/audit/access-log}" method="get">
-            <div class="col-md-4">
-                <label class="form-label" for="endpoint">Экран или эндпоинт</label>
-                <input class="form-control" id="endpoint" name="endpoint" placeholder="/api/v1/subjects">
-            </div>
-            <div class="col-md-4">
-                <label class="form-label" for="subjectId">Идентификатор клиента</label>
-                <input class="form-control" id="subjectId" name="subjectId">
-            </div>
-            <div class="col-md-4 align-self-end">
-                <button class="btn btn-primary" type="submit">Показать</button>
-            </div>
-        </form>
+        <!-- UI-15: фильтры по экрану, клиенту и периоду; сброс возвращает журнал целиком (UI-0.8). -->
+        <details class="mb-3" th:open="${selectedEndpoint != null or selectedSubjectId != null
+                or selectedFrom != null or selectedTo != null}">
+            <summary class="mb-2">Фильтры</summary>
+            <form class="row g-2" th:action="@{/ui/audit/access-log}" method="get">
+                <div class="col-md-4">
+                    <label class="form-label" for="endpoint">Экран или эндпоинт</label>
+                    <input class="form-control" id="endpoint" name="endpoint" placeholder="/api/v1/subjects"
+                           th:value="${selectedEndpoint}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="subjectId">Идентификатор клиента</label>
+                    <input class="form-control" id="subjectId" name="subjectId" th:value="${selectedSubjectId}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="from">С даты</label>
+                    <input class="form-control" type="date" id="from" name="from" th:value="${selectedFrom}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="to">По дату</label>
+                    <input class="form-control" type="date" id="to" name="to" th:value="${selectedTo}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="size">На странице</label>
+                    <select class="form-select" id="size" name="size">
+                        <option th:each="value : ${ {20, 50, 100} }" th:value="${value}" th:text="${value}"
+                                th:selected="${value == pageSize}">20</option>
+                    </select>
+                </div>
+                <div class="col-12">
+                    <button class="btn btn-primary" type="submit">Показать</button>
+                    <a class="btn btn-outline-secondary" th:href="@{/ui/audit/access-log}">Сбросить фильтры</a>
+                </div>
+            </form>
+        </details>
 
         <table class="table bg-white align-middle">
             <thead>
@@ -34,15 +56,28 @@
             </thead>
             <tbody>
             <tr th:each="entry : ${entries.content}">
-                <td th:text="${#temporals.format(entry.occurredAt, 'dd.MM.yyyy HH:mm')}">17.08.2026 14:05</td>
-                <td><code class="small" th:text="${entry.userId}"></code></td>
+                <td th:text="${entry.occurredAt}">17.08.2026 14:05</td>
+                <td th:text="${entry.user}">Иванова А. А.</td>
                 <td th:text="${entry.endpoint}">/api/v1/subjects/{id}/card</td>
                 <td><code class="small" th:text="${entry.subjectId}"></code></td>
                 <td><code class="small" th:text="${entry.requestId}"></code></td>
             </tr>
+            <tr th:if="${entries.isEmpty()}">
+                <td colspan="5" class="text-muted">Ничего не найдено. Ослабьте фильтры или сбросьте их.</td>
+            </tr>
             </tbody>
         </table>
-        <p class="text-muted" th:if="${entries.isEmpty()}">Ничего не найдено.</p>
+
+        <nav th:if="${entries.totalPages > 1}" aria-label="Страницы журнала">
+            <ul class="pagination">
+                <li class="page-item" th:each="number : ${#numbers.sequence(0, entries.totalPages - 1)}"
+                    th:classappend="${number == entries.number} ? 'active'">
+                    <a class="page-link" th:text="${number + 1}"
+                       th:href="@{/ui/audit/access-log(page=${number},size=${pageSize},endpoint=${selectedEndpoint},
+                           subjectId=${selectedSubjectId},from=${selectedFrom},to=${selectedTo})}">1</a>
+                </li>
+            </ul>
+        </nav>
     </main>
 </div>
 </body>
