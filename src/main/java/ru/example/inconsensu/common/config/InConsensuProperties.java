@@ -2,6 +2,7 @@ package ru.example.inconsensu.common.config;
 
 import java.time.Duration;
 import java.time.ZoneId;
+import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 
@@ -26,8 +27,21 @@ public record InConsensuProperties(
     public record Security(
             @DefaultValue Jwt jwt,
             @DefaultValue Login login,
+            @DefaultValue Cors cors,
             @DefaultValue("true") boolean publicApiDocs,
             @DefaultValue("true") boolean publicMetrics) {}
+
+    /**
+     * NFR-3: CORS настраивается, а не зашивается в код.
+     *
+     * <p>По умолчанию не разрешён ни один источник: интерфейс и API живут на одном домене, а браузерный
+     * доступ из чужого источника — осознанное решение оператора, а не состояние по умолчанию.
+     */
+    public record Cors(
+            @DefaultValue List<String> allowedOrigins,
+            @DefaultValue({"GET", "POST", "PUT", "DELETE", "OPTIONS"}) List<String> allowedMethods,
+            @DefaultValue({"*"}) List<String> allowedHeaders,
+            @DefaultValue("false") boolean allowCredentials) {}
 
     /**
      * @param secret HMAC key, at least 32 bytes. Empty means "generate a random one at start-up", which is fine for a

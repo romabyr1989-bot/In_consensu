@@ -3,6 +3,8 @@ package ru.example.inconsensu.ops;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +20,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 import ru.example.inconsensu.common.domain.ContactType;
+import ru.example.inconsensu.notification.application.WebhookSubscriptionService;
 import ru.example.inconsensu.registry.application.ContactMaintenanceService;
 import ru.example.inconsensu.registry.application.SubjectService;
 import ru.example.inconsensu.registry.domain.Subject;
@@ -74,6 +77,9 @@ class ContactEncryptionIT {
     @Autowired
     private JdbcTemplate jdbc;
 
+    @Autowired
+    private ru.example.inconsensu.notification.application.WebhookSubscriptionService webhooks;
+
     @Test
     void contact_is_stored_encrypted_and_still_searchable() {
         String phone = "+7 916 000-01-" + (10 + (int) (Math.random() * 80));
@@ -116,5 +122,38 @@ class ContactEncryptionIT {
 
         assertThat(first.encryptionEnabled()).isTrue();
         assertThat(second.processed()).isEqualTo(first.processed());
+    }
+
+    /**
+     * §6 прямо требует шифровать `webhook_subscription.secret`: он позволяет подделать подпись доставки.
+     *
+     * <p>Раньше секрет лежал в базе открытым текстом, хотя механизм шифрования уже был и применялся к
+     * контактам субъекта.
+     */
+    @Test
+    void webhook_secret_is_stored_encrypted() {
+        WebhookSubscriptionService.Created created = RunAs.roles(
+                "test-admin",
+                List.of("ADMIN"),
+                () -> webhooks.create(new WebhookSubscriptionService.SubscriptionForm(
+                        "Подписка " + UUID.randomUUID().toString().substring(0, 8),
+                        "https://partner.example/hook",
+                        Set.of("consent.granted"),
+                        Map.of(),
+                        true)));
+
+        String stored = jdbc.queryForObject(
+                "select secret from webhook_subscription where id = ?",
+                String.class,
+                created.subscription().getId());
+
+        assertThat(stored).startsWith("enc:v1:").doesNotContain(created.secret());
+        // Чтение расшифровывает прозрачно: подпись доставки обязана считаться тем же секретом.
+        assertThat(RunAs.roles(
+                                "test-admin",
+                                List.of("ADMIN"),
+                                () -> webhooks.get(created.subscription().getId()))
+                        .getSecret())
+                .isEqualTo(created.secret());
     }
 }

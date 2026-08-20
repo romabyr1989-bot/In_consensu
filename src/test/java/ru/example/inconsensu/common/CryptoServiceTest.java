@@ -22,6 +22,8 @@ class CryptoServiceTest {
                         new InConsensuProperties.Jwt(
                                 "", java.time.Duration.ofMinutes(60), java.time.Duration.ofDays(7), "cus"),
                         new InConsensuProperties.Login(5, java.time.Duration.ofMinutes(15)),
+                        new InConsensuProperties.Cors(
+                                java.util.List.of(), java.util.List.of(), java.util.List.of(), false),
                         true,
                         true),
                 new InConsensuProperties.Bootstrap("", "", "Администратор"),

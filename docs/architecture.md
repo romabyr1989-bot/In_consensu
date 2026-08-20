@@ -123,7 +123,7 @@ flowchart TB
 | Фоновые задачи | `@Scheduled` + ShedLock (таблица в PostgreSQL) | этапы 3, 6 |
 | Внешние эффекты | только через транзакционный outbox в одной транзакции с изменением данных | `notification/application` |
 | Подпись событий | HMAC-SHA256 тела на секрете подписки, заголовок `X-InConsensu-Signature` | [`webhooks.md`](webhooks.md) |
-| Шифрование контактов | AES-256-GCM под флагом `cus.crypto.enabled`, поиск по HMAC | `common/application`, [`runbook.md`](runbook.md) |
+| Шифрование контактов | AES-256-GCM под флагом `inconsensu.crypto.enabled`, поиск по HMAC | `common/application`, [`runbook.md`](runbook.md) |
 | Хранение | архивация отозванных согласий, журналы остаются append-only | [`runbook.md`](runbook.md) |
 | Фоновые запуски | задача ставится после коммита транзакции, а не внутри неё | `common/application/AfterCommitExecutor` |
 | Наблюдаемость | Actuator health / prometheus, Micrometer | `common/config` |

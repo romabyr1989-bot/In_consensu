@@ -32,7 +32,10 @@ public class WebhookSubscription extends AuditableEntity {
     @Column(name = "url", nullable = false, length = 1024)
     private String url;
 
-    @Column(name = "secret", nullable = false, length = 255)
+    // §6 прямо требует шифровать секрет в БД: он позволяет подделать подпись доставки. Конвертер тот же,
+    // что у контактов субъекта; открытые значения, заведённые раньше, читаются как есть (V202608290000).
+    @jakarta.persistence.Convert(converter = ru.example.inconsensu.common.application.EncryptedStringConverter.class)
+    @Column(name = "secret", nullable = false, length = 2048)
     private String secret;
 
     @JdbcTypeCode(SqlTypes.ARRAY)

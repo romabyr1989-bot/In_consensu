@@ -5,7 +5,6 @@ import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -47,6 +46,34 @@ public class SecurityConfig {
         this.problemDetailWriter = problemDetailWriter;
     }
 
+    /**
+     * NFR-3: список источников задаётся настройкой, а не кодом.
+     *
+     * <p>Пустой список по умолчанию означает «CORS выключен»: интерфейс и API живут на одном домене, а
+     * доступ из чужого источника оператор включает осознанно. Раньше вызывался {@code withDefaults()},
+     * и источник молча брался из аннотаций, которых в проекте нет, — настроить CORS было нельзя вовсе.
+     */
+    @Bean
+    public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
+        ru.example.inconsensu.common.config.InConsensuProperties.Cors cors =
+                properties.security().cors();
+        org.springframework.web.cors.UrlBasedCorsConfigurationSource source =
+                new org.springframework.web.cors.UrlBasedCorsConfigurationSource();
+        if (cors == null
+                || cors.allowedOrigins() == null
+                || cors.allowedOrigins().isEmpty()) {
+            return source;
+        }
+        org.springframework.web.cors.CorsConfiguration configuration =
+                new org.springframework.web.cors.CorsConfiguration();
+        configuration.setAllowedOrigins(cors.allowedOrigins());
+        configuration.setAllowedMethods(cors.allowedMethods());
+        configuration.setAllowedHeaders(cors.allowedHeaders());
+        configuration.setAllowCredentials(cors.allowCredentials());
+        source.registerCorsConfiguration("/api/**", configuration);
+        return source;
+    }
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -85,7 +112,7 @@ public class SecurityConfig {
                         "/swagger-ui.html",
                         "/swagger-ui/**")
                 .csrf(csrf -> csrf.disable())
-                .cors(Customizer.withDefaults())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(requests -> requests.requestMatchers(HttpMethod.OPTIONS, "/**")
                         .permitAll()

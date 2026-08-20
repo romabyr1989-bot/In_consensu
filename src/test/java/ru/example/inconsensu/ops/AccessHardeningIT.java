@@ -201,4 +201,21 @@ class AccessHardeningIT extends AbstractIntegrationTest {
                 .findFirst()
                 .orElseThrow();
     }
+
+    /**
+     * §9: страница не больше 200 записей.
+     *
+     * <p>Умолчание Spring Data — 2000, и без явного предела запрос с большим size выгружал бы разом
+     * слишком много персональных данных.
+     */
+    @Test
+    void page_size_is_capped_at_two_hundred() {
+        HttpHeaders admin = accounts.authorizationFor(RoleCode.ADMIN.name());
+
+        ResponseEntity<String> response = restTemplate.exchange(
+                "/api/v1/consents?page=0&size=1000", HttpMethod.GET, new HttpEntity<>(admin), String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).contains("\"size\":200");
+    }
 }

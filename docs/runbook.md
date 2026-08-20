@@ -9,7 +9,7 @@
 |---|---|---|
 | Живость и готовность | `GET /actuator/health` | `UP`; база — `UP` |
 | Метрики | `GET /actuator/prometheus` | см. таблицу ниже |
-| Логи | stdout контейнера, JSON | есть `requestId` у каждой записи |
+| Логи | stdout контейнера, JSON | у каждой записи есть `requestId` и `userId` (NFR-6) |
 | Очередь событий | `cus_outbox_queue`, `cus_outbox_retry` | десятки; рост — признак недоступности потребителя |
 | Недоставленные события | `cus_outbox_failed` | 0; ненулевое значение требует разбора |
 | Неотправленные письма | `cus_notifications_failed` | 0; ненулевое — проблема с SMTP |
@@ -67,7 +67,7 @@ createdb cus && pg_restore --dbname=cus --no-owner cus-2026-08-19.dump
 3. Проверьте `cus_outbox_queue`: события, не доставленные до момента снимка, уйдут повторно — потребители
    обязаны быть идемпотентными по `X-InConsensu-Delivery-Id` (`docs/webhooks.md`).
 
-**Важно про ключ шифрования.** Если включён `cus.crypto.enabled`, дамп базы бесполезен без ключа
+**Важно про ключ шифрования.** Если включён `inconsensu.crypto.enabled`, дамп базы бесполезен без ключа
 `INCONSENSU_CRYPTO_KEY`: контакты в нём зашифрованы. Ключ хранится в хранилище секретов и резервируется отдельно
 от базы — иначе утечка одного носителя раскрывает и данные, и ключ.
 
@@ -85,7 +85,7 @@ INCONSENSU_CRYPTO_KEY=<ключ>
 
 # 3. Перешифровать уже накопленные контакты
 curl -X POST -H "Authorization: Bearer $ADMIN_TOKEN" \
-  https://cus.example.ru/api/v1/maintenance/contacts/reencrypt
+  https://inconsensu.example.ru/api/v1/maintenance/contacts/reencrypt
 ```
 
 Операция идемпотентна: повторный запуск ничего не портит. До её выполнения старые записи остаются
@@ -98,7 +98,7 @@ INCONSENSU_CRYPTO_PREVIOUS_KEY=<старый ключ>
 INCONSENSU_CRYPTO_KEY=<новый ключ>
 # перезапуск, затем
 curl -X POST -H "Authorization: Bearer $ADMIN_TOKEN" \
-  https://cus.example.ru/api/v1/maintenance/contacts/reencrypt
+  https://inconsensu.example.ru/api/v1/maintenance/contacts/reencrypt
 ```
 
 Пока идёт перешифрование, часть записей ещё зашифрована старым ключом — поэтому он и остаётся в
@@ -119,16 +119,16 @@ from subject_contact;
 
 | Настройка | Значение по умолчанию | Смысл |
 |---|---|---|
-| `cus.retention.enabled` | `false` | ночная задача архивации выключена, пока сроки не подтверждены юридической службой |
-| `cus.retention.consents-after-revocation` | `P3Y` | через сколько после отзыва согласие уходит в `consent_archive` |
-| `cus.retention.audit-events` | `P5Y` | срок хранения событий журнала |
-| `cus.retention.partner-exports` | `P30D` | когда очищается тело выгрузки партнёру |
+| `inconsensu.retention.enabled` | `false` | ночная задача архивации выключена, пока сроки не подтверждены юридической службой |
+| `inconsensu.retention.consents-after-revocation` | `P3Y` | через сколько после отзыва согласие уходит в `consent_archive` |
+| `inconsensu.retention.audit-events` | `P5Y` | срок хранения событий журнала |
+| `inconsensu.retention.partner-exports` | `P30D` | когда очищается тело выгрузки партнёру |
 
 Пробный прогон (ничего не меняет, только считает):
 
 ```bash
 curl -X POST -H "Authorization: Bearer $ADMIN_TOKEN" \
-  "https://cus.example.ru/api/v1/maintenance/retention/run?dryRun=true"
+  "https://inconsensu.example.ru/api/v1/maintenance/retention/run?dryRun=true"
 ```
 
 Журнал аудита задача **не чистит**: таблицы append-only на уровне базы (FR-10.2). Отчёт показывает, сколько

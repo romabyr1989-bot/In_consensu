@@ -1,6 +1,12 @@
 spring:
   application:
     name: inconsensu
+  data:
+    web:
+      pageable:
+        # §9: страница не больше 200 записей. Умолчание Spring Data — 2000, и запрос с size=2000
+        # выгружал бы разом слишком много ПДн.
+        max-page-size: 200
   datasource:
     url: ${INCONSENSU_DB_URL:jdbc:postgresql://localhost:5432/inconsensu}
     username: ${INCONSENSU_DB_USER:inconsensu}

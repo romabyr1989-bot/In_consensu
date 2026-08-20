@@ -18,7 +18,7 @@
 ## Подписка
 
 ```bash
-curl -X POST https://cus.example.ru/api/v1/webhooks \
+curl -X POST https://inconsensu.example.ru/api/v1/webhooks \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -124,8 +124,8 @@ if not hmac.compare_digest(expected, request.headers["X-InConsensu-Signature"]):
 ## Проверка настройки
 
 ```bash
-curl -X POST https://cus.example.ru/api/v1/webhooks/$ID/test -H "Authorization: Bearer $TOKEN"
-curl https://cus.example.ru/api/v1/webhooks/$ID/deliveries -H "Authorization: Bearer $TOKEN"
+curl -X POST https://inconsensu.example.ru/api/v1/webhooks/$ID/test -H "Authorization: Bearer $TOKEN"
+curl https://inconsensu.example.ru/api/v1/webhooks/$ID/deliveries -H "Authorization: Bearer $TOKEN"
 ```
 
 Первый запрос отправляет `test.ping` и возвращает код ответа вашего сервера, второй показывает журнал
