@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head th:replace="~{ui/fragments/layout :: head('Текст уведомления')}"></head>
+<body>
+<nav th:replace="~{ui/fragments/layout :: topbar}"></nav>
+<div class="ic-layout">
+    <aside th:replace="~{ui/fragments/layout :: sidebar('notifications')}"></aside>
+    <main class="ic-content">
+        <div th:replace="~{ui/fragments/layout :: flash}"></div>
+        <h1 class="h4 mb-1">Текст уведомления</h1>
+        <p class="text-muted">
+            <a th:href="@{/ui/notifications(tab='journal')}">← К журналу уведомлений</a>
+        </p>
+
+        <div class="card mb-3">
+            <div class="card-header">Отправка</div>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>Получатель</span><span th:text="${message.recipient}">dpo@example.ru</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>Канал</span><span th:text="${message.channelRu}">письмо</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>Статус</span><span th:text="${message.statusRu}">отправлено</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between">
+                    <span>Создано</span><span th:text="${message.createdAt}">17.08.2026 06:00</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between" th:if="${!#strings.isEmpty(message.sentAt)}">
+                    <span>Отправлено</span><span th:text="${message.sentAt}">17.08.2026 06:01</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between" th:if="${!#strings.isEmpty(message.error)}">
+                    <span>Ошибка</span><span class="text-danger" th:text="${message.error}">SMTP недоступен</span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <div class="card-header" th:text="${message.subjectLine}">In consensu: заканчивается срок согласия</div>
+            <!--
+              Тело письма показывается текстом, а не разметкой: это письмо клиенту или сотруднику, и
+              вставлять его в страницу как HTML означало бы исполнить чужой шаблон в интерфейсе.
+            -->
+            <div class="card-body"><pre class="small mb-0" th:text="${message.body}">Здравствуйте!</pre></div>
+        </div>
+    </main>
+</div>
+</body>
+</html>

@@ -2,6 +2,7 @@ package ru.example.inconsensu.notification.application;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Clock;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -31,6 +32,9 @@ import ru.example.inconsensu.notification.infrastructure.NotificationRepository;
  */
 @Service
 public class NotificationService {
+
+    /** Верхняя граница «без ограничения»: дальше этой даты записей быть не может. */
+    private static final Instant FAR_FUTURE = Instant.parse("9999-12-31T23:59:59Z");
 
     private final NotificationRepository notifications;
     private final UserService users;
@@ -144,6 +148,23 @@ public class NotificationService {
     public Page<Notification> list(Pageable pageable) {
         return notifications.findAllByOrderByCreatedAtDesc(pageable);
     }
+
+    /**
+     * Журнал с фильтрами UI-13: любой из них можно опустить.
+     *
+     * <p>Границы периода подставляются заведомо широкими вместо {@code null}: PostgreSQL не выводит тип
+     * параметра из выражения «? is null», и запрос с необязательной датой падал бы на разборе.
+     */
+    @Transactional(readOnly = true)
+    public Page<Notification> list(JournalFilter filter, Pageable pageable) {
+        Instant from = filter.from() == null ? Instant.EPOCH : filter.from();
+        Instant to = filter.to() == null ? FAR_FUTURE : filter.to();
+        return notifications.search(filter.status(), filter.ruleId(), filter.channel(), from, to, pageable);
+    }
+
+    /** @param to граница исключающая: фильтр «по дату» задаётся началом следующего дня */
+    public record JournalFilter(
+            NotificationStatus status, UUID ruleId, NotificationChannel channel, Instant from, Instant to) {}
 
     @Transactional(readOnly = true)
     public Notification get(UUID id) {
