@@ -31,6 +31,11 @@ import ru.example.inconsensu.notification.domain.Notification;
 public class NotificationDispatcher {
 
     public static final String DIGEST_THRESHOLD_SETTING = "inconsensu.notification.digest-threshold";
+
+    /** Колонки таблицы письма-дайджеста и CSV-вложения (FR-9.2). */
+    private static final List<String> DIGEST_COLUMNS =
+            List.of("subjectFullName", "subjectExternalId", "consentTypeName", "thirdPartyName", "validUntil");
+
     private static final int DEFAULT_DIGEST_THRESHOLD = 20;
 
     private static final Logger LOG = LoggerFactory.getLogger(NotificationDispatcher.class);
@@ -125,18 +130,27 @@ public class NotificationDispatcher {
         return subjectLine == null || subjectLine.isBlank() ? "Уведомления In consensu" : subjectLine;
     }
 
+    /**
+     * Данные уведомления, дополненные до колонок дайджеста.
+     *
+     * <p>Недостающие ключи подставляются пустыми намеренно: Thymeleaf на отсутствующем ключе карты не
+     * возвращает null, а бросает исключение — одно уведомление с иным набором полей (например об отзыве,
+     * где нет срока действия) сорвало бы всё письмо целиком.
+     */
     private Map<String, Object> dataOf(Notification notification) {
+        Map<String, Object> row = new LinkedHashMap<>();
+        DIGEST_COLUMNS.forEach(column -> row.put(column, ""));
         try {
-            return objectMapper.readValue(notification.getData(), DATA_TYPE);
+            row.putAll(objectMapper.readValue(notification.getData(), DATA_TYPE));
         } catch (Exception e) {
-            return Map.of();
+            // Разобрать не удалось: строка останется пустой, но письмо уйдёт с остальными.
         }
+        return row;
     }
 
     /** Колонки CSV повторяют таблицу письма: получателю нужен тот же список, только машиночитаемый. */
     private String toCsv(List<Map<String, Object>> rows) {
-        List<String> columns =
-                List.of("subjectFullName", "subjectExternalId", "consentTypeName", "thirdPartyName", "validUntil");
+        List<String> columns = DIGEST_COLUMNS;
         List<String> headers = List.of("ФИО", "Внешний идентификатор", "Тип согласия", "Третье лицо", "Действует до");
 
         StringBuilder builder = new StringBuilder(String.join(",", headers)).append('\n');

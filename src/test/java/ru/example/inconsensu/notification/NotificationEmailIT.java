@@ -79,6 +79,9 @@ class NotificationEmailIT extends AbstractIntegrationTest {
     @Autowired
     private TestRestTemplate restTemplate;
 
+    @Autowired
+    private ru.example.inconsensu.notification.application.NotificationService notifications;
+
     @Test
     void expiring_consent_produces_an_email_to_the_dpo() {
         String dpoEmail = "dpo-" + UUID.randomUUID().toString().substring(0, 8) + "@example.ru";
@@ -153,6 +156,76 @@ class NotificationEmailIT extends AbstractIntegrationTest {
             assertThat(mailbox).contains("Уведомлений за сегодня");
             assertThat(mailbox).contains("notifications.csv");
             assertThat(rule.getName()).isNotBlank();
+        } finally {
+            RunAs.rolesVoid(
+                    "test-admin",
+                    List.of("ADMIN"),
+                    () -> settings.update(Map.of(NotificationDispatcher.DIGEST_THRESHOLD_SETTING, previousThreshold)));
+        }
+    }
+
+    /**
+     * FR-9.2: дайджест собирается из уведомлений с разным набором полей.
+     *
+     * <p>У письма об отзыве нет срока действия, у письма об истечении он есть. Thymeleaf на отсутствующем
+     * ключе карты не возвращает null, а бросает исключение, поэтому одно «чужое» уведомление срывало всю
+     * сводку целиком. Дефект нашёлся только в CI: локально порядок классов не сводил их в одну группу.
+     */
+    @Test
+    void digest_survives_notifications_with_different_sets_of_fields() {
+        String recipient = "mixed-" + UUID.randomUUID().toString().substring(0, 8) + "@example.ru";
+        String previousThreshold = settings.value(NotificationDispatcher.DIGEST_THRESHOLD_SETTING);
+        RunAs.rolesVoid(
+                "test-admin",
+                List.of("ADMIN"),
+                () -> settings.update(Map.of(NotificationDispatcher.DIGEST_THRESHOLD_SETTING, "1")));
+        try {
+            var rule = RunAs.roles(
+                    "test-admin",
+                    List.of("ADMIN"),
+                    () -> rules.create(new NotificationRuleService.RuleForm(
+                            "Смешанная сводка " + UUID.randomUUID().toString().substring(0, 8),
+                            NotificationTrigger.EXPIRING,
+                            List.of(20),
+                            null,
+                            null,
+                            Set.of(recipient),
+                            Set.of(),
+                            Set.of(NotificationChannel.EMAIL),
+                            true)));
+            UUID ruleId = rule.getId();
+            notifications.enqueue(
+                    ruleId,
+                    null,
+                    null,
+                    "mixed:full:" + recipient,
+                    NotificationChannel.EMAIL,
+                    recipient,
+                    "In consensu: заканчивается срок согласия",
+                    "<html><body>полное</body></html>",
+                    Map.of(
+                            "subjectFullName", "Полевая Мария Ивановна",
+                            "subjectExternalId", "CRM-MIX-1",
+                            "consentTypeName", "Реклама по email",
+                            "thirdPartyName", "",
+                            "validUntil", "01.09.2026"));
+            // Набор полей письма об отзыве: срока действия в нём нет.
+            notifications.enqueue(
+                    ruleId,
+                    null,
+                    null,
+                    "mixed:revoked:" + recipient,
+                    NotificationChannel.EMAIL,
+                    recipient,
+                    "In consensu: согласие отозвано",
+                    "<html><body>отзыв</body></html>",
+                    Map.of("subjectFullName", "Полевая Мария Ивановна", "subjectExternalId", "CRM-MIX-1"));
+
+            assertThat(dispatcher.dispatchNow()).isGreaterThanOrEqualTo(2);
+
+            String mailbox = mailpitSearch(recipient);
+            assertThat(mailbox).contains("Уведомлений за сегодня");
+            assertThat(mailbox).contains("notifications.csv");
         } finally {
             RunAs.rolesVoid(
                     "test-admin",
