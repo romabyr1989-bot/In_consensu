@@ -33,7 +33,7 @@
                 </thead>
                 <tbody>
                 <tr th:each="event : ${history}">
-                    <td th:text="${#temporals.format(event.occurredAt, 'dd.MM.yyyy HH:mm')}">17.08.2026 10:00</td>
+                    <td th:text="${formats.dateTime(event.occurredAt)}">17.08.2026 10:00</td>
                     <td th:text="${event.actorId}">admin</td>
                     <td><pre class="small mb-0" style="white-space: pre-wrap" th:text="${event.payload}">{}</pre></td>
                 </tr>

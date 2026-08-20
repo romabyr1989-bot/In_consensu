@@ -14,9 +14,14 @@
             <h1 class="h3 mb-1" th:text="${card.subject.fullName}">Травин Иван Сергеевич</h1>
             <div class="text-muted">
                 <span th:text="${card.subject.externalId}">CRM-1002345</span>
-                <span th:if="${card.subject.birthDate != null}" th:text="' · ' + ${#temporals.format(card.subject.birthDate, 'dd.MM.yyyy')}"></span>
+                <span th:if="${card.subject.birthDate != null}" th:text="' · ' + ${formats.date(card.subject.birthDate)}"></span>
             </div>
             <div class="mt-2">
+                <!--
+                  UI-0.10: контакт показывается маскированным, а раскрытие — отдельное действие, которое
+                  пишется в журнал доступа к ПДн. Кнопка видна только ролям с правом на контакты; раньше
+                  условия исключали друг друга и «Показать» не появлялось ни у кого.
+                -->
                 <div th:each="contact : ${card.contacts}" class="d-flex align-items-center gap-2">
                     <span class="text-muted small" th:text="${contact.typeRu} + ':'">Телефон:</span>
                     <span th:id="'contact-' + ${contact.type}" th:text="${contact.value}">+7 9** ***-**-41</span>
@@ -116,7 +121,7 @@
             <td>
                 <div th:text="${row.typeNameRu}">Реклама по email</div>
                 <div class="small text-muted" th:if="${row.thirdPartyName != null}"
-                     th:text="${row.thirdPartyName} + ': ' + ${#strings.listJoin(row.categories, ', ')}">
+                     th:text="${row.thirdPartyName} + ': ' + ${row.categoriesRu}">
                     ООО «Моменто»: ФИО, телефон
                 </div>
                 <!-- FR-7.1: передача по действующему согласию, но договор с партнёром закончился. -->
@@ -159,26 +164,31 @@
             <th scope="col">Категории ПДн</th>
             <th scope="col">Действует до</th>
             <th scope="col">Дней осталось</th>
+            <th scope="col">Основание</th>
             <th scope="col">Договор</th>
         </tr>
         </thead>
         <tbody>
         <tr th:each="transfer : ${card.transfers}">
             <td>
-                <div th:text="${transfer.thirdPartyName()}">ООО «Моменто»</div>
-                <div class="small text-muted" th:text="${transfer.thirdPartyRole()}">Обработчик</div>
+                <div th:text="${transfer.thirdPartyName}">ООО «Моменто»</div>
+                <div class="small text-muted" th:text="${transfer.thirdPartyRole}">Обработчик</div>
             </td>
-            <td th:text="${#strings.listJoin(transfer.allowedCategories(), ', ')}">ФИО, телефон</td>
-            <td th:text="${transfer.validUntil()} == null ? 'бессрочно / до отзыва' : ${#temporals.format(transfer.validUntil(), 'dd.MM.yyyy')}">01.09.2026</td>
-            <td th:text="${transfer.daysLeft()}">120</td>
+            <td th:text="${transfer.categoriesRu}">Фамилия, имя, отчество; номер телефона</td>
+            <td th:text="${transfer.validUntil}">01.09.2026</td>
+            <td th:text="${transfer.daysLeft}">120</td>
+            <!-- UI-4: основание — ссылка на согласие, по которому передача разрешена. -->
+            <td><a th:href="@{/ui/consents/{id}(id=${transfer.basisConsentId})}">Согласие-основание</a></td>
             <td>
-                <span class="badge bg-danger" th:if="${transfer.contractExpired()}">договор истёк</span>
-                <span class="badge bg-success" th:unless="${transfer.contractExpired()}">действует</span>
+                <span class="badge bg-danger" th:if="${transfer.contractExpired}">договор истёк</span>
+                <span class="badge bg-success" th:unless="${transfer.contractExpired}">действует</span>
             </td>
+        </tr>
+        <tr th:if="${card.transfers.isEmpty()}">
+            <td colspan="6" class="text-muted">Передач третьим лицам нет.</td>
         </tr>
         </tbody>
     </table>
-    <p class="text-muted mb-0" th:if="${card.transfers.isEmpty()}">Передач третьим лицам нет.</p>
 </div>
 
 <!-- UI-4, вкладка «История» -->
@@ -253,21 +263,50 @@
     </div>
 </div>
 
+<!-- UI-5: ответ на отзыв из досье; сам переход делает заголовок HX-Redirect -->
+<div th:fragment="revocationDone" class="visually-hidden">Согласие отозвано</div>
+
 <!-- UI-0.10: раскрытый контакт возвращается фрагментом на место маскированного -->
 <span th:fragment="contactValue" th:id="'contact-' + ${contact.type}" th:text="${contact.value}">+7 916 000-00-41</span>
 
 <!-- UI-5: диалог отзыва с перечислением последствий -->
 <div th:fragment="revokeDialog">
-    <form th:hx-post="@{/ui/consents/{id}/revoke(id=${consent.consent.id})}" hx-target="#card-body"
-          hx-swap="outerHTML">
+    <!--
+      Диалог открывается из карточки (UI-4) и из досье (UI-4a). Цель обновления зависит от того, откуда
+      пришли: досье не содержит блока карточки, и жёсткая цель #card-body оставляла окно без ответа.
+    -->
+    <!--
+      Форма отправляется и без скриптов: th:action — обычный POST, hx-post — то же самое, но с обновлением
+      блока карточки. §16 требует серверного рендеринга, и отзыв не должен зависеть от того, дошёл ли до
+      браузера htmx. Токен CSRF в обычную форму подставляет Spring Security.
+    -->
+    <form method="post"
+          th:action="${consent != null}
+              ? @{/ui/consents/{id}/revoke(id=${consent.consent.id},returnTo=${returnTo})}
+              : @{/ui/consents/revoke}"
+          th:hx-post="${consent != null}
+              ? @{/ui/consents/{id}/revoke(id=${consent.consent.id},returnTo=${returnTo})}
+              : @{/ui/consents/revoke}"
+          th:hx-target="${returnTo == 'dossier'} ? '#dossier-body' : '#card-body'" hx-swap="outerHTML">
         <div class="modal-header">
             <h2 class="modal-title h5">Отзыв согласия</h2>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
         </div>
         <div class="modal-body">
-            <p class="mb-3">
-                Отзываем: <b th:text="${consent.consent.id}">—</b>
+            <p class="mb-3" th:if="${consent != null}">
+                Отзываем: <b th:text="${consentTitle}">Реклама по email</b>
             </p>
+            <!-- Согласие ещё не выбрано: диалог открыт кнопкой в шапке карточки. -->
+            <div class="mb-3" th:if="${consent == null}">
+                <label class="form-label" for="consentId">Какое согласие отзываем</label>
+                <select class="form-select" id="consentId" name="consentId" required>
+                    <option th:each="candidate : ${revocable}" th:value="${candidate.id}"
+                            th:text="${candidate.title}">Реклама по email</option>
+                </select>
+                <div class="form-text" th:if="${#lists.isEmpty(revocable)}">
+                    Действующих согласий нет — отзывать нечего.
+                </div>
+            </div>
             <div class="form-check mb-3">
                 <input class="form-check-input" type="checkbox" id="allAdvertising" name="allAdvertising" value="true">
                 <label class="form-check-label" for="allAdvertising">

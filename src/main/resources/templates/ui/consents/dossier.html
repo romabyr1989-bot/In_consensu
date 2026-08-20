@@ -19,23 +19,37 @@
 
         <h1 class="h4 mb-3">Досье согласия</h1>
 
+        <div class="alert alert-success" th:if="${revoked}">Согласие отозвано.</div>
+
         <div class="card mb-3">
-            <div class="card-header">Сведения</div>
+            <div class="card-header">Сведения о согласии</div>
             <div class="card-body">
                 <dl class="row mb-0">
+                    <dt class="col-sm-3">Согласие</dt>
+                    <dd class="col-sm-9" th:text="${summary.consentTypeRu}">Реклама по email</dd>
+                    <dt class="col-sm-3">Клиент</dt>
+                    <dd class="col-sm-9">
+                        <a th:href="@{/ui/subjects/{id}(id=${summary.subjectId})}"
+                           th:text="${summary.subjectName}">Травин Иван Сергеевич</a>
+                    </dd>
+                    <dt class="col-sm-3">Статус</dt>
+                    <dd class="col-sm-9" th:text="${summary.statusRu}">действует</dd>
+                    <dt class="col-sm-3">Получено</dt>
+                    <dd class="col-sm-9" th:text="${summary.grantedAt}">12.03.2025 09:41</dd>
+                    <dt class="col-sm-3">Действует до</dt>
+                    <dd class="col-sm-9" th:text="${summary.validUntil}">бессрочно / до отзыва</dd>
+                    <dt class="col-sm-3">Источник</dt>
+                    <dd class="col-sm-9" th:text="${summary.source}">Договор Д-2025/4471</dd>
+                    <dt class="col-sm-3">Способ подписания</dt>
+                    <dd class="col-sm-9" th:text="${summary.signatureTypeRu}">Простая ЭП по SMS</dd>
+                    <dt class="col-sm-3" th:if="${!#strings.isEmpty(summary.revokedAt)}">Отозвано</dt>
+                    <dd class="col-sm-9" th:if="${!#strings.isEmpty(summary.revokedAt)}">
+                        <span th:text="${summary.revokedAt}">02.06.2026 10:15</span>,
+                        <span th:text="${summary.revocationSourceRu}">Звонок в колл-центр</span>
+                        <div class="small text-muted" th:text="${summary.revocationReason}">по просьбе клиента</div>
+                    </dd>
                     <dt class="col-sm-3">Идентификатор</dt>
                     <dd class="col-sm-9"><code th:text="${dossier.consent().id}">—</code></dd>
-                    <dt class="col-sm-3">Статус</dt>
-                    <dd class="col-sm-9" th:text="${dossier.consent().status.nameRu()}">действует</dd>
-                    <dt class="col-sm-3">Получено</dt>
-                    <dd class="col-sm-9" th:text="${#temporals.format(dossier.consent().grantedAt, 'dd.MM.yyyy HH:mm')}">12.03.2025 09:41</dd>
-                    <dt class="col-sm-3">Источник</dt>
-                    <dd class="col-sm-9">
-                        <span th:text="${dossier.consent().source.nameRu()}">Договор</span>
-                        <span th:text="${dossier.consent().sourceRef}">Д-2025/4471</span>
-                    </dd>
-                    <dt class="col-sm-3">Способ подписания</dt>
-                    <dd class="col-sm-9" th:text="${dossier.consent().signatureType.nameRu()}">Простая ЭП по SMS</dd>
                 </dl>
             </div>
         </div>
@@ -92,7 +106,7 @@
                     </thead>
                     <tbody>
                     <tr th:each="event : ${dossier.events()}">
-                        <td th:text="${#temporals.format(event.occurredAt, 'dd.MM.yyyy HH:mm')}">17.08.2026 14:05</td>
+                        <td th:text="${formats.dateTime(event.occurredAt)}">17.08.2026 14:05</td>
                         <td th:text="${event.eventType.nameRu()}">Согласие получено</td>
                         <td th:text="${event.actorId}">admin</td>
                         <td class="text-truncate" style="max-width: 220px"><code th:text="${event.hash}">…</code></td>

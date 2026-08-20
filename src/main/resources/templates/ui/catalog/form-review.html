@@ -52,7 +52,7 @@
                             </div>
                             <div class="small text-muted" th:if="${decision.approved}">
                                 <span th:text="${decision.actor}">Иванова А. А.</span>,
-                                <span th:text="${#temporals.format(decision.decidedAt, 'dd.MM.yyyy HH:mm')}">15.08.2026 11:20</span>
+                                <span th:text="${formats.dateTime(decision.decidedAt)}">15.08.2026 11:20</span>
                             </div>
                             <div class="small" th:if="${decision.approved and !#strings.isEmpty(decision.comment)}"
                                  th:text="${decision.comment}">замечаний нет</div>
@@ -95,7 +95,7 @@
                             </div>
                             <div class="small text-muted">
                                 <span th:text="${entry.actor()}">dpo</span>,
-                                <span th:text="${#temporals.format(entry.at(), 'dd.MM.yyyy HH:mm')}">15.08.2026 11:20</span>
+                                <span th:text="${formats.dateTime(entry.at())}">15.08.2026 11:20</span>
                             </div>
                             <div class="small" th:text="${entry.comment()}">ок</div>
                         </li>

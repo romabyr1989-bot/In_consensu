@@ -199,6 +199,9 @@ public interface ConsentRepository extends JpaRepository<Consent, UUID>, JpaSpec
     @Query("select c from Consent c where c.subjectId = :subjectId and c.supersededById is null")
     List<Consent> findCurrentBySubject(@Param("subjectId") UUID subjectId);
 
+    /** Заменённые согласия субъекта: их добавляет переключатель «Показать заменённые» (UI-4). */
+    List<Consent> findBySubjectIdAndSupersededByIdNotNull(UUID subjectId);
+
     /** То же для пакета субъектов: массовая проверка каналов не должна вырождаться в 10 000 запросов (NFR-1). */
     @Query("select c from Consent c where c.subjectId in :subjectIds and c.supersededById is null")
     List<Consent> findCurrentBySubjects(@Param("subjectIds") java.util.Collection<UUID> subjectIds);

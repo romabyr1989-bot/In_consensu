@@ -46,24 +46,24 @@
                 <li class="list-group-item d-flex justify-content-between">
                     <span>Создана</span>
                     <span>
-                        <span th:text="${#temporals.format(form.form().createdAt, 'dd.MM.yyyy HH:mm')}">01.08.2026 10:00</span>,
+                        <span th:text="${formats.dateTime(form.form().createdAt)}">01.08.2026 10:00</span>,
                         <span th:text="${form.form().createdBy} ?: '—'">lawyer</span>
                     </span>
                 </li>
                 <li class="list-group-item d-flex justify-content-between">
                     <span>Изменена</span>
                     <span>
-                        <span th:text="${#temporals.format(form.form().updatedAt, 'dd.MM.yyyy HH:mm')}">02.08.2026 12:30</span>,
+                        <span th:text="${formats.dateTime(form.form().updatedAt)}">02.08.2026 12:30</span>,
                         <span th:text="${form.form().updatedBy} ?: '—'">lawyer</span>
                     </span>
                 </li>
                 <li class="list-group-item d-flex justify-content-between" th:if="${form.form().submittedAt != null}">
                     <span>Отправлена на согласование</span>
-                    <span th:text="${#temporals.format(form.form().submittedAt, 'dd.MM.yyyy HH:mm')}">03.08.2026 09:15</span>
+                    <span th:text="${formats.dateTime(form.form().submittedAt)}">03.08.2026 09:15</span>
                 </li>
                 <li class="list-group-item d-flex justify-content-between" th:if="${form.form().publishedAt != null}">
                     <span>Опубликована</span>
-                    <span th:text="${#temporals.format(form.form().publishedAt, 'dd.MM.yyyy HH:mm')}">05.08.2026 09:15</span>
+                    <span th:text="${formats.dateTime(form.form().publishedAt)}">05.08.2026 09:15</span>
                 </li>
                 <li class="list-group-item d-flex justify-content-between"
                     th:if="${form.form().status.name() == 'PUBLISHED' or form.form().status.name() == 'ARCHIVED'}">

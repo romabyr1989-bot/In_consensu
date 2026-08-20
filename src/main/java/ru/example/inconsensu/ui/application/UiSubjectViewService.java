@@ -21,6 +21,7 @@ import ru.example.inconsensu.common.domain.ContactType;
 import ru.example.inconsensu.common.error.ApiException;
 import ru.example.inconsensu.common.error.ErrorCode;
 import ru.example.inconsensu.common.security.CurrentUser;
+import ru.example.inconsensu.registry.application.ConsentEvidenceService;
 import ru.example.inconsensu.registry.application.ConsentQueryService;
 import ru.example.inconsensu.registry.application.ConsentRegistrationService;
 import ru.example.inconsensu.registry.application.RevocationService;
@@ -48,7 +49,7 @@ public class UiSubjectViewService {
             List<ChannelTile> channels,
             String summaryRu,
             List<ConsentRow> consents,
-            List<TransferEvaluator.TransferPermission> transfers) {}
+            List<TransferRow> transfers) {}
 
     public record ContactView(ContactType type, String typeRu, String value, boolean masked) {}
 
@@ -57,11 +58,42 @@ public class UiSubjectViewService {
             CommunicationChannel channel, String nameRu, boolean allowed, String validUntil, String reasonRu) {}
 
     /** @param thirdPartyContractExpired FR-7.1: договор с партнёром закончился, передача больше не законна */
+    /**
+     * Строка вкладки «Передачи третьим лицам» (UI-4).
+     *
+     * @param basisConsentId согласие-основание: §16 требует ссылку на него прямо во вкладке
+     */
+    public record TransferRow(
+            String thirdPartyName,
+            String thirdPartyRole,
+            String categoriesRu,
+            String validUntil,
+            String daysLeft,
+            UUID basisConsentId,
+            boolean contractExpired) {}
+
+    /** Блок «Сведения о согласии» в досье (UI-4a). */
+    public record DossierSummary(
+            String consentTypeRu,
+            String subjectName,
+            UUID subjectId,
+            String statusRu,
+            String grantedAt,
+            String validUntil,
+            String source,
+            String signatureTypeRu,
+            String revokedAt,
+            String revocationSourceRu,
+            String revocationReason) {}
+
+    /** Согласие, которое можно отозвать: выбор в диалоге, открытом из шапки карточки (UI-4). */
+    public record RevocableConsent(UUID id, String title) {}
+
     public record ConsentRow(
             ConsentQueryService.ConsentView view,
             String typeNameRu,
             String thirdPartyName,
-            List<String> categories,
+            String categoriesRu,
             String grantedAt,
             String validUntil,
             String source,
@@ -86,6 +118,7 @@ public class UiSubjectViewService {
     private final AuditIntegrityService integrity;
     private final PdnAccessLogService pdnAccessLog;
     private final UiFormats formats;
+    private final ru.example.inconsensu.common.application.PdnCategoryService pdnCategories;
 
     public UiSubjectViewService(
             SubjectService subjects,
@@ -97,7 +130,8 @@ public class UiSubjectViewService {
             AuditQueryService audit,
             AuditIntegrityService integrity,
             PdnAccessLogService pdnAccessLog,
-            UiFormats formats) {
+            UiFormats formats,
+            ru.example.inconsensu.common.application.PdnCategoryService pdnCategories) {
         this.subjects = subjects;
         this.cards = cards;
         this.consents = consents;
@@ -108,6 +142,7 @@ public class UiSubjectViewService {
         this.integrity = integrity;
         this.pdnAccessLog = pdnAccessLog;
         this.formats = formats;
+        this.pdnCategories = pdnCategories;
     }
 
     @Transactional(readOnly = true)
@@ -139,17 +174,23 @@ public class UiSubjectViewService {
     @Transactional(readOnly = true)
     public CardView card(UUID subjectId, boolean showSuperseded) {
         SubjectCardService.SubjectCard card = cards.cardOf(subjectId);
-        boolean fullContacts = ContactAccessPolicy.seesFullContacts(CurrentUser.roles());
+        // UI-0.10: в карточке контакт всегда маскирован, а раскрытие — отдельное действие с записью в
+        // журнал доступа к ПДн. Роль решает не «видно сразу», а «можно ли нажать «Показать»».
         return new CardView(
                 card.subject(),
-                contactsOf(card.subject(), fullContacts),
+                contactsOf(card.subject(), false),
                 tiles(card.channels()),
                 card.summaryRu(),
-                card.consents().stream()
-                        .filter(view -> showSuperseded || view.status() != ConsentStatus.SUPERSEDED)
+                // Заменённые в выборку карточки не попадают (SQL отсекает их по supersededById), поэтому
+                // переключатель UI-4 дозапрашивает их отдельно, а не фильтрует уже отфильтрованное.
+                java.util.stream.Stream.concat(
+                                card.consents().stream(),
+                                showSuperseded
+                                        ? consents.supersededOf(subjectId).stream()
+                                        : java.util.stream.Stream.of())
                         .map(this::row)
                         .toList(),
-                card.transfers());
+                transfers(card.transfers()));
     }
 
     @Transactional(readOnly = true)
@@ -235,6 +276,75 @@ public class UiSubjectViewService {
         return consents.get(consentId);
     }
 
+    /**
+     * Название отзываемого согласия для диалога UI-5.
+     *
+     * <p>Диалог печатал идентификатор: «Отзываем: 6f1c1c9e-…». Сотрудник по такой строке не может
+     * убедиться, что отзывает именно то согласие.
+     */
+    @Transactional(readOnly = true)
+    public String consentTitle(UUID consentId) {
+        return titleOf(consents.get(consentId));
+    }
+
+    /** UI-4a: сведения о согласии — тип и субъект по идентификаторам, даты в формате UI-0.4. */
+    @Transactional(readOnly = true)
+    public DossierSummary dossierSummary(ConsentEvidenceService.Dossier dossier) {
+        var consent = dossier.consent();
+        Subject subject = subjects.get(consent.getSubjectId());
+        var view = consents.view(consent);
+        return new DossierSummary(
+                titleOf(view),
+                subject.getFullName(),
+                subject.getId(),
+                view.statusText(),
+                formats.dateTime(consent.getGrantedAt()),
+                formats.validUntil(consent.getValidUntil()),
+                consent.getSource().nameRu()
+                        + (consent.getSourceRef() == null
+                                        || consent.getSourceRef().isBlank()
+                                ? ""
+                                : " " + consent.getSourceRef()),
+                consent.getSignatureType().nameRu(),
+                consent.getRevokedAt() == null ? "" : formats.dateTime(consent.getRevokedAt()),
+                consent.getRevocationSource() == null
+                        ? ""
+                        : consent.getRevocationSource().nameRu(),
+                consent.getRevocationReason() == null ? "" : consent.getRevocationReason());
+    }
+
+    /** UI-4: согласия, которые можно отозвать сейчас, — для выбора в диалоге из шапки карточки. */
+    @Transactional(readOnly = true)
+    public List<RevocableConsent> revocableConsents(UUID subjectId) {
+        return consents.cardConsentsOf(subjectId).stream()
+                .filter(view -> view.status() == ConsentStatus.ACTIVE || view.status() == ConsentStatus.EXPIRING)
+                .map(view -> new RevocableConsent(view.consent().getId(), titleOf(view)))
+                .toList();
+    }
+
+    private String titleOf(ConsentQueryService.ConsentView view) {
+        var consent = view.consent();
+        String title = types.get(consent.getConsentTypeId()).getNameRu();
+        if (consent.getThirdPartyId() != null) {
+            title += " — " + thirdPartyName(consent.getThirdPartyId());
+        }
+        String categories = categoryNames(consent.getPdnCategories());
+        return categories.isBlank() ? title : title + ": " + categories;
+    }
+
+    /** Категории ПДн по-русски: в согласии они хранятся кодами справочника (UI-0.4). */
+    private String categoryNames(List<String> codes) {
+        if (codes == null || codes.isEmpty()) {
+            return "";
+        }
+        Map<String, String> names = pdnCategories.activeCategories().stream()
+                .collect(Collectors.toMap(
+                        ru.example.inconsensu.common.domain.PdnCategory::getCode,
+                        ru.example.inconsensu.common.domain.PdnCategory::getNameRu,
+                        (first, second) -> first));
+        return codes.stream().map(code -> names.getOrDefault(code, code)).collect(Collectors.joining(", "));
+    }
+
     @Transactional(readOnly = true)
     public List<ConsentRow> previewCascade(UUID consentId) {
         return revocation.previewCascade(consentId).stream()
@@ -269,6 +379,19 @@ public class UiSubjectViewService {
                 .formatted(formats.dateTime(first.revokedAt()), first.caseNumber(), total);
     }
 
+    private List<TransferRow> transfers(List<TransferEvaluator.TransferPermission> permissions) {
+        return permissions.stream()
+                .map(permission -> new TransferRow(
+                        permission.thirdPartyName(),
+                        permission.thirdPartyRole(),
+                        categoryNames(permission.allowedCategories()),
+                        formats.validUntil(permission.validUntil()),
+                        permission.daysLeft() == null ? "бессрочно" : String.valueOf(permission.daysLeft()),
+                        permission.basisConsentId(),
+                        permission.contractExpired()))
+                .toList();
+    }
+
     private ConsentRow row(ConsentQueryService.ConsentView view) {
         var consent = view.consent();
         var type = types.get(consent.getConsentTypeId());
@@ -276,7 +399,7 @@ public class UiSubjectViewService {
                 view,
                 type.getNameRu(),
                 consent.getThirdPartyId() == null ? null : thirdPartyName(consent.getThirdPartyId()),
-                consent.getPdnCategories(),
+                categoryNames(consent.getPdnCategories()),
                 formats.date(consent.getGrantedAt()),
                 formats.validUntil(consent.getValidUntil()),
                 consent.getSource().nameRu()
@@ -293,6 +416,30 @@ public class UiSubjectViewService {
         return thirdParties.get(thirdPartyId).getName();
     }
 
+    /**
+     * Причина запрета с датой: «согласие отозвано 02.06.2026», «истекло 01.05.2026» (UI-4).
+     *
+     * <p>Без даты сотрудник не может ответить клиенту, когда именно тот отказался, и вынужден лезть в
+     * историю; §16 требует дату прямо в подписи плитки.
+     */
+    private String reasonWithDate(ChannelDecision decision) {
+        if (decision == null) {
+            return "нет согласия";
+        }
+        String reason = ChannelSummaryComposer.reasonText(decision.reason());
+        var blocking = decision.blocking();
+        if (blocking == null) {
+            return reason;
+        }
+        return switch (decision.reason()) {
+            case REVOKED -> blocking.revokedAt() == null
+                    ? reason
+                    : "согласие отозвано " + formats.date(blocking.revokedAt());
+            case EXPIRED -> blocking.validUntil() == null ? reason : "истекло " + formats.date(blocking.validUntil());
+            default -> reason;
+        };
+    }
+
     private List<ChannelTile> tiles(List<ChannelDecision> decisions) {
         Map<CommunicationChannel, ChannelDecision> byChannel =
                 decisions.stream().collect(Collectors.toMap(ChannelDecision::channel, decision -> decision));
@@ -307,7 +454,7 @@ public class UiSubjectViewService {
                             allowed && decision.basis() != null
                                     ? formats.validUntil(decision.basis().validUntil())
                                     : "",
-                            decision == null ? "нет согласия" : ChannelSummaryComposer.reasonText(decision.reason()));
+                            reasonWithDate(decision));
                 })
                 .toList();
     }

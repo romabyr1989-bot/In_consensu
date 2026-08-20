@@ -55,7 +55,7 @@
             <tbody>
             <tr th:each="job : ${jobs}">
                 <td><a th:href="@{/ui/import/{id}(id=${job.id})}" th:text="${job.fileName}">clients.csv</a></td>
-                <td th:text="${#temporals.format(job.startedAt, 'dd.MM.yyyy HH:mm')}">17.08.2026 10:00</td>
+                <td th:text="${formats.dateTime(job.startedAt)}">17.08.2026 10:00</td>
                 <td th:text="${job.startedBy}">dpo</td>
                 <td th:text="${job.dryRun} ? 'пробный' : 'боевой'">пробный</td>
                 <td th:text="${job.status.nameRu()}">завершено</td>

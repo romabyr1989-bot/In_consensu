@@ -7,6 +7,7 @@ public enum RevocationSource {
     WRITTEN_REQUEST("Письменное заявление"),
     CALL_CENTER("Звонок в колл-центр"),
     EMAIL_REQUEST("Обращение по email"),
+    OFFICE("Обращение в офисе"),
     CASCADE("Каскадный отзыв");
 
     private final String nameRu;

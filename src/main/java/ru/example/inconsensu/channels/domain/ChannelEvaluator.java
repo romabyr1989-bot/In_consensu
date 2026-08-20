@@ -48,7 +48,8 @@ public final class ChannelEvaluator {
         if (!baseAlive) {
             return ChannelDecision.denied(channel, ChannelDenyReason.BASE_CONSENT_MISSING);
         }
-        return ChannelDecision.denied(channel, reasonFor(channel, consents));
+        Denial denial = reasonFor(channel, consents);
+        return ChannelDecision.denied(channel, denial.reason(), denial.blocking());
     }
 
     public static boolean hasUsableBaseConsent(List<ConsentSnapshot> consents) {
@@ -63,19 +64,31 @@ public final class ChannelEvaluator {
      * <p>Отзыв важнее истечения: если клиент отозвал согласие, сотрудник должен увидеть именно это, а не
      * «истекло» по давно прошедшему сроку того же согласия.
      */
-    private static ChannelDenyReason reasonFor(CommunicationChannel channel, List<ConsentSnapshot> consents) {
+    private static Denial reasonFor(CommunicationChannel channel, List<ConsentSnapshot> consents) {
         List<ConsentSnapshot> matching =
                 consents.stream().filter(consent -> consent.covers(channel)).toList();
 
         if (matching.isEmpty()) {
-            return ChannelDenyReason.NO_CONSENT;
+            return new Denial(ChannelDenyReason.NO_CONSENT, null);
         }
-        if (matching.stream().anyMatch(consent -> consent.status() == ConsentStatus.REVOKED)) {
-            return ChannelDenyReason.REVOKED;
+        Optional<ConsentSnapshot> revoked = latest(matching, ConsentStatus.REVOKED);
+        if (revoked.isPresent()) {
+            return new Denial(ChannelDenyReason.REVOKED, revoked.get());
         }
-        if (matching.stream().anyMatch(consent -> consent.status() == ConsentStatus.EXPIRED)) {
-            return ChannelDenyReason.EXPIRED;
+        Optional<ConsentSnapshot> expired = latest(matching, ConsentStatus.EXPIRED);
+        if (expired.isPresent()) {
+            return new Denial(ChannelDenyReason.EXPIRED, expired.get());
         }
-        return ChannelDenyReason.NO_CONSENT;
+        return new Denial(ChannelDenyReason.NO_CONSENT, null);
     }
+
+    /** Из нескольких согласий одного статуса берётся последнее: его дату и увидит сотрудник. */
+    private static Optional<ConsentSnapshot> latest(List<ConsentSnapshot> consents, ConsentStatus status) {
+        return consents.stream()
+                .filter(consent -> consent.status() == status)
+                .max(Comparator.comparing(ConsentSnapshot::grantedAt));
+    }
+
+    /** @param blocking согласие, из-за которого канал закрыт; {@code null}, если согласия нет вовсе */
+    private record Denial(ChannelDenyReason reason, ConsentSnapshot blocking) {}
 }

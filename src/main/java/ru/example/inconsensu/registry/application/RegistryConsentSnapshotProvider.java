@@ -65,7 +65,8 @@ public class RegistryConsentSnapshotProvider implements SubjectConsentPort {
                             type.getChannels(),
                             view.status(),
                             view.consent().getGrantedAt(),
-                            view.consent().getValidUntil());
+                            view.consent().getValidUntil(),
+                            view.consent().getRevokedAt());
                 })
                 .toList();
     }

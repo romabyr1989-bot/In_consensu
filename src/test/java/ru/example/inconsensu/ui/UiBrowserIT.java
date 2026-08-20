@@ -56,6 +56,12 @@ class UiBrowserIT extends AbstractIntegrationTest {
     @Autowired
     private ConsentRegistrationService registration;
 
+    @Autowired
+    private ru.example.inconsensu.registry.application.ConsentQueryService consents;
+
+    @Autowired
+    private ru.example.inconsensu.catalog.application.ConsentTypeService types;
+
     private WebClient browser;
 
     @BeforeEach
@@ -132,6 +138,50 @@ class UiBrowserIT extends AbstractIntegrationTest {
         // Явный тип: querySelector обобщённый, и вывод типа делает вызов assertThat неоднозначным.
         org.htmlunit.html.DomElement typeField = page.querySelector("#items .ic-item [name='items[0].typeCode']");
         assertThat(typeField).as("поля нового пункта нумеруются с нуля").isNotNull();
+    }
+
+    /**
+     * §16.5: сценарий «отзыв → канал запрещён» проходится через интерфейс браузерным клиентом.
+     *
+     * <p>MockMvc-проверки этого сценария уже есть, но приёмка §16 требует именно браузерного прохода:
+     * форма отзыва отправляется как сотрудником, а карточка перечитывается заново.
+     */
+    @Test
+    void revocation_through_the_browser_closes_the_channel() throws Exception {
+        AppUser manager = accounts.create(RoleCode.ADMIN.name());
+        Consent consent = advertisingConsent();
+        signIn(manager);
+
+        HtmlPage card = browser.getPage("http://localhost/ui/subjects/" + consent.getSubjectId());
+        assertThat(card.asNormalizedText()).contains("Электронная почта").contains("можно");
+
+        HtmlPage dialog = browser.getPage("http://localhost/ui/consents/" + consent.getId() + "/revocation-dialog");
+        // UI-5: диалог называет отзываемое согласие, а не его идентификатор.
+        assertThat(dialog.asNormalizedText()).contains("Реклама по email");
+
+        HtmlTextInput caseNumber = dialog.querySelector("#caseNumber");
+        caseNumber.type("ОБР-БРАУЗЕР-1");
+        org.htmlunit.html.HtmlTextArea reason = dialog.querySelector("#reason");
+        reason.type("клиент попросил прекратить рекламу");
+        org.htmlunit.html.HtmlSelect source = dialog.querySelector("#revocationSource");
+        source.setSelectedAttribute("CALL_CENTER", true);
+        ((HtmlButton) dialog.querySelector("button[type=submit]")).click();
+
+        HtmlPage afterRevoke = browser.getPage("http://localhost/ui/subjects/" + consent.getSubjectId());
+        assertThat(afterRevoke.asNormalizedText())
+                .as("канал обязан закрыться сразу после отзыва")
+                .contains("Реклама по email запрещена: согласие отозвано");
+    }
+
+    /** Рекламное согласие того же клиента: по нему проверяется закрытие канала после отзыва. */
+    private Consent advertisingConsent() {
+        Consent any = registerConsent();
+        return consents.currentConsentsOf(any.getSubjectId()).stream()
+                .map(ru.example.inconsensu.registry.application.ConsentQueryService.ConsentView::consent)
+                .filter(consent ->
+                        types.get(consent.getConsentTypeId()).getCode().equals("ADVERTISING_EMAIL"))
+                .findFirst()
+                .orElseThrow();
     }
 
     private void signIn(AppUser user) throws Exception {

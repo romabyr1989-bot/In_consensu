@@ -96,6 +96,17 @@ public class ConsentQueryService {
                 .toList();
     }
 
+    /**
+     * Заменённые согласия субъекта (UI-4, переключатель «Показать заменённые»).
+     *
+     * <p>Выборка карточки отсекает их в SQL по {@code supersededById is null}, поэтому фильтр в памяти
+     * ничего не добавлял: переключатель на экране был, а заменённые не появлялись.
+     */
+    @Transactional(readOnly = true)
+    public List<ConsentView> supersededOf(UUID subjectId) {
+        return view(consents.findBySubjectIdAndSupersededByIdNotNull(subjectId));
+    }
+
     /** Полная история, включая заменённые и отозванные (FR-5.1). */
     @Transactional(readOnly = true)
     public List<ConsentView> historyOf(UUID subjectId) {

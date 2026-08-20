@@ -12,6 +12,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 import ru.example.inconsensu.common.domain.CommunicationChannel;
 import ru.example.inconsensu.common.domain.ContactType;
@@ -173,12 +174,49 @@ public class UiSubjectController {
         return "ui/subjects/fragments :: contactValue";
     }
 
+    /**
+     * Источники обращения, которые выбирает сотрудник (UI-5).
+     *
+     * <p>Остальные значения перечисления проставляет система: личный кабинет и мобильное приложение —
+     * самообслуживание клиента, каскад — сам движок отзыва (ADR-0080).
+     */
+    private static final List<RevocationSource> EMPLOYEE_SOURCES = List.of(
+            RevocationSource.WRITTEN_REQUEST,
+            RevocationSource.CALL_CENTER,
+            RevocationSource.EMAIL_REQUEST,
+            RevocationSource.OFFICE);
+
     /** UI-5: список согласий, которые погаснут вместе с выбранным. */
     @GetMapping("/ui/consents/{id}/revocation-dialog")
-    public String revocationDialog(@PathVariable UUID id, Model model) {
+    public String revocationDialog(
+            @PathVariable UUID id, @RequestParam(defaultValue = "card") String returnTo, Model model) {
         model.addAttribute("consent", view.consent(id));
+        model.addAttribute("consentTitle", view.consentTitle(id));
         model.addAttribute("cascade", view.previewCascade(id));
-        model.addAttribute("sources", RevocationSource.values());
+        model.addAttribute("sources", EMPLOYEE_SOURCES);
+        model.addAttribute("returnTo", "dossier".equals(returnTo) ? "dossier" : "card");
+        model.addAttribute("revocable", List.of());
+        return "ui/subjects/fragments :: revokeDialog";
+    }
+
+    /**
+     * UI-4: кнопка «Отозвать согласие» в шапке карточки.
+     *
+     * <p>Раньше кнопка вела на несуществующий маршрут и не делала ничего. Здесь согласие ещё не выбрано,
+     * поэтому диалог открывается со списком отзываемых согласий клиента.
+     */
+    @GetMapping("/ui/subjects/{id}/revocation-dialog")
+    public String subjectRevocationDialog(@PathVariable UUID id, Model model) {
+        List<UiSubjectViewService.RevocableConsent> revocable = view.revocableConsents(id);
+        if (revocable.size() == 1) {
+            return revocationDialog(revocable.getFirst().id(), "card", model);
+        }
+        model.addAttribute("revocable", revocable);
+        model.addAttribute("sources", EMPLOYEE_SOURCES);
+        model.addAttribute("returnTo", "card");
+        // Согласие ещё не выбрано, значит и каскад считать не по чему: он появится после выбора.
+        model.addAttribute("cascade", List.of());
+        model.addAttribute("consent", null);
         return "ui/subjects/fragments :: revokeDialog";
     }
 
@@ -191,19 +229,65 @@ public class UiSubjectController {
             @RequestParam String caseNumber,
             @RequestParam(required = false) String documentRef,
             @RequestParam(defaultValue = "false") boolean allAdvertising,
+            @RequestParam(defaultValue = "card") String returnTo,
+            @RequestHeader(value = "HX-Request", required = false) String htmxRequest,
+            jakarta.servlet.http.HttpServletResponse response,
             Model model) {
         Map<String, Object> evidence =
                 documentRef == null || documentRef.isBlank() ? Map.of() : Map.of("documentRef", documentRef);
 
         UUID subjectId = view.consent(id).consent().getSubjectId();
+        // Доказательства передаются и при массовом отзыве: письменное заявление требует ссылки на скан,
+        // и без неё сочетание «все рекламные + письменное заявление» падало на проверке (FR-8.2).
         List<RevocationService.RevocationResult> results = allAdvertising
-                ? revocation.revokeAllAdvertising(subjectId, reason, revocationSource, caseNumber)
+                ? revocation.revokeAllAdvertising(subjectId, reason, revocationSource, caseNumber, evidence)
                 : List.of(revocation.revoke(id, reason, revocationSource, caseNumber, evidence));
 
+        String message = view.revocationMessage(results);
+        if (htmxRequest == null) {
+            // Запрос без htmx (браузер без скриптов): фрагмент показывать некуда, поэтому обычный переход.
+            return "redirect:"
+                    + ("dossier".equals(returnTo)
+                            ? "/ui/consents/" + id + "?revoked=true"
+                            : "/ui/subjects/" + subjectId);
+        }
+        if ("dossier".equals(returnTo)) {
+            // Диалог открыт из досье (UI-4a), а блока карточки там нет: раньше ответ уходил в
+            // несуществующую цель #card-body, и окно просто зависало. Досье перечитывается целиком —
+            // на нём меняются и статус, и доказательства, и лента событий.
+            response.setHeader("HX-Redirect", "/ui/consents/" + id + "?revoked=true");
+            return "ui/subjects/fragments :: revocationDone";
+        }
         model.addAttribute("card", view.card(subjectId));
         model.addAttribute("showSuperseded", false);
-        model.addAttribute("revocationMessage", view.revocationMessage(results));
+        model.addAttribute("revocationMessage", message);
         return "ui/subjects/fragments :: cardBody";
+    }
+
+    /** UI-4: диалог из шапки карточки сначала спрашивает, какое согласие отзываем. */
+    @PostMapping("/ui/consents/revoke")
+    @PreAuthorize("hasAnyRole('MANAGER','DPO','ADMIN')")
+    public String revokeSelected(
+            @RequestParam UUID consentId,
+            @RequestParam String reason,
+            @RequestParam RevocationSource revocationSource,
+            @RequestParam String caseNumber,
+            @RequestParam(required = false) String documentRef,
+            @RequestParam(defaultValue = "false") boolean allAdvertising,
+            @RequestHeader(value = "HX-Request", required = false) String htmxRequest,
+            jakarta.servlet.http.HttpServletResponse response,
+            Model model) {
+        return revoke(
+                consentId,
+                reason,
+                revocationSource,
+                caseNumber,
+                documentRef,
+                allAdvertising,
+                "card",
+                htmxRequest,
+                response,
+                model);
     }
 
     /** Плитки каналов обновляются отдельно: после отзыва они обязаны позеленеть или посереть сразу (UI-5). */

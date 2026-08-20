@@ -118,7 +118,7 @@
                         <span th:if="${form.sourceChannels.isEmpty()}">—</span>
                     </td>
                     <td th:text="${form.updatedBy} ?: '—'">lawyer</td>
-                    <td th:text="${#temporals.format(form.updatedAt, 'dd.MM.yyyy HH:mm')}">17.08.2026 10:00</td>
+                    <td th:text="${formats.dateTime(form.updatedAt)}">17.08.2026 10:00</td>
                     <td class="text-end">
                         <a class="btn btn-sm btn-link" th:href="@{/ui/catalog/forms/{id}(id=${form.id})}">Открыть</a>
                         <a class="btn btn-sm btn-link" th:if="${form.status.name() == 'DRAFT'}"

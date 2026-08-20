@@ -247,7 +247,7 @@ class RevocationIT extends AbstractIntegrationTest {
     @Test
     void revoke_all_advertising_stops_every_advertising_type_at_once() {
         var results = revocation.revokeAllAdvertising(
-                subjectId, "Требование прекратить рекламу", RevocationSource.PERSONAL_ACCOUNT, "OBR-7");
+                subjectId, "Требование прекратить рекламу", RevocationSource.PERSONAL_ACCOUNT, "OBR-7", Map.of());
 
         assertThat(results).hasSize(2);
         assertThat(channelAllowed(CommunicationChannel.EMAIL)).isFalse();

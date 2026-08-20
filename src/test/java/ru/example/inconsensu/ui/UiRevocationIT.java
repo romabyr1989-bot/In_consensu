@@ -81,6 +81,9 @@ class UiRevocationIT extends AbstractIntegrationTest {
         String afterRevoke = mockMvc.perform(post("/ui/consents/" + consent.getId() + "/revoke")
                         .session(session)
                         .with(csrf())
+                        // Заголовок htmx: так запрос приходит из диалога. Без него сервер отвечает
+                        // обычным переходом — форма работает и со отключёнными скриптами.
+                        .header("HX-Request", "true")
                         .param("reason", "клиент попросил прекратить рассылку")
                         .param("revocationSource", "CALL_CENTER")
                         .param(
@@ -221,6 +224,94 @@ class UiRevocationIT extends AbstractIntegrationTest {
                 .isPositive();
     }
 
+    /**
+     * UI-4: кнопка «Отозвать согласие» в шапке карточки.
+     *
+     * <p>Кнопка вела на несуществующий маршрут `/ui/subjects/{id}/revocation-dialog` и не делала ничего.
+     */
+    @Test
+    void revocation_dialog_opens_from_the_card_header() throws Exception {
+        Consent consent = registerAdvertisingConsent();
+        MockHttpSession session = loginAs(RoleCode.ADMIN.name());
+
+        mockMvc.perform(get("/ui/subjects/" + consent.getSubjectId() + "/revocation-dialog")
+                        .session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Отзыв согласия")))
+                // UI-5: диалог называет согласие, а не печатает его идентификатор.
+                .andExpect(content().string(containsString("Реклама по email")))
+                .andExpect(
+                        content().string(org.hamcrest.Matchers.not(containsString("Отзываем: <b>" + consent.getId()))));
+    }
+
+    /**
+     * UI-5: «отозвать все рекламные» вместе с письменным заявлением.
+     *
+     * <p>Сочетание гарантированно падало: массовый отзыв не передавал доказательства, и проверка
+     * FR-8.2 отклоняла операцию, хотя ссылка на скан была указана в форме.
+     */
+    @Test
+    void mass_revocation_by_written_request_accepts_the_document_reference() throws Exception {
+        Consent consent = registerAdvertisingConsent();
+
+        mockMvc.perform(post("/ui/consents/" + consent.getId() + "/revoke")
+                        .session(loginAs(RoleCode.ADMIN.name()))
+                        .with(csrf())
+                        .header("HX-Request", "true")
+                        .param("reason", "письменное заявление клиента")
+                        .param("revocationSource", "WRITTEN_REQUEST")
+                        .param("caseNumber", "ОБР-UI-МАСС")
+                        .param("documentRef", "scan://archive/2026/mass.pdf")
+                        .param("allAdvertising", "true"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Согласие отозвано")));
+
+        assertThat(consents.get(consent.getId()).consent().getRevokedAt())
+                .as("рекламное согласие обязано погаснуть")
+                .isNotNull();
+    }
+
+    /** UI-4: переключатель «Показать заменённые» действительно добавляет заменённые согласия. */
+    @Test
+    void superseded_toggle_adds_superseded_consents() throws Exception {
+        Consent first = registerAdvertisingConsent();
+        UUID subjectId = first.getSubjectId();
+        MockHttpSession session = loginAs(RoleCode.ADMIN.name());
+
+        // Повторная регистрация по той же форме заменяет прежнее согласие (FR-4.4).
+        registerAdvertisingConsentFor(subjects.get(subjectId).getExternalId());
+
+        String withoutSuperseded = mockMvc.perform(
+                        get("/ui/subjects/" + subjectId).session(session))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        String withSuperseded = mockMvc.perform(
+                        get("/ui/subjects/" + subjectId + "?superseded=true").session(session))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(withoutSuperseded).doesNotContain("заменено новым");
+        assertThat(withSuperseded)
+                .as("переключатель обязан добавлять заменённые согласия, а не фильтровать уже отфильтрованное")
+                .contains("заменено новым");
+    }
+
+    /** UI-4: во вкладке передач — русские категории и ссылка на согласие-основание. */
+    @Test
+    void transfers_tab_names_categories_in_russian_and_links_the_basis() throws Exception {
+        Consent consent = registerAdvertisingConsent();
+
+        mockMvc.perform(get("/ui/subjects/" + consent.getSubjectId() + "/tab/transfers")
+                        .session(loginAs(RoleCode.ADMIN.name())))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Основание")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString(">FIO<"))));
+    }
+
     /** Прогон поиска через POST и последующий переход по выданной ссылке — как это делает браузер. */
     private String searchFor(String query, MockHttpSession session) throws Exception {
         String redirect = mockMvc.perform(post("/ui/subjects/search")
@@ -251,13 +342,20 @@ class UiRevocationIT extends AbstractIntegrationTest {
     }
 
     private Consent registerAdvertisingConsent() {
+        return registerAdvertisingConsentFor(null);
+    }
+
+    /** Тот же внешний идентификатор — тот же клиент: повторная регистрация заменяет прежнее согласие. */
+    private Consent registerAdvertisingConsentFor(String existingExternalId) {
         ConsentForm form = testForms.publishTwoItemForm();
         List<ConsentRegistrationService.ItemDecision> items = form.getItems().stream()
                 .map(item -> new ConsentRegistrationService.ItemDecision(item.getId(), true))
                 .toList();
 
         SubjectService.SubjectForm subject = new SubjectService.SubjectForm(
-                "CRM-UI-" + UUID.randomUUID().toString().substring(0, 8),
+                existingExternalId == null
+                        ? "CRM-UI-" + UUID.randomUUID().toString().substring(0, 8)
+                        : existingExternalId,
                 "Травин",
                 "Иван",
                 "Сергеевич",

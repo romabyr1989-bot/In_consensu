@@ -94,13 +94,15 @@ public class RevocationService {
     /** FR-8.1: требование прекратить рекламу — все рекламные типы гасятся разом. */
     @Transactional
     public List<RevocationResult> revokeAllAdvertising(
-            UUID subjectId, String reason, RevocationSource source, String caseNumber) {
+            UUID subjectId, String reason, RevocationSource source, String caseNumber, Map<String, Object> evidence) {
         Set<UUID> advertisingTypes = types.advertisingTypeIds();
         List<RevocationResult> results = new ArrayList<>();
 
+        // Доказательства передаются как есть: письменное заявление требует ссылки на скан (FR-8.2), и
+        // с пустой картой массовый отзыв по заявлению падал на проверке, хотя скан был указан в форме.
         for (Consent consent : consents.findEffectiveBySubject(subjectId)) {
             if (advertisingTypes.contains(consent.getConsentTypeId())) {
-                results.add(revokeConsent(consent, reason, source, caseNumber, Map.of()));
+                results.add(revokeConsent(consent, reason, source, caseNumber, evidence));
             }
         }
         return results;

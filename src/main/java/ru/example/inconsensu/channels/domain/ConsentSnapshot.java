@@ -15,13 +15,28 @@ import ru.example.inconsensu.common.domain.ConsentStatus;
  * <p>Здесь и отозванные, и истёкшие согласия: чтобы ответить «нельзя, потому что отозвано», недостаточно
  * видеть только действующие (FR-6.1).
  */
+/**
+ * @param revokedAt момент отзыва: плитка канала обязана называть не только причину, но и дату
+ *     («согласие отозвано 02.06.2026», UI-4)
+ */
 public record ConsentSnapshot(
         UUID consentId,
         String typeCode,
         Set<CommunicationChannel> channels,
         ConsentStatus status,
         Instant grantedAt,
-        Instant validUntil) {
+        Instant validUntil,
+        Instant revokedAt) {
+
+    public ConsentSnapshot(
+            UUID consentId,
+            String typeCode,
+            Set<CommunicationChannel> channels,
+            ConsentStatus status,
+            Instant grantedAt,
+            Instant validUntil) {
+        this(consentId, typeCode, channels, status, grantedAt, validUntil, null);
+    }
 
     /** Согласие даёт право действовать: только ACTIVE и EXPIRING (§8.3). */
     public boolean isUsable() {

@@ -15,7 +15,7 @@
             <dt class="col-sm-4">Версия</dt>
             <dd class="col-sm-8" th:text="${dossier.form()?.versionNumber}">3</dd>
             <dt class="col-sm-4">Опубликована</dt>
-            <dd class="col-sm-8" th:text="${dossier.form()?.publishedAt}">12.03.2025</dd>
+            <dd class="col-sm-8" th:text="${formats.date(dossier.form()?.publishedAt)}">12.03.2025</dd>
             <dt class="col-sm-4">Контрольная сумма</dt>
             <dd class="col-sm-8">
                 <code th:text="${dossier.storedChecksum()}">sha256:…</code>

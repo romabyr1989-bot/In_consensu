@@ -6,6 +6,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import ru.example.inconsensu.registry.application.ConsentEvidenceService;
 
 /** UI-4a: досье согласия — точный текст версии, доказательства и цепочка событий. */
@@ -15,18 +16,29 @@ import ru.example.inconsensu.registry.application.ConsentEvidenceService;
 public class UiConsentController {
 
     private final ConsentEvidenceService evidence;
+    private final ru.example.inconsensu.ui.application.UiSubjectViewService view;
 
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
 
     public UiConsentController(
-            ConsentEvidenceService evidence, com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
+            ConsentEvidenceService evidence,
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper,
+            ru.example.inconsensu.ui.application.UiSubjectViewService view) {
         this.evidence = evidence;
+        this.view = view;
         this.objectMapper = objectMapper;
     }
 
     @GetMapping("/ui/consents/{id}")
-    public String dossier(@PathVariable UUID id, Model model) {
+    public String dossier(
+            @PathVariable UUID id,
+            @RequestParam(name = "revoked", defaultValue = "false") boolean revoked,
+            Model model) {
         var dossier = evidence.of(id);
+        model.addAttribute("revoked", revoked);
+        // UI-4a: «Сведения о согласии» — тип, субъект, источник, даты, статус. Тип и субъект хранились
+        // идентификаторами, и в досье их просто не было.
+        model.addAttribute("summary", view.dossierSummary(dossier));
         model.addAttribute("dossier", dossier);
         // UI-4a: поля доказательств показываются без чувствительных значений — телефон, OTP и IP
         // маскируются, как и в ответе API (NFR-3).

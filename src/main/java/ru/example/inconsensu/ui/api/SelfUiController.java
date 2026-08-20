@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import ru.example.inconsensu.common.domain.RevocationSource;
 import ru.example.inconsensu.common.error.ApiException;
 import ru.example.inconsensu.ui.application.UiSelfServiceViewService;
 
@@ -48,7 +47,6 @@ public class SelfUiController {
         }
         try {
             model.addAttribute("page", view.page(sessionId));
-            model.addAttribute("sources", RevocationSource.values());
             return "ui/self/consents";
         } catch (ApiException e) {
             httpSession.removeAttribute(SESSION_ATTRIBUTE);

@@ -104,7 +104,7 @@
                 <tbody>
                 <tr th:each="event : ${failed}">
                     <td th:text="${event.eventType}">consent.revoked</td>
-                    <td th:text="${#temporals.format(event.createdAt, 'dd.MM.yyyy HH:mm')}">17.08.2026 10:00</td>
+                    <td th:text="${formats.dateTime(event.createdAt)}">17.08.2026 10:00</td>
                     <td th:text="${event.attempts}">6</td>
                     <td class="text-truncate" style="max-width: 260px" th:text="${event.lastError}">HTTP 503</td>
                     <td class="text-end">

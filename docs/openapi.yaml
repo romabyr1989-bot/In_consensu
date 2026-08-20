@@ -3400,6 +3400,7 @@ components:
           - WRITTEN_REQUEST
           - CALL_CENTER
           - EMAIL_REQUEST
+          - OFFICE
           - CASCADE
       required:
       - caseNumber

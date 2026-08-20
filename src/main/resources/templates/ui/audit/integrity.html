@@ -27,7 +27,7 @@
             </thead>
             <tbody>
             <tr th:each="run : ${verifications}">
-                <td th:text="${#temporals.format(run.startedAt, 'dd.MM.yyyy HH:mm')}">17.08.2026 10:00</td>
+                <td th:text="${formats.dateTime(run.startedAt)}">17.08.2026 10:00</td>
                 <td th:text="${run.startedBy}">auditor</td>
                 <td th:text="${run.status.nameRu()}">завершена</td>
                 <td>

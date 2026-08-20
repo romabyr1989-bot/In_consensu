@@ -1,6 +1,7 @@
 package ru.example.inconsensu.integration.application;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -133,8 +134,9 @@ public class SelfServiceService {
     /** FR-8.1: «Отказаться от всей рекламы» — все рекламные типы гасятся одним действием. */
     @Transactional
     public List<RevocationService.RevocationResult> revokeAllAdvertising(Subject subject, RevocationSource source) {
+        // Самообслуживание идёт из личного кабинета: скан заявления там не нужен (FR-8.2).
         return revocation.revokeAllAdvertising(
-                subject.getId(), "Требование клиента прекратить рекламу", source, caseNumber(subject));
+                subject.getId(), "Требование клиента прекратить рекламу", source, caseNumber(subject), Map.of());
     }
 
     /** Номер обращения возвращается клиенту как подтверждение (FR-8.1, UI-18). */

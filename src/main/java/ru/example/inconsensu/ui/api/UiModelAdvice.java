@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import ru.example.inconsensu.catalog.application.ConsentFormService;
 import ru.example.inconsensu.common.domain.RoleCode;
 import ru.example.inconsensu.ui.application.UiBrandingService;
+import ru.example.inconsensu.ui.application.UiFormats;
 
 /**
  * Общие данные каркаса: брендирование, пользователь и счётчик форм, ждущих решения (UI-0.5, UI-0.12).
@@ -21,15 +22,20 @@ public class UiModelAdvice {
 
     private final UiBrandingService branding;
     private final ConsentFormService forms;
+    private final UiFormats formats;
 
-    public UiModelAdvice(UiBrandingService branding, ConsentFormService forms) {
+    public UiModelAdvice(UiBrandingService branding, ConsentFormService forms, UiFormats formats) {
         this.branding = branding;
         this.forms = forms;
+        this.formats = formats;
     }
 
     @ModelAttribute
     public void common(Model model, Authentication authentication) {
         model.addAttribute("branding", branding.branding());
+        // UI-0.4: даты форматируются одним способом и в таймзоне оператора. #temporals.format в шаблоне
+        // берёт таймзону JVM, из-за чего одно и то же время печаталось по-разному на сервере и у оператора.
+        model.addAttribute("formats", formats);
         if (authentication == null || !authentication.isAuthenticated()) {
             return;
         }
