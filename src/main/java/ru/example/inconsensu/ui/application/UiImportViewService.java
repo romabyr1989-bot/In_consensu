@@ -27,6 +27,33 @@ public class UiImportViewService {
         this.objectMapper = objectMapper;
     }
 
+    /**
+     * Построчные ошибки в CSV (UI-12).
+     *
+     * <p>Разделитель — точка с запятой, как в файлах импорта: Excel в русской локали открывает такой файл
+     * сразу, а не одной колонкой.
+     */
+    @Transactional(readOnly = true)
+    public String reportCsv(UUID id) {
+        StringBuilder csv = new StringBuilder("Строка;Поле;Причина\n");
+        for (Map<String, Object> row : job(id).report()) {
+            csv.append(escape(row.get("line")))
+                    .append(';')
+                    .append(escape(row.get("field")))
+                    .append(';')
+                    .append(escape(row.get("message")))
+                    .append('\n');
+        }
+        return csv.toString();
+    }
+
+    private static String escape(Object value) {
+        String text = value == null ? "" : String.valueOf(value);
+        return text.contains(";") || text.contains("\"") || text.contains("\n")
+                ? '"' + text.replace("\"", "\"\"") + '"'
+                : text;
+    }
+
     @Transactional(readOnly = true)
     public JobView job(UUID id) {
         ImportJob job = imports.get(id);

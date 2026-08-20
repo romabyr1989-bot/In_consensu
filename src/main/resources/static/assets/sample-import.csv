@@ -1,0 +1,4 @@
+external_id,last_name,first_name,middle_name,phone,email,consent_type_code,form_code,form_version,granted_at,valid_until,source,source_ref,third_party_inn,pdn_categories,document_ref,note
+CRM-1002345,Травин,Иван,Сергеевич,+7 916 000-00-41,travin@example.ru,PDN_PROCESSING,CONTRACT_MAIN,3,12.03.2025,,CONTRACT,Д-2025/4471,,FIO;PHONE;EMAIL,scan://archive/2025/4471.pdf,
+CRM-1002345,Травин,Иван,Сергеевич,,,ADVERTISING_PHONE,CONTRACT_MAIN,3,12.03.2025,,CONTRACT,Д-2025/4471,,PHONE,,согласие в п. 7.2 договора
+CRM-1002346,Чкалов,Пётр,Алексеевич,+7 916 000-00-42,,PDN_PROCESSING,,,01.09.2019,,CLIENT_BASE_IMPORT,БАЗА-2019,,FIO;PHONE,,перенос из базы клиентов

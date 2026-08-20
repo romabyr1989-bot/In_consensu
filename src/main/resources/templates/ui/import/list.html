@@ -17,17 +17,26 @@
                         <label class="form-label" for="file">Файл CSV или JSON <span aria-hidden="true">*</span></label>
                         <input class="form-control" type="file" id="file" name="file" accept=".csv,.json" required>
                         <div class="form-text">
-                            Формат описан в <a href="https://github.com" th:href="@{/swagger-ui.html}">документации</a>
-                            и в файле docs/import-format.md.
+                            <a th:href="@{/ui/import/format}">Описание формата</a> ·
+                            <a th:href="@{/assets/sample-import.csv}" download>Скачать пример файла</a>
                         </div>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label" for="source">Источник</label>
-                        <input class="form-control" id="source" name="source" value="LEGACY_DB">
+                        <select class="form-select" id="source" name="source">
+                            <option th:each="value : ${sources}" th:value="${value}" th:text="${value.nameRu()}"
+                                    th:selected="${value.name() == 'CLIENT_BASE_IMPORT'}">Импорт базы клиентов</option>
+                        </select>
                     </div>
                     <div class="col-md-3 align-self-end">
-                        <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" id="dryRun" name="dryRun" value="true" checked>
+                        <div class="form-check form-switch mb-2">
+                            <!--
+                              Снятый чекбокс браузер не присылает, поэтому рядом идёт скрытый маркер: без него
+                              переключатель нельзя было выключить и боевой импорт из интерфейса был недостижим.
+                            -->
+                            <input type="hidden" name="dryRunSubmitted" value="true">
+                            <input class="form-check-input" type="checkbox" role="switch" id="dryRun" name="dryRun"
+                                   value="true" checked>
                             <label class="form-check-label" for="dryRun">Пробный запуск (dry-run)</label>
                         </div>
                         <button class="btn btn-primary" type="submit">Загрузить</button>
@@ -52,9 +61,11 @@
                 <td th:text="${job.status.nameRu()}">завершено</td>
                 <td th:text="${job.total} + ' / ' + ${job.imported} + ' / ' + ${job.rejected}">10 / 9 / 1</td>
             </tr>
+            <tr th:if="${jobs.isEmpty()}">
+                <td colspan="6" class="text-muted">Импорт ещё не запускался. Загрузите файл формой выше.</td>
+            </tr>
             </tbody>
         </table>
-        <p class="text-muted" th:if="${jobs.isEmpty()}">Импорт ещё не запускался.</p>
     </main>
 </div>
 </body>

@@ -55,6 +55,9 @@ public class ImportJob {
     @Column(name = "finished_at")
     private Instant finishedAt;
 
+    @Column(name = "payload")
+    private String payload;
+
     protected ImportJob() {
         // for JPA
     }
@@ -66,6 +69,24 @@ public class ImportJob {
         this.dryRun = dryRun;
         this.startedBy = startedBy;
         this.startedAt = startedAt;
+    }
+
+    /**
+     * Содержимое файла пробного запуска (UI-12).
+     *
+     * <p>Хранится, чтобы боевой импорт запускался кнопкой, а не повторной загрузкой того же файла, и
+     * стирается сразу после запуска: в файле ПДн, и держать его дольше нужного нельзя.
+     */
+    public void keepPayload(String payload) {
+        this.payload = payload;
+    }
+
+    public void clearPayload() {
+        this.payload = null;
+    }
+
+    public String getPayload() {
+        return payload;
     }
 
     public void start(int total) {

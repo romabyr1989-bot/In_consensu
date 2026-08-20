@@ -19,6 +19,7 @@ import ru.example.inconsensu.common.error.ErrorCode;
 import ru.example.inconsensu.common.security.CurrentUser;
 import ru.example.inconsensu.integration.domain.CsvParser;
 import ru.example.inconsensu.integration.domain.ImportJob;
+import ru.example.inconsensu.integration.domain.ImportJobStatus;
 import ru.example.inconsensu.integration.domain.ImportRow;
 import ru.example.inconsensu.integration.infrastructure.ImportJobRepository;
 
@@ -71,12 +72,39 @@ public class ConsentImportService {
         ImportJob job = jobs.save(
                 new ImportJob(UUID.randomUUID(), source, fileName, dryRun, CurrentUser.login(), clock.instant()));
         String text = new String(content, StandardCharsets.UTF_8);
+        if (dryRun) {
+            // UI-12: боевой запуск идёт кнопкой по тому же файлу, поэтому пробная задача его хранит.
+            job.keepPayload(text);
+        }
 
         // Контекст безопасности переносится в поток задачи: иначе в аудите импорт останется без автора.
         // После коммита: запущенный внутри транзакции поток может не увидеть строку import_job,
         // и файл молча не импортируется, а задача навсегда остаётся «в очереди».
         afterCommit.execute(new DelegatingSecurityContextRunnable(() -> run(job.getId(), text)));
         return job;
+    }
+
+    /**
+     * Боевой импорт по файлу успешного пробного запуска (UI-12).
+     *
+     * <p>Условия те же, что показывает экран: задача пробная, завершена и без отклонённых строк. Файл
+     * стирается сразу после запуска — повторное нажатие кнопки не создаст второй импорт того же файла.
+     */
+    @Transactional
+    public ImportJob runForReal(UUID dryRunJobId) {
+        ImportJob dry =
+                jobs.findById(dryRunJobId).orElseThrow(() -> ApiException.notFound("Задача импорта не найдена"));
+        if (!dry.isDryRun() || dry.getStatus() != ImportJobStatus.COMPLETED || dry.getRejected() > 0) {
+            throw new ApiException(
+                    ErrorCode.CONFLICT, "Боевой импорт доступен только после успешного пробного запуска (UI-12)");
+        }
+        String payload = dry.getPayload();
+        if (payload == null) {
+            throw new ApiException(
+                    ErrorCode.CONFLICT, "Файл пробного запуска больше не хранится — загрузите его заново");
+        }
+        dry.clearPayload();
+        return start(dry.getFileName(), payload.getBytes(StandardCharsets.UTF_8), dry.getSource(), false);
     }
 
     @Transactional(readOnly = true)
