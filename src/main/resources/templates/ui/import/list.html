@@ -13,7 +13,13 @@
         <div class="card mb-4">
             <div class="card-header">Загрузка файла</div>
             <div class="card-body">
-                <form th:action="@{/ui/import}" method="post" enctype="multipart/form-data" class="row g-3">
+                <!--
+                  UI-0.6: боевой запуск импорта — необратимое действие, и подтверждение обязательно. Спрашивать
+                  о пробном запуске незачем, поэтому вопрос задаётся только при снятом переключателе.
+                -->
+                <form th:action="@{/ui/import}" method="post" enctype="multipart/form-data" class="row g-3"
+                      data-confirm-unless="dryRun"
+                      data-confirm="Файл будет импортирован в боевом режиме: согласия попадут в реестр и станут действующими, отменить загрузку нельзя. Продолжить?">
                     <div class="col-md-6">
                         <label class="form-label" for="file">Файл CSV или JSON <span aria-hidden="true">*</span></label>
                         <input class="form-control" type="file" id="file" name="file" accept=".csv,.json" required>
@@ -78,5 +84,6 @@
         </div>
     </main>
 </div>
+<script th:src="@{/assets/js/inconsensu.js}"></script>
 </body>
 </html>

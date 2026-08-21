@@ -81,6 +81,8 @@ public class UiCatalogController {
     public String types(
             @RequestParam(required = false) ConsentCategory category,
             @RequestParam(required = false) Boolean active,
+            @RequestParam(required = false) Boolean businessSignificant,
+            @RequestParam(required = false) String text,
             @RequestParam(required = false) String edit,
             @RequestParam(required = false) String sort,
             @RequestParam(required = false) String direction,
@@ -89,12 +91,17 @@ public class UiCatalogController {
             Model model) {
         model.addAttribute(
                 "types",
-                UiSorting.page(view.types(category, active, sort, UiSorting.descending(direction)), page, size));
+                UiSorting.page(
+                        view.types(category, active, businessSignificant, text, sort, UiSorting.descending(direction)),
+                        page,
+                        size));
         model.addAttribute("sort", sort);
         model.addAttribute("direction", direction);
         model.addAttribute("pageSize", UiSorting.pageSize(size));
         model.addAttribute("selectedCategory", category);
         model.addAttribute("selectedActive", active);
+        model.addAttribute("selectedSignificant", businessSignificant);
+        model.addAttribute("selectedText", text);
         model.addAttribute("categories", ConsentCategory.values());
         model.addAttribute("channels", CommunicationChannel.values());
         // UI-6: форма одна на создание и правку; код задаётся только при создании.

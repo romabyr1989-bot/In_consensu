@@ -75,6 +75,22 @@ INCONSENSU_TIMEZONE=Europe/Moscow
 # INCONSENSU_CRYPTO_KEY=база64-ключ-32-байта
 ```
 
+### Вход через корпоративный IdP (профиль `oidc`)
+
+Если токены API выдаёт корпоративный IdP, добавьте профиль и адреса — код при этом не меняется (ADR-0083):
+
+```properties
+SPRING_PROFILES_ACTIVE=prod,oidc
+# Ключи, которыми проверяется подпись. С ними приложение стартует, не дожидаясь IdP.
+INCONSENSU_OIDC_JWK_SET_URI=https://idp.example.ru/realms/inconsensu/protocol/openid-connect/certs
+INCONSENSU_OIDC_ISSUER_URI=https://idp.example.ru/realms/inconsensu
+# Где IdP держит роли: у Keycloak — realm_access.roles, у других бывает roles или groups.
+INCONSENSU_OIDC_ROLES_CLAIM=realm_access.roles
+```
+
+В этом профиле `/api/v1/auth/login` закрыт: токены выдаёт IdP. Вход сотрудников в интерфейс остаётся по
+учётной записи оператора — рабочее место работает на серверной сессии, а не на токене.
+
 ## 6. Служба
 
 ```bash

@@ -77,6 +77,10 @@ class UiCatalogFlowIT extends AbstractIntegrationTest {
         // UI-8: панель проверки реквизитов показывает блокирующие нарушения пустого черновика.
         mockMvc.perform(get("/ui/catalog/forms/" + formId + "/edit").session(lawyer))
                 .andExpect(status().isOk())
+                // UI-8: специальные и биометрические категории помечены — автор формы обязан видеть, что
+                // пункт затрагивает биометрию (ст. 11 152-ФЗ требует для неё отдельного согласия).
+                .andExpect(content().string(containsString("Фотография (биометрическая)")))
+                .andExpect(content().string(containsString("(специальная)")))
                 .andExpect(content().string(containsString("Проверка реквизитов (ч. 4 ст. 9 152-ФЗ)")))
                 .andExpect(content().string(containsString("Блокирующие нарушения")))
                 .andExpect(content().string(containsString("Форма не содержит ни одного пункта")));

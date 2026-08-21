@@ -351,6 +351,16 @@ paths:
         schema:
           type: boolean
       - in: query
+        name: businessSignificant
+        required: false
+        schema:
+          type: boolean
+      - in: query
+        name: text
+        required: false
+        schema:
+          type: string
+      - in: query
         name: pageable
         required: true
         schema:

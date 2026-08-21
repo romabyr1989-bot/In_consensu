@@ -55,10 +55,14 @@ public class JwtConfig {
     /**
      * Decoder used by the resource server: it accepts access tokens only.
      *
+     * <p>В профиле {@code oidc} его заменяет декодер внешнего IdP ({@link OidcJwtConfig}): два декодера в
+     * одном контексте означали бы, что подпись проверяется неизвестно чьим ключом.
+     *
      * <p>Without the {@code typ} check a refresh token - which lives far longer - would work as a bearer token
      * everywhere, quietly defeating the short lifetime of the access token.
      */
     @Bean
+    @org.springframework.context.annotation.Profile("!oidc")
     public JwtDecoder jwtDecoder(SecretKey jwtSecretKey, InConsensuProperties properties) {
         NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(jwtSecretKey)
                 .macAlgorithm(MacAlgorithm.HS256)

@@ -57,16 +57,32 @@ public class ConsentTypeService {
      * <p>Обход транзитивный: если появится тип, зависящий от рекламного, отзыв базового согласия обязан
      * погасить и его — иначе каскад оставит «висящее» разрешение.
      */
-    /**
-     * Список типов с фильтрами по категории и активности (FR-3.1, UI-6).
-     *
-     * <p>Условия уходят в запрос: фильтрация уже выбранной страницы прятала бы типы, оказавшиеся дальше.
-     */
+    /** Прежняя сигнатура: фильтры по категории и активности (FR-3.1, UI-6). */
     @Transactional(readOnly = true)
     public org.springframework.data.domain.Page<ConsentType> list(
             ru.example.inconsensu.common.domain.ConsentCategory category,
             Boolean active,
             org.springframework.data.domain.Pageable pageable) {
+        return list(category, active, null, null, pageable);
+    }
+
+    /**
+     * Список типов с фильтрами FR-3.1: категория, активность, признак значимости для бизнеса и текст.
+     *
+     * <p>Условия уходят в запрос: фильтрация уже выбранной страницы прятала бы типы, оказавшиеся дальше.
+     *
+     * @param businessSignificant флаг из FR-1.1; фильтр по нему живёт здесь, а не в списке форм: признак
+     *     принадлежит типу согласия, и у формы его нет
+     * @param text подстрока названия или кода, регистр не важен
+     */
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<ConsentType> list(
+            ru.example.inconsensu.common.domain.ConsentCategory category,
+            Boolean active,
+            Boolean businessSignificant,
+            String text,
+            org.springframework.data.domain.Pageable pageable) {
+        String needle = text == null || text.isBlank() ? null : text.trim().toLowerCase();
         org.springframework.data.jpa.domain.Specification<ConsentType> specification = (root, query, builder) -> {
             java.util.List<jakarta.persistence.criteria.Predicate> predicates = new java.util.ArrayList<>();
             if (category != null) {
@@ -74,6 +90,14 @@ public class ConsentTypeService {
             }
             if (active != null) {
                 predicates.add(builder.equal(root.get("active"), active));
+            }
+            if (businessSignificant != null) {
+                predicates.add(builder.equal(root.get("businessSignificant"), businessSignificant));
+            }
+            if (needle != null) {
+                predicates.add(builder.or(
+                        builder.like(builder.lower(root.get("nameRu")), "%" + needle + "%"),
+                        builder.like(builder.lower(root.get("code")), "%" + needle + "%")));
             }
             return builder.and(predicates.toArray(jakarta.persistence.criteria.Predicate[]::new));
         };

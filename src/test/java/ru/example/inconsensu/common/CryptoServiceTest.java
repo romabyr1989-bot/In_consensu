@@ -27,6 +27,9 @@ class CryptoServiceTest {
                         true,
                         true),
                 new InConsensuProperties.Bootstrap("", "", "Администратор"),
+                new InConsensuProperties.Selfservice(
+                        java.time.Duration.ofMinutes(5), java.time.Duration.ofMinutes(15), "'self'"),
+                new InConsensuProperties.Iam(new InConsensuProperties.Oidc("", "", "realm_access.roles")),
                 new InConsensuProperties.Notifications(
                         new InConsensuProperties.Webhook(
                                 java.time.Duration.ofSeconds(5),

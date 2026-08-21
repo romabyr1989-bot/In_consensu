@@ -71,13 +71,16 @@ public class ConsentTypeController {
         this.service = service;
     }
 
-    /** FR-3.1, UI-6: список типов с фильтрами по категории и активности. */
+    /** FR-3.1, UI-6: список типов с фильтрами по категории, активности, значимости и тексту. */
     @GetMapping
     public PageResponse<ConsentTypeResponse> list(
             @RequestParam(required = false) ru.example.inconsensu.common.domain.ConsentCategory category,
             @RequestParam(required = false) Boolean active,
+            @RequestParam(required = false) Boolean businessSignificant,
+            @RequestParam(required = false) String text,
             @PageableDefault(size = 50, sort = "sortOrder", direction = Sort.Direction.ASC) Pageable pageable) {
-        return PageResponse.of(service.list(category, active, pageable), ConsentTypeResponse::of);
+        return PageResponse.of(
+                service.list(category, active, businessSignificant, text, pageable), ConsentTypeResponse::of);
     }
 
     @GetMapping("/{code}")

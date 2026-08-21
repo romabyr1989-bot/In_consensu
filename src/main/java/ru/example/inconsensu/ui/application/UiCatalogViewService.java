@@ -107,9 +107,11 @@ public class UiCatalogViewService {
     public List<TypeRow> types(
             ru.example.inconsensu.common.domain.ConsentCategory category,
             Boolean active,
+            Boolean businessSignificant,
+            String text,
             String sortField,
             boolean descending) {
-        List<TypeRow> rows = types(category, active);
+        List<TypeRow> rows = types(category, active, businessSignificant, text);
         java.util.Comparator<TypeRow> comparator =
                 switch (sortField == null ? "" : sortField) {
                     case "code" -> java.util.Comparator.comparing(
@@ -131,9 +133,19 @@ public class UiCatalogViewService {
     }
 
     public List<TypeRow> types(ru.example.inconsensu.common.domain.ConsentCategory category, Boolean active) {
+        return types(category, active, null, null);
+    }
+
+    /** UI-6: те же фильтры, что у API (FR-3.1) — категория, активность, значимость и текст. */
+    @Transactional(readOnly = true)
+    public List<TypeRow> types(
+            ru.example.inconsensu.common.domain.ConsentCategory category,
+            Boolean active,
+            Boolean businessSignificant,
+            String text) {
         var counts = stats.byType().stream()
                 .collect(Collectors.toMap(CatalogStatsService.TypeStats::code, Function.identity()));
-        return types.list(category, active, Pageable.unpaged()).getContent().stream()
+        return types.list(category, active, businessSignificant, text, Pageable.unpaged()).getContent().stream()
                 .map(type -> {
                     var typeStats = counts.get(type.getCode());
                     return new TypeRow(

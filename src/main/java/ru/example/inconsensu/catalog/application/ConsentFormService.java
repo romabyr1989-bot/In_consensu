@@ -232,15 +232,20 @@ public class ConsentFormService {
     @Transactional
     public ConsentForm createNewVersion(UUID id) {
         ConsentForm source = get(id);
-        repository.findFirstByCodeOrderByVersionNumberDesc(source.getCode()).ifPresent(latest -> {
-            if (latest.getStatus() == FormStatus.DRAFT || latest.getStatus() == FormStatus.ON_REVIEW) {
-                throw ApiException.conflict("У формы уже есть незавершённая версия " + latest.getVersionNumber()
-                        + ": завершите работу над ней");
-            }
-        });
+        int nextVersionNumber = repository
+                        .findFirstByCodeOrderByVersionNumberDesc(source.getCode())
+                        .map(latest -> {
+                            if (latest.getStatus() == FormStatus.DRAFT || latest.getStatus() == FormStatus.ON_REVIEW) {
+                                throw ApiException.conflict("У формы уже есть незавершённая версия "
+                                        + latest.getVersionNumber() + ": завершите работу над ней");
+                            }
+                            return latest.getVersionNumber();
+                        })
+                        .orElse(source.getVersionNumber())
+                + 1;
         ConsentForm next;
         try {
-            next = source.newVersion(UUID.randomUUID());
+            next = source.newVersion(UUID.randomUUID(), nextVersionNumber);
         } catch (IllegalStateException e) {
             throw new ApiException(ErrorCode.CONFLICT, e.getMessage());
         }

@@ -71,7 +71,12 @@ class UiImportIT extends AbstractIntegrationTest {
                 .andExpect(content().string(containsString("/assets/sample-import.csv")))
                 // UI-12: источник выбирается из справочника, а не вводится строкой.
                 .andExpect(content().string(containsString("<select class=\"form-select\" id=\"source\"")))
-                .andExpect(content().string(containsString("Импорт базы клиентов")));
+                .andExpect(content().string(containsString("Импорт базы клиентов")))
+                // UI-0.6: боевой запуск подтверждается; о пробном спрашивать незачем, поэтому вопрос
+                // привязан к состоянию переключателя, а не к самой форме.
+                .andExpect(content().string(containsString("data-confirm-unless=\"dryRun\"")))
+                .andExpect(content().string(containsString("импортирован в боевом режиме")))
+                .andExpect(content().string(containsString("/assets/js/inconsensu.js")));
 
         mockMvc.perform(get("/ui/import/format").session(dpo))
                 .andExpect(status().isOk())

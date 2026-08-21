@@ -39,11 +39,24 @@ public class SecurityConfig {
     private final ru.example.inconsensu.common.config.InConsensuProperties properties;
     private final ProblemDetailWriter problemDetailWriter;
 
+    /** Конвертер ролей внешнего IdP; {@code null} в обычном профиле — роли читаются из claim `roles`. */
+    private final org.springframework.core.convert.converter.Converter<Jwt, java.util.Collection<GrantedAuthority>>
+            rolesConverter;
+
+    /** Включён ли профиль внешнего IdP: от него зависит, открыт ли собственный вход по паролю. */
+    private final boolean oidcEnabled;
+
     public SecurityConfig(
             ru.example.inconsensu.common.config.InConsensuProperties properties,
-            ProblemDetailWriter problemDetailWriter) {
+            ProblemDetailWriter problemDetailWriter,
+            org.springframework.core.env.Environment environment,
+            @org.springframework.beans.factory.annotation.Autowired(required = false)
+                    org.springframework.core.convert.converter.Converter<Jwt, java.util.Collection<GrantedAuthority>>
+                            rolesConverter) {
         this.properties = properties;
         this.problemDetailWriter = problemDetailWriter;
+        this.rolesConverter = rolesConverter;
+        this.oidcEnabled = environment.matchesProfiles("oidc");
     }
 
     /**
@@ -83,12 +96,14 @@ public class SecurityConfig {
     @org.springframework.core.annotation.Order(1)
     public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http, HandlerMappingIntrospector introspector)
             throws Exception {
-        List<String> publicPaths = new ArrayList<>(List.of(
-                "/api/v1/auth/login",
-                "/api/v1/auth/refresh",
-                "/actuator/health",
-                "/actuator/health/**",
-                "/actuator/info"));
+        List<String> publicPaths =
+                new ArrayList<>(List.of("/actuator/health", "/actuator/health/**", "/actuator/info"));
+        // В профиле oidc собственный вход по паролю закрыт: токены выдаёт корпоративный IdP (FR-11.1), и
+        // свои токены здесь всё равно не приняли бы — открытая ручка была бы ловушкой.
+        if (!oidcEnabled) {
+            publicPaths.add("/api/v1/auth/login");
+            publicPaths.add("/api/v1/auth/refresh");
+        }
         if (properties.security().publicApiDocs()) {
             publicPaths.addAll(List.of(
                     "/v3/api-docs",
@@ -114,12 +129,16 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(requests -> requests.requestMatchers(HttpMethod.OPTIONS, "/**")
-                        .permitAll()
-                        .requestMatchers(publicPaths.toArray(String[]::new))
-                        .permitAll()
-                        .anyRequest()
-                        .authenticated())
+                .authorizeHttpRequests(requests -> {
+                    requests.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
+                    if (oidcEnabled) {
+                        requests.requestMatchers("/api/v1/auth/**").denyAll();
+                    }
+                    requests.requestMatchers(publicPaths.toArray(String[]::new))
+                            .permitAll()
+                            .anyRequest()
+                            .authenticated();
+                })
                 .oauth2ResourceServer(
                         server -> server.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
                                 .authenticationEntryPoint((request, response, exception) -> problemDetailWriter.write(
@@ -137,10 +156,16 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /** Maps the {@code roles} claim onto {@code ROLE_*} authorities so that {@code hasRole('DPO')} works. */
+    /**
+     * Maps the {@code roles} claim onto {@code ROLE_*} authorities so that {@code hasRole('DPO')} works.
+     *
+     * <p>В профиле {@code oidc} конвертер приходит бином из {@link OidcJwtConfig}: у внешнего IdP роли
+     * лежат в своём claim, и его имя — настройка, а не константа.
+     */
     private JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
-        converter.setJwtGrantedAuthoritiesConverter(SecurityConfig::authorities);
+        converter.setJwtGrantedAuthoritiesConverter(
+                rolesConverter == null ? SecurityConfig::authorities : rolesConverter);
         return converter;
     }
 

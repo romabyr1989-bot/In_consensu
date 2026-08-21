@@ -28,6 +28,19 @@
                     <option value="false" th:selected="${selectedActive != null and !selectedActive}">только выключенные</option>
                 </select>
             </div>
+            <div class="col-md-3">
+                <label class="form-label" for="filter-significant">Значимость для бизнеса</label>
+                <select class="form-select" id="filter-significant" name="businessSignificant">
+                    <option value="">любая</option>
+                    <option value="true" th:selected="${selectedSignificant != null and selectedSignificant}">только значимые</option>
+                    <option value="false" th:selected="${selectedSignificant != null and !selectedSignificant}">только прочие</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="filter-text">Название или код</label>
+                <input class="form-control" id="filter-text" name="text" th:value="${selectedText}"
+                       placeholder="реклама">
+            </div>
             <div class="col-md-3 align-self-end">
                 <button class="btn btn-primary" type="submit">Показать</button>
                 <a class="btn btn-link" th:href="@{/ui/catalog/types}">Сбросить фильтры</a>

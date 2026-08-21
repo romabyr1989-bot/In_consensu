@@ -178,12 +178,18 @@ public class ConsentForm extends AuditableEntity {
         return validFrom != null && !validFrom.isAfter(moment) && (validTo == null || moment.isBefore(validTo));
     }
 
-    /** Черновик следующей версии со скопированными пунктами (FR-1.5). */
-    public ConsentForm newVersion(UUID newId) {
+    /**
+     * Черновик следующей версии со скопированными пунктами (FR-1.5).
+     *
+     * @param nextVersionNumber номер следующей версии: считается от старшей версии этого кода, а не от
+     *     номера исходной. Отсчёт от исходной ломался на архивной версии — «Новая версия» с v1 при живой
+     *     v2 давала снова номер 2 и падала на ограничении уникальности (code, version).
+     */
+    public ConsentForm newVersion(UUID newId, int nextVersionNumber) {
         if (status != FormStatus.PUBLISHED && status != FormStatus.ARCHIVED) {
             throw new IllegalStateException("Новая версия создаётся от опубликованной или архивной формы");
         }
-        ConsentForm next = new ConsentForm(newId, code, versionNumber + 1, title, body);
+        ConsentForm next = new ConsentForm(newId, code, nextVersionNumber, title, body);
         next.processingActions = processingActions;
         next.revocationProcedure = revocationProcedure;
         next.sourceChannels = Arrays.copyOf(sourceChannels, sourceChannels.length);

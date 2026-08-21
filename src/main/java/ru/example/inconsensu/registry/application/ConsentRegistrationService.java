@@ -373,7 +373,10 @@ public class ConsentRegistrationService {
 
     private Subject resolveSubject(RegistrationRequest request) {
         if (request.subjectData() != null) {
-            return subjects.upsert(request.subjectData());
+            // Контакты дописываются, а не заменяются: в запросе на регистрацию приходит тот контакт, по
+            // которому получено согласие, и замена стирала бы остальные — телефон клиента исчезал после
+            // согласия, оформленного по email. FR-4.4 говорит о создании субъекта и контактов, не о правке.
+            return subjects.upsertMerging(request.subjectData());
         }
         return subjects.findByExternalId(request.subjectExternalId())
                 .orElseThrow(() -> ApiException.notFound(

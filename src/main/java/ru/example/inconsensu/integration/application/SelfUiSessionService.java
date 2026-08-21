@@ -5,7 +5,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.HexFormat;
@@ -28,11 +27,6 @@ import ru.example.inconsensu.registry.domain.Subject;
  */
 @Service
 public class SelfUiSessionService {
-
-    /** UI-18: сроки жизни ссылки и открытой по ней сессии; оба настраиваются. */
-    public static final Duration DEFAULT_LINK_TTL = Duration.ofMinutes(5);
-
-    public static final Duration DEFAULT_SESSION_TTL = Duration.ofMinutes(15);
 
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final int TOKEN_BYTES = 32;
@@ -74,7 +68,7 @@ public class SelfUiSessionService {
                 subject.getId(),
                 CurrentUser.login(),
                 clock.instant(),
-                DEFAULT_LINK_TTL);
+                properties.selfservice().linkTtl());
         sessions.save(session);
 
         String url = properties.notifications().baseUrl() + "/self/ui?token=" + token;
@@ -89,7 +83,7 @@ public class SelfUiSessionService {
         if (!session.isLinkUsable(clock.instant())) {
             throw ApiException.notFound("Ссылка недействительна или уже использована");
         }
-        session.open(clock.instant(), DEFAULT_SESSION_TTL);
+        session.open(clock.instant(), properties.selfservice().sessionTtl());
         return sessions.save(session);
     }
 

@@ -163,6 +163,36 @@ class CatalogAndDictionariesIT extends AbstractIntegrationTest {
                 .isEqualTo(HttpStatus.NOT_FOUND);
     }
 
+    /**
+     * FR-3.1: список типов фильтруется по признаку значимости и по тексту.
+     *
+     * <p>Оба фильтра требует ТЗ, и обоих не было: значимость для бизнеса решает, попадёт ли тип в отчёты и
+     * в предупреждение при деактивации, а без текстового поиска справочник из полусотни типов листают глазами.
+     */
+    @Test
+    void types_are_filtered_by_business_significance_and_by_text() {
+        String body = body("/api/v1/consent-types?businessSignificant=false&size=200", RoleCode.MANAGER);
+        assertThat(body)
+                .as("незначимый тип из Приложения B обязан быть в выборке")
+                .contains("\"code\":\"LOYALTY_PROGRAM\"");
+        assertThat(body)
+                .as("значимые типы не должны попадать в выборку «только прочие»")
+                .doesNotContain("\"code\":\"PDN_PROCESSING\"");
+
+        assertThat(body("/api/v1/consent-types?businessSignificant=true&size=200", RoleCode.MANAGER))
+                .contains("\"code\":\"PDN_PROCESSING\"");
+
+        String found = body("/api/v1/consent-types?text=advertising&size=200", RoleCode.MANAGER);
+        assertThat(found).contains("ADVERTISING");
+        assertThat(found).doesNotContain("\"code\":\"PDN_PROCESSING\"");
+    }
+
+    private String body(String path, RoleCode role) {
+        return restTemplate
+                .exchange(path, HttpMethod.GET, new HttpEntity<>(accounts.authorizationFor(role.name())), String.class)
+                .getBody();
+    }
+
     private HttpStatus get(String path, RoleCode role) {
         return HttpStatus.valueOf(restTemplate
                 .exchange(path, HttpMethod.GET, new HttpEntity<>(accounts.authorizationFor(role.name())), String.class)

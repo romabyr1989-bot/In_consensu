@@ -38,7 +38,7 @@ class TimeConfigTest {
 
     @Test
     void the_bean_keeps_the_operator_timezone() {
-        Clock clock = new TimeConfig().clock(new InConsensuProperties(ZONE, null, null, null, null));
+        Clock clock = new TimeConfig().clock(new InConsensuProperties(ZONE, null, null, null, null, null, null));
 
         assertThat(clock.getZone()).isEqualTo(ZONE);
         assertThat(clock.instant().getNano() % 1_000).isZero();

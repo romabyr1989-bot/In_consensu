@@ -130,10 +130,34 @@ logging:
 inconsensu:
   # §6, §8.7: business dates and calendar arithmetic use the operator timezone.
   timezone: ${INCONSENSU_TIMEZONE:Europe/Moscow}
+  security:
+    jwt:
+      # NFR-3, FR-11.1: ключ подписи токенов задаётся окружением. Имя переменной названо здесь явно:
+      # без этой строки сработало бы только INCONSENSU_SECURITY_JWT_SECRET, а docs/install.md и
+      # предупреждение в логах называют INCONSENSU_JWT_SECRET — установка по инструкции молча
+      # получала случайный ключ, и токены умирали вместе с процессом.
+      secret: ${INCONSENSU_JWT_SECRET:}
+      access-token-ttl: ${INCONSENSU_JWT_ACCESS_TTL:PT60M}
+      refresh-token-ttl: ${INCONSENSU_JWT_REFRESH_TTL:P7D}
+  bootstrap:
+    # FR-11.1: первый администратор заводится, пока таблица пользователей пуста. Те же имена переменных,
+    # что в docs/install.md: иначе установка заканчивается системой, в которую некому войти.
+    admin-login: ${INCONSENSU_ADMIN_LOGIN:}
+    admin-password: ${INCONSENSU_ADMIN_PASSWORD:}
+    admin-full-name: ${INCONSENSU_ADMIN_FULL_NAME:Администратор}
+  crypto:
+    # NFR-3, этап 8: шифрование контактов в базе. Ключ и предыдущий ключ — только из окружения.
+    enabled: ${INCONSENSU_CRYPTO_ENABLED:false}
+    key: ${INCONSENSU_CRYPTO_KEY:}
+    previous-key: ${INCONSENSU_CRYPTO_PREVIOUS_KEY:}
   selfservice:
     # UI-18: кто вправе встроить страницу самообслуживания во фрейм. По умолчанию только сам сервис;
     # адрес личного кабинета оператор добавляет сюда явно.
     frame-ancestors: ${INCONSENSU_SELFSERVICE_FRAME_ANCESTORS:'self'}
+    # UI-18: одноразовая ссылка живёт пять минут, открытая по ней сессия — пятнадцать; оба срока
+    # настраиваются, потому что политика доступа к ЛК у операторов разная.
+    link-ttl: ${INCONSENSU_SELFSERVICE_LINK_TTL:PT5M}
+    session-ttl: ${INCONSENSU_SELFSERVICE_SESSION_TTL:PT15M}
   notifications:
     # Абсолютный адрес установки: из него собираются ссылки в письмах (FR-9.2).
     base-url: ${INCONSENSU_BASE_URL:http://localhost:8080}

@@ -30,6 +30,15 @@
     // в onsubmit Thymeleaf не даёт, и это правильно: так значение не может стать кодом.
     document.querySelectorAll('form[data-confirm]').forEach(function (form) {
         form.addEventListener('submit', function (event) {
+            // Форма импорта опасна не всегда: пробный запуск ничего не меняет и спрашивать о нём незачем.
+            // data-confirm-unless называет переключатель, снятое состояние которого делает действие боевым.
+            var unless = form.getAttribute('data-confirm-unless');
+            if (unless) {
+                var safeguard = form.querySelector('[name="' + unless + '"]');
+                if (safeguard && safeguard.checked) {
+                    return;
+                }
+            }
             if (!window.confirm(form.getAttribute('data-confirm'))) {
                 event.preventDefault();
             }

@@ -49,6 +49,9 @@ class SelfServiceUiIT extends AbstractIntegrationTest {
     @Autowired
     private SubjectCardService cards;
 
+    @Autowired
+    private ru.example.inconsensu.common.config.InConsensuProperties properties;
+
     @Test
     void one_time_link_opens_the_page_and_stops_working_afterwards() throws Exception {
         Consent consent = registerConsent();
@@ -139,6 +142,31 @@ class SelfServiceUiIT extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("уже нельзя отозвать")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(containsString("Да, отозвать"))));
+    }
+
+    /**
+     * UI-18: сроки жизни ссылки и сессии страницы настраиваются.
+     *
+     * <p>Оба значения были константами в коде: оператор с более строгой политикой не мог их сократить, а ТЗ
+     * называет их настраиваемыми. Проверяется само связывание настройки — время в тесте не мотается.
+     */
+    @Test
+    void link_and_session_lifetimes_come_from_the_configuration() {
+        assertThat(properties.selfservice().linkTtl()).isEqualTo(java.time.Duration.ofMinutes(5));
+        assertThat(properties.selfservice().sessionTtl()).isEqualTo(java.time.Duration.ofMinutes(15));
+
+        Consent consent = registerConsent();
+        var issued = RunAs.roles(
+                "test-integration",
+                List.of("INTEGRATION"),
+                () -> uiSessions.issue(RunAs.roles(
+                        "test-integration",
+                        List.of("INTEGRATION"),
+                        () -> cards.cardOf(consent.getSubjectId()).subject().getExternalId())));
+
+        assertThat(issued.expiresAt())
+                .as("срок ссылки обязан считаться от настройки, а не от константы")
+                .isBefore(Instant.now().plus(properties.selfservice().linkTtl()).plusSeconds(5));
     }
 
     @Test

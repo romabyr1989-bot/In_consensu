@@ -1,9 +1,17 @@
-# FR-11.1: optional profile that replaces the built-in login with an external IdP
-# (Spring OAuth2 Resource Server + role mapping from an IdP claim).
-# Filled in at stage 1 together with the IAM module; the placeholders below document the contract.
+# FR-11.1: профиль заменяет встроенную выдачу токенов внешним IdP.
+#
+# Машинная цепочка §12 остаётся Resource Server'ом: подпись проверяется ключами IdP, роли берутся из его
+# claim. Собственный вход `/api/v1/auth/login` в этом профиле закрыт — выдавать токены, которые здесь же
+# не принимаются, значит оставить ловушку.
+#
+# Интерфейс сотрудника §16 профиль не затрагивает: UI-0.3 требует form login с серверной сессией, и роли
+# для него берутся из справочника пользователей.
 inconsensu:
   iam:
     oidc:
-      # roles-claim: realm_access.roles
-      # issuer-uri: ${INCONSENSU_OIDC_ISSUER_URI:}
-      enabled: true
+      # Адрес набора ключей предпочтителен: приложение стартует, не дожидаясь IdP.
+      jwk-set-uri: ${INCONSENSU_OIDC_JWK_SET_URI:}
+      # Издатель: по нему читаются метаданные, если набор ключей не задан, и им же проверяется claim iss.
+      issuer-uri: ${INCONSENSU_OIDC_ISSUER_URI:}
+      # Где IdP держит роли: у Keycloak — realm_access.roles, у других бывает roles или groups.
+      roles-claim: ${INCONSENSU_OIDC_ROLES_CLAIM:realm_access.roles}

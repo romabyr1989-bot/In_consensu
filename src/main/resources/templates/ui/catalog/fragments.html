@@ -129,7 +129,8 @@
             <label class="form-label">Категории ПДн</label>
             <select class="form-select" multiple size="4" th:name="'items[' + ${index} + '].categories'">
                 <option th:each="category : ${pdnCategories}" th:value="${category.code}"
-                        th:text="${category.nameRu} + (${category.special} ? ' (специальная)' : '')"
+                        th:text="${category.nameRu}
+                            + (${category.biometric} ? ' (биометрическая)' : (${category.special} ? ' (специальная)' : ''))"
                         th:selected="${item != null and item.pdnCategories.contains(category.code)}">ФИО</option>
             </select>
         </div>

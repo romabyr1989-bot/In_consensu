@@ -17,6 +17,8 @@ public record InConsensuProperties(
         @DefaultValue("Europe/Moscow") ZoneId timezone,
         @DefaultValue Security security,
         @DefaultValue Bootstrap bootstrap,
+        @DefaultValue Selfservice selfservice,
+        @DefaultValue Iam iam,
         @DefaultValue Notifications notifications,
         @DefaultValue Crypto crypto) {
 
@@ -102,6 +104,33 @@ public record InConsensuProperties(
             @DefaultValue("false") boolean enabled,
             @DefaultValue("") String key,
             @DefaultValue("") String previousKey) {}
+
+    /** FR-11.1: внешний поставщик учётных записей; включается профилем {@code oidc}. */
+    public record Iam(@DefaultValue Oidc oidc) {}
+
+    /**
+     * Профиль {@code oidc}: Resource Server принимает токены корпоративного IdP.
+     *
+     * @param issuerUri адрес издателя; по нему читаются метаданные, если не задан набор ключей
+     * @param jwkSetUri адрес набора ключей; предпочтителен — приложение стартует, не дожидаясь IdP
+     * @param rolesClaim путь к claim с ролями, например {@code realm_access.roles} у Keycloak
+     */
+    public record Oidc(
+            @DefaultValue("") String issuerUri,
+            @DefaultValue("") String jwkSetUri,
+            @DefaultValue("realm_access.roles") String rolesClaim) {}
+
+    /**
+     * UI-18: встраиваемая страница клиента.
+     *
+     * @param linkTtl сколько живёт одноразовая ссылка из `POST /api/v1/self/ui-sessions`
+     * @param sessionTtl сколько живёт открытая по ней сессия страницы
+     * @param frameAncestors кто вправе встроить страницу во фрейм (заголовок Content-Security-Policy)
+     */
+    public record Selfservice(
+            @DefaultValue("PT5M") Duration linkTtl,
+            @DefaultValue("PT15M") Duration sessionTtl,
+            @DefaultValue("'self'") String frameAncestors) {}
 
     /** FR-11.1: the first administrator is created from the environment while the user table is still empty. */
     public record Bootstrap(

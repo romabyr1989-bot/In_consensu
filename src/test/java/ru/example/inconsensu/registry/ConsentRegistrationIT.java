@@ -45,6 +45,9 @@ class ConsentRegistrationIT extends AbstractIntegrationTest {
     @Autowired
     private TestForms testForms;
 
+    @Autowired
+    private SubjectService subjects;
+
     private ConsentForm form;
 
     @BeforeEach
@@ -353,5 +356,49 @@ class ConsentRegistrationIT extends AbstractIntegrationTest {
         var masked = evidenceService.maskedEvidence(consent, new com.fasterxml.jackson.databind.ObjectMapper());
 
         assertThat(masked).containsEntry("phone", "***").containsEntry("otpHash", "***");
+    }
+
+    /**
+     * FR-4.4: повторная регистрация не стирает контакты клиента.
+     *
+     * <p>Внешняя система присылает в блоке subject тот контакт, по которому получено согласие. Раньше
+     * список контактов заменялся целиком: согласие, оформленное по почте, лишало клиента телефона —
+     * менеджер видел карточку без номера и не мог позвонить.
+     */
+    @Test
+    void registering_for_a_known_client_adds_the_contact_instead_of_replacing_the_list() {
+        SubjectService.SubjectForm initial = newSubject();
+        registration.register(
+                UUID.randomUUID().toString(),
+                request(
+                        initial,
+                        List.of(new ConsentRegistrationService.ItemDecision(
+                                itemOf("PDN_PROCESSING").getId(), true))));
+
+        // Второй запрос по тому же клиенту, но только с почтой — как это делает внешняя форма на сайте.
+        SubjectService.SubjectForm onlyEmail = new SubjectService.SubjectForm(
+                initial.externalId(),
+                initial.lastName(),
+                initial.firstName(),
+                initial.middleName(),
+                initial.birthDate(),
+                List.of(new SubjectService.ContactForm(ContactType.EMAIL, "travin-new@example.ru", true)));
+
+        Consent consent = registration
+                .register(
+                        UUID.randomUUID().toString(),
+                        request(
+                                onlyEmail,
+                                List.of(new ConsentRegistrationService.ItemDecision(
+                                        itemOf("ADVERTISING_EMAIL").getId(), true))))
+                .created()
+                .get(0);
+
+        var contacts = subjects.get(consent.getSubjectId()).getContacts();
+        assertThat(contacts)
+                .as("телефон клиента не должен исчезать при регистрации по почте")
+                .anyMatch(contact -> contact.getType() == ContactType.PHONE);
+        assertThat(contacts).anyMatch(contact -> contact.getType() == ContactType.EMAIL);
+        assertThat(contacts).hasSize(3);
     }
 }

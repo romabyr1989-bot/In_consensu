@@ -158,6 +158,14 @@ class FormLifecycleIT extends AbstractIntegrationTest {
                 .getBody();
         assertThat(first.get("status")).isEqualTo("ARCHIVED");
         assertThat(first.get("validTo")).isNotNull();
+
+        // FR-1.5, UI-7: «Новая версия» доступна и с архивной версии — номер берётся от старшей, а не от
+        // той, с карточки которой нажали. Иначе запрос падал на ограничении уникальности (code, version).
+        Map<String, Object> third = call(
+                        "/api/v1/forms/" + id + "/new-version", HttpMethod.POST, lawyer, null, Map.class)
+                .getBody();
+        assertThat(third.get("version")).isEqualTo(3);
+        assertThat(third.get("status")).isEqualTo("DRAFT");
     }
 
     @Test
