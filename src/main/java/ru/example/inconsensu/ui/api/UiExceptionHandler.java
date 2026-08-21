@@ -95,6 +95,13 @@ public class UiExceptionHandler {
             response.setStatus(HttpStatus.FORBIDDEN.value());
             return "ui/error/forbidden";
         }
+        if (exception.errorCode() == ErrorCode.TOO_MANY_REQUESTS) {
+            // Отказ по частоте — не ошибка системы: страница объясняет, что делать, и отвечает 429, а не
+            // «Произошла ошибка», под которой сотрудник и клиент понимали бы поломку.
+            response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
+            model.addAttribute("message", exception.getMessage());
+            return "ui/error/too-many-requests";
+        }
         response.setStatus(HttpStatus.BAD_REQUEST.value());
         return "ui/error/server-error";
     }

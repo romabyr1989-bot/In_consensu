@@ -138,6 +138,8 @@ public class UiSelfServiceViewService {
     public Receipt revoke(UUID sessionId, UUID consentId) {
         SelfUiSession session = sessions.activeSession(sessionId);
         Subject subject = subjects.get(session.getSubjectId());
+        // FR-8.1: лимит действует и на страницу, а не только на API самообслуживания.
+        selfService.checkRate(subject);
         RevocationService.RevocationResult result = selfService.revoke(subject, consentId, SOURCE);
         return receipt(List.of(result));
     }
@@ -146,6 +148,7 @@ public class UiSelfServiceViewService {
     public Receipt revokeAllAdvertising(UUID sessionId) {
         SelfUiSession session = sessions.activeSession(sessionId);
         Subject subject = subjects.get(session.getSubjectId());
+        selfService.checkRate(subject);
         return receipt(selfService.revokeAllAdvertising(subject, SOURCE));
     }
 

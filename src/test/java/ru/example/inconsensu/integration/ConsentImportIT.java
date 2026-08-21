@@ -193,6 +193,28 @@ class ConsentImportIT extends AbstractIntegrationTest {
         assertThat(job.getReport()).contains("document_ref");
     }
 
+    /**
+     * FR-4.2: дата выражения согласия из будущего отклоняется и на пути импорта.
+     *
+     * <p>Правило проверялось только при регистрации через API. Опечатка в годе — обычное дело в выгрузке
+     * из мастер-системы, и такое согласие молча заводилось, никогда не становясь действующим.
+     */
+    @Test
+    void a_consent_dated_in_the_future_is_rejected_by_the_import_too() {
+        String content =
+                """
+                external_id,last_name,first_name,consent_type_code,granted_at,source,source_ref,note
+                CRM-FUTURE-%s,Тест,Тест,PDN_PROCESSING,12.03.2226,CLIENT_BASE_IMPORT,X,перенос
+                """
+                        .formatted(UUID.randomUUID().toString().substring(0, 8));
+
+        ImportJob job = runImport(content, false);
+
+        assertThat(job.getRejected()).isEqualTo(1);
+        assertThat(job.getImported()).isZero();
+        assertThat(job.getReport()).contains("не может быть в будущем");
+    }
+
     @Test
     void jobs_are_listed_for_the_import_screen() {
         runImport(csv("CRM-" + UUID.randomUUID().toString().substring(0, 8)), true);

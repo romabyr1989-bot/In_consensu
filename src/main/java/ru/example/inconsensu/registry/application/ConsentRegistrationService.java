@@ -353,6 +353,18 @@ public class ConsentRegistrationService {
         }
     }
 
+    /**
+     * FR-4.2: дата выражения согласия не может быть из будущего дальше допуска на рассинхрон часов.
+     *
+     * <p>Правило проверялось только на пути регистрации, а импорт его обходил: опечатка в годе (2226
+     * вместо 2026) молча заводила согласие, которое никогда не станет действующим.
+     */
+    public void requireNotInFuture(Instant grantedAt) {
+        if (grantedAt != null && grantedAt.isAfter(clock.instant().plus(FUTURE_TOLERANCE))) {
+            throw new ApiException(ErrorCode.VALIDATION_FAILED, "Дата выражения согласия не может быть в будущем");
+        }
+    }
+
     private void requireUsableForm(ConsentForm form, ConsentSource source, Instant grantedAt) {
         boolean historicalImport = source == ConsentSource.CLIENT_BASE_IMPORT;
         if (form.getStatus() == FormStatus.PUBLISHED) {

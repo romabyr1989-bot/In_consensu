@@ -119,6 +119,7 @@ public class ImportRowProcessor {
             throw new ApiException(ErrorCode.VALIDATION_FAILED, "Тип согласия деактивирован: " + row.consentTypeCode());
         }
 
+        registration.requireNotInFuture(row.grantedAt());
         ConsentForm form = resolveForm(row, row.grantedAt(), cache);
         ConsentFormItem item = resolveItem(form, type);
         ThirdParty thirdParty = resolveThirdParty(row, type, cache);

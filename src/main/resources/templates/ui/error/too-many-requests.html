@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Слишком много обращений · In consensu</title>
+    <link rel="stylesheet" th:href="@{/webjars/bootstrap/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/assets/css/inconsensu.css}">
+</head>
+<!--
+  Страница без каркаса сотрудника: в этот отказ упирается и клиент на встраиваемой странице UI-18, а
+  показывать ему меню оператора нельзя. Текст объясняет, что делать, и не называет технических деталей.
+-->
+<body>
+<main class="ic-self">
+    <h1 class="h5">Слишком много обращений</h1>
+    <p th:text="${message} ?: 'Повторите попытку через минуту.'">Повторите попытку через минуту.</p>
+</main>
+</body>
+</html>

@@ -124,6 +124,17 @@ public class SelfServiceService {
         return forms.canonicalText(forms.get(view.consent().getFormId()));
     }
 
+    /**
+     * Ограничение частоты для встраиваемой страницы (FR-8.1).
+     *
+     * <p>Лимит стоял на входе в API самообслуживания, а страница UI-18 работает по открытой сессии и мимо
+     * него: «Отозвать» в цикле ничем не ограничивалось. Ключ — тот же внешний идентификатор клиента, так
+     * что предел общий на оба пути.
+     */
+    public void checkRate(Subject subject) {
+        rateLimiter.check(subject.getExternalId());
+    }
+
     @Transactional
     public RevocationService.RevocationResult revoke(Subject subject, UUID consentId, RevocationSource source) {
         ownConsent(subject, consentId);

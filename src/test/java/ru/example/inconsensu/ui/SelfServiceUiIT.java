@@ -169,6 +169,41 @@ class SelfServiceUiIT extends AbstractIntegrationTest {
                 .isBefore(Instant.now().plus(properties.selfservice().linkTtl()).plusSeconds(5));
     }
 
+    /**
+     * FR-8.1: ограничение частоты действует и на встраиваемую страницу.
+     *
+     * <p>Лимит стоял на входе в API самообслуживания, а страница работает по открытой сессии и шла мимо
+     * него: «Отозвать» в цикле не упиралось ни во что.
+     */
+    @Test
+    void repeated_revocations_from_the_page_run_into_the_rate_limit() throws Exception {
+        Consent consent = registerConsent();
+        MockHttpSession session =
+                (MockHttpSession) mockMvc.perform(get("/self/ui").param("token", tokenOf(issueLink(consent))))
+                        .andReturn()
+                        .getRequest()
+                        .getSession(false);
+
+        // Отзыв идемпотентен, поэтому повторы проходят по тому же пути и упираются именно в предел частоты.
+        int limited = 0;
+        for (int attempt = 0; attempt < 40; attempt++) {
+            int status = mockMvc.perform(post("/self/ui/consents/" + consent.getId() + "/revoke")
+                            .session(session)
+                            .with(csrf()))
+                    .andReturn()
+                    .getResponse()
+                    .getStatus();
+            if (status == 429) {
+                limited++;
+                break;
+            }
+        }
+
+        assertThat(limited)
+                .as("страница обязана упереться в ограничение частоты")
+                .isPositive();
+    }
+
     @Test
     void page_without_a_session_asks_to_return_to_the_personal_account() throws Exception {
         mockMvc.perform(get("/self/ui"))
