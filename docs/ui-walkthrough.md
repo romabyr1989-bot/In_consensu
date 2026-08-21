@@ -129,7 +129,7 @@
 Личный кабинет получает одноразовую ссылку:
 
 ```bash
-curl -X POST https://cus.example.ru/api/v1/self/ui-sessions \
+curl -X POST https://inconsensu.example.ru/api/v1/self/ui-sessions \
   -H "Authorization: Bearer $SERVICE_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"externalId": "CRM-1002345"}'

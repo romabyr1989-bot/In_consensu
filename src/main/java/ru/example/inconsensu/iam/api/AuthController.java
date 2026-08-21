@@ -27,14 +27,29 @@ public class AuthController {
     }
 
     private final AuthService authService;
+    private final ru.example.inconsensu.iam.application.LoginRateLimiter rateLimiter;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, ru.example.inconsensu.iam.application.LoginRateLimiter rateLimiter) {
         this.authService = authService;
+        this.rateLimiter = rateLimiter;
     }
 
+    /**
+     * FR-11.1: вход защищён и блокировкой учётной записи, и ограничением частоты с одного адреса.
+     *
+     * <p>Блокировка защищает конкретного сотрудника, но перебор логинов ею не останавливается: неудачи
+     * считаются по адресу обратившегося, а удачный вход счётчик не наращивает.
+     */
     @PostMapping("/login")
-    public TokenResponse login(@Valid @RequestBody LoginRequest request) {
-        return TokenResponse.of(authService.login(request.login(), request.password()));
+    public TokenResponse login(@Valid @RequestBody LoginRequest request, jakarta.servlet.http.HttpServletRequest http) {
+        String source = http.getRemoteAddr();
+        rateLimiter.check(source);
+        try {
+            return TokenResponse.of(authService.login(request.login(), request.password()));
+        } catch (ru.example.inconsensu.common.error.ApiException rejected) {
+            rateLimiter.registerFailure(source);
+            throw rejected;
+        }
     }
 
     @PostMapping("/refresh")

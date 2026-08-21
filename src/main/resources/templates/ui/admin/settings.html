@@ -18,8 +18,13 @@
                         <div class="col-md-6" th:each="setting : ${group.settings}">
                             <label class="form-label" th:for="${setting.key}" th:text="${setting.label}">
                                 Наименование оператора</label>
+                            <!--
+                              Настройка, прочитанная при запуске, показывается, но не правится: форма,
+                              принимающая значение и молча его не применяющая, хуже отсутствующего поля.
+                            -->
                             <input class="form-control" th:id="${setting.key}" th:name="${setting.key}"
-                                   th:value="${setting.value}">
+                                   th:value="${setting.value}" th:readonly="${setting.readOnly}"
+                                   th:disabled="${setting.readOnly}">
                             <div class="form-text" th:if="${!#strings.isEmpty(setting.hint)}"
                                  th:text="${setting.hint}">Период ISO-8601</div>
                             <div class="form-text text-muted"><code th:text="${setting.key}">operator.name</code></div>

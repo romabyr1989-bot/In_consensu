@@ -216,12 +216,17 @@ public class UiSubjectController {
     private String historyFragment(
             UUID id,
             ru.example.inconsensu.common.domain.AuditEventType eventType,
-            java.time.Instant from,
-            java.time.Instant to,
+            java.time.LocalDate fromDay,
+            java.time.LocalDate toDay,
             Model model) {
-        model.addAttribute("history", view.historyFeed(id, eventType, from, to));
+        model.addAttribute(
+                "history", view.historyFeed(id, eventType, view.startOfDay(fromDay), view.startOfNextDay(toDay)));
         model.addAttribute("eventTypes", ru.example.inconsensu.common.domain.AuditEventType.values());
         model.addAttribute("selectedEventType", eventType);
+        // UI-0.8: выбранный период возвращается в поля — иначе после «Показать» они пустеют и сотрудник
+        // не видит, какой фильтр применён.
+        model.addAttribute("selectedFrom", fromDay);
+        model.addAttribute("selectedTo", toDay);
         model.addAttribute("subjectId", id);
         return "ui/subjects/fragments :: history";
     }
@@ -245,7 +250,7 @@ public class UiSubjectController {
                             iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE)
                     java.time.LocalDate to,
             Model model) {
-        return historyFragment(id, eventType, view.startOfDay(from), view.startOfNextDay(to), model);
+        return historyFragment(id, eventType, from, to, model);
     }
 
     /** UI-4: проверка целостности цепочки событий клиента — функция аудита, значит и роли аудита (§16.2). */

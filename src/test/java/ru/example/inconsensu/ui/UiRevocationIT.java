@@ -76,7 +76,10 @@ class UiRevocationIT extends AbstractIntegrationTest {
         mockMvc.perform(get("/ui/consents/" + consent.getId() + "/revocation-dialog")
                         .session(session))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Отзыв необратим и вступает в силу немедленно")));
+                .andExpect(content().string(containsString("Отзыв необратим и вступает в силу немедленно")))
+                // UI-0.9: обязательные поля диалога помечены — сотрудник видит это до отправки.
+                .andExpect(content().string(containsString("Причина <span aria-hidden=\"true\">*</span>")))
+                .andExpect(content().string(containsString("Номер обращения <span aria-hidden=\"true\">*</span>")));
 
         String afterRevoke = mockMvc.perform(post("/ui/consents/" + consent.getId() + "/revoke")
                         .session(session)
@@ -333,6 +336,20 @@ class UiRevocationIT extends AbstractIntegrationTest {
                 .andExpect(content().string(containsString("источник — заявка на сайте")))
                 .andExpect(content().string(containsString("источник обращения — звонок в колл-центр")))
                 .andExpect(content().string(containsString("клиент попросил прекратить рассылку")));
+
+        // UI-0.8: после «Показать» выбранный период остаётся в полях — иначе не видно, какой фильтр применён.
+        String today = java.time.LocalDate.now().toString();
+        String filtered = mockMvc.perform(get("/ui/subjects/" + consent.getSubjectId() + "/history")
+                        .session(session)
+                        .param("from", today)
+                        .param("to", today))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        assertThat(filtered.split("value=\"" + today + "\"", -1).length - 1)
+                .as("выбранные даты обязаны вернуться в оба поля периода")
+                .isEqualTo(2);
     }
 
     /** UI-3: панель расширенных фильтров сужает выборку запросом, а не отбором готовой страницы. */

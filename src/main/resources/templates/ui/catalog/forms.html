@@ -122,6 +122,13 @@
                            th:href="@{/ui/catalog/forms/{id}/edit(id=${form.id})}">Конструктор</a>
                         <a class="btn btn-sm btn-link" th:if="${form.status.name() == 'ON_REVIEW' or form.status.name() == 'APPROVED'}"
                            th:href="@{/ui/catalog/forms/{id}/review(id=${form.id})}">Согласование</a>
+                        <!-- UI-7: «Новая версия» доступна прямо из списка для опубликованных и архивных. -->
+                        <form class="d-inline" method="post"
+                              th:action="@{/ui/catalog/forms/{id}/new-version(id=${form.id})}"
+                              sec:authorize="hasAnyRole('LAWYER','DPO','ADMIN')"
+                              th:if="${form.status.name() == 'PUBLISHED' or form.status.name() == 'ARCHIVED'}">
+                            <button class="btn btn-sm btn-link" type="submit">Новая версия</button>
+                        </form>
                     </td>
                 </tr>
                 </tbody>

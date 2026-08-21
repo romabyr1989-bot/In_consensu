@@ -208,11 +208,13 @@
         </div>
         <div class="col-6 col-md-3">
             <label class="form-label" for="history-from">С даты</label>
-            <input class="form-control form-control-sm" type="date" id="history-from" name="from">
+            <input class="form-control form-control-sm" type="date" id="history-from" name="from"
+                   th:value="${selectedFrom}">
         </div>
         <div class="col-6 col-md-3">
             <label class="form-label" for="history-to">По дату</label>
-            <input class="form-control form-control-sm" type="date" id="history-to" name="to">
+            <input class="form-control form-control-sm" type="date" id="history-to" name="to"
+                   th:value="${selectedTo}">
         </div>
         <div class="col-12 col-md-2 align-self-end">
             <button class="btn btn-sm btn-outline-secondary" type="submit">Показать</button>
@@ -305,7 +307,7 @@
             </p>
             <!-- Согласие ещё не выбрано: диалог открыт кнопкой в шапке карточки. -->
             <div class="mb-3" th:if="${consent == null}">
-                <label class="form-label" for="consentId">Какое согласие отзываем</label>
+                <label class="form-label" for="consentId">Какое согласие отзываем <span aria-hidden="true">*</span></label>
                 <select class="form-select" id="consentId" name="consentId" required>
                     <option th:each="candidate : ${revocable}" th:value="${candidate.id}"
                             th:text="${candidate.title}">Реклама по email</option>
@@ -322,17 +324,17 @@
             </div>
 
             <div class="mb-3">
-                <label class="form-label" for="revocationSource">Источник обращения</label>
+                <label class="form-label" for="revocationSource">Источник обращения <span aria-hidden="true">*</span></label>
                 <select class="form-select" id="revocationSource" name="revocationSource" required>
                     <option th:each="source : ${sources}" th:value="${source}" th:text="${source.nameRu()}">Звонок</option>
                 </select>
             </div>
             <div class="mb-3">
-                <label class="form-label" for="reason">Причина</label>
+                <label class="form-label" for="reason">Причина <span aria-hidden="true">*</span></label>
                 <textarea class="form-control" id="reason" name="reason" rows="2" required></textarea>
             </div>
             <div class="mb-3">
-                <label class="form-label" for="caseNumber">Номер обращения</label>
+                <label class="form-label" for="caseNumber">Номер обращения <span aria-hidden="true">*</span></label>
                 <input class="form-control" id="caseNumber" name="caseNumber" required>
             </div>
             <div class="mb-3">

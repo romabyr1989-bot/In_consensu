@@ -13,13 +13,20 @@ import java.util.Map;
  */
 public final class UiSettingsCatalog {
 
-    /** @param hint пояснение под полем: в каком виде вводится значение */
-    public record SettingView(String key, String label, String hint, String value) {}
+    /**
+     * @param hint пояснение под полем: в каком виде вводится значение
+     * @param readOnly значение показывается, но не правится: оно прочитано при запуске (ADR-0084)
+     */
+    public record SettingView(String key, String label, String hint, String value, boolean readOnly) {}
 
     /** @param settings настройки группы в порядке §16 */
     public record SettingGroup(String title, List<SettingView> settings) {}
 
-    private record Meta(String group, String label, String hint) {}
+    private record Meta(String group, String label, String hint, boolean readOnly) {
+        Meta(String group, String label, String hint) {
+            this(group, label, hint, false);
+        }
+    }
 
     private static final Map<String, Meta> META = new LinkedHashMap<>();
 
@@ -31,7 +38,12 @@ public final class UiSettingsCatalog {
         META.put("dpo.name", new Meta("Ответственный за ПДн", "ФИО", ""));
         META.put("dpo.email", new Meta("Ответственный за ПДн", "Email", ""));
         META.put("dpo.phone", new Meta("Ответственный за ПДн", "Телефон", ""));
-        META.put("inconsensu.timezone", new Meta("Работа системы", "Таймзона оператора", "Например: Europe/Moscow"));
+        // Таймзона намеренно не редактируется в интерфейсе: по ней считаются календарные сроки и расписание
+        // задач, которые прочитаны при запуске. Правка «на ходу» сдвинула бы смысл уже вычисленных дат, а
+        // строка в этом справочнике обещала настройку, которой не существовало (ADR-0084).
+        META.put(
+                "inconsensu.timezone",
+                new Meta("Работа системы", "Таймзона оператора", "Задаётся при установке: INCONSENSU_TIMEZONE", true));
         META.put(
                 "inconsensu.status.expiring-days",
                 new Meta("Работа системы", "Порог «заканчивается через N дней»", "Число дней"));
@@ -79,13 +91,13 @@ public final class UiSettingsCatalog {
         META.forEach((key, meta) -> {
             if (settings.containsKey(key)) {
                 byGroup.computeIfAbsent(meta.group(), group -> new java.util.ArrayList<>())
-                        .add(new SettingView(key, meta.label(), meta.hint(), settings.get(key)));
+                        .add(new SettingView(key, meta.label(), meta.hint(), settings.get(key), meta.readOnly()));
             }
         });
         settings.forEach((key, value) -> {
             if (!META.containsKey(key)) {
                 byGroup.computeIfAbsent(OTHER_GROUP, group -> new java.util.ArrayList<>())
-                        .add(new SettingView(key, key, "", value));
+                        .add(new SettingView(key, key, "", value, false));
             }
         });
         return byGroup.entrySet().stream()

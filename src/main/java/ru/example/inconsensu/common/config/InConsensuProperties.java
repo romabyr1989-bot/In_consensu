@@ -55,8 +55,18 @@ public record InConsensuProperties(
             @DefaultValue("P7D") Duration refreshTokenTtl,
             @DefaultValue("cus") String issuer) {}
 
-    /** FR-11.1: protection of {@code /auth/login} against brute force. */
-    public record Login(@DefaultValue("5") int maxFailedAttempts, @DefaultValue("PT15M") Duration lockDuration) {}
+    /**
+     * FR-11.1: protection of {@code /auth/login} against brute force.
+     *
+     * @param maxFailedAttempts после скольких неудач блокируется учётная запись
+     * @param lockDuration на сколько она блокируется
+     * @param maxFailuresPerMinute сколько неудач в минуту допускается с одного адреса; блокировка защищает
+     *     одного сотрудника, а этот предел — от перебора логинов
+     */
+    public record Login(
+            @DefaultValue("5") int maxFailedAttempts,
+            @DefaultValue("PT15M") Duration lockDuration,
+            @DefaultValue("50") int maxFailuresPerMinute) {}
 
     /**
      * Infrastructure knobs of stage 6. Everything an operator changes without a restart (thresholds, digest size)

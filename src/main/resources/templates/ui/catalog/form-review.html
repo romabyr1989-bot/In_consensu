@@ -82,6 +82,14 @@
                     <button class="btn btn-primary w-100" type="submit">Опубликовать</button>
                 </form>
 
+                <!-- UI-9: для опубликованной версии экран согласования предлагает «В архив» — §16 ждёт кнопку здесь. -->
+                <form class="mt-3" th:action="@{/ui/catalog/forms/{id}/archive(id=${form.form().id})}" method="post"
+                      sec:authorize="hasAnyRole('DPO','ADMIN')"
+                      th:if="${form.form().status.name() == 'PUBLISHED'}"
+                      data-confirm="Форма перейдёт в архив. Регистрировать новые согласия по ней будет нельзя, выданные сохранятся. Продолжить?">
+                    <button class="btn btn-outline-danger w-100" type="submit">В архив</button>
+                </form>
+
                 <div class="card mt-3">
                     <div class="card-header">История формы</div>
                     <ul class="list-group list-group-flush">

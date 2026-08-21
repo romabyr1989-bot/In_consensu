@@ -49,7 +49,8 @@
                 </div>
                 <span class="badge"
                       th:classappend="${consent.status() == 'ACTIVE'} ? 'bg-success' :
-                          (${consent.status() == 'EXPIRING'} ? 'bg-warning text-dark' : 'bg-secondary')"
+                          (${consent.status() == 'EXPIRING'} ? 'bg-warning text-dark' :
+                          (${consent.status() == 'REVOKED'} ? 'bg-danger' : 'bg-secondary'))"
                       th:text="${consent.statusText()}" th:aria-label="${consent.statusText()}">действует</span>
             </div>
             <p class="small mt-2 mb-2" th:text="${consent.consequence()}">Мы перестанем звонить вам с предложениями.</p>
@@ -76,7 +77,9 @@
         <div class="card-body py-2">
             <div class="d-flex justify-content-between">
                 <span th:text="${consent.title()}">Реклама по email</span>
-                <span class="badge bg-secondary" th:text="${consent.statusText()}" th:aria-label="${consent.statusText()}">отозвано</span>
+                <!-- UI-0.7: «отозвано» — красный; серым он читался как «просто неактивно». -->
+                <span class="badge" th:classappend="${consent.status() == 'REVOKED'} ? 'bg-danger' : 'bg-secondary'"
+                      th:text="${consent.statusText()}" th:aria-label="${consent.statusText()}">отозвано</span>
             </div>
         </div>
     </div>

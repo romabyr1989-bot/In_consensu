@@ -10,19 +10,19 @@
 | Живость и готовность | `GET /actuator/health` | `UP`; база — `UP` |
 | Метрики | `GET /actuator/prometheus` | см. таблицу ниже |
 | Логи | stdout контейнера, JSON | у каждой записи есть `requestId` и `userId` (NFR-6) |
-| Очередь событий | `cus_outbox_queue`, `cus_outbox_retry` | десятки; рост — признак недоступности потребителя |
-| Недоставленные события | `cus_outbox_failed` | 0; ненулевое значение требует разбора |
-| Неотправленные письма | `cus_notifications_failed` | 0; ненулевое — проблема с SMTP |
-| Согласия по статусам | `cus_consents{status="…"}` | резкое падение `ACTIVE` — признак ошибочного массового отзыва |
+| Очередь событий | `inconsensu_outbox_queue`, `inconsensu_outbox_retry` | десятки; рост — признак недоступности потребителя |
+| Недоставленные события | `inconsensu_outbox_failed` | 0; ненулевое значение требует разбора |
+| Неотправленные письма | `inconsensu_notifications_failed` | 0; ненулевое — проблема с SMTP |
+| Согласия по статусам | `inconsensu_consents{status="…"}` | резкое падение `ACTIVE` — признак ошибочного массового отзыва |
 
 Почта намеренно не влияет на `health` (ADR-0031): недоступный SMTP не повод перезапускать исправный
-экземпляр. Смотреть нужно на `cus_notifications_failed`.
+экземпляр. Смотреть нужно на `inconsensu_notifications_failed`.
 
 ## 2. Типовые инциденты
 
 ### Растёт очередь outbox
 
-1. Проверьте `cus_outbox_retry` и журнал доставок: `GET /api/v1/webhooks/{id}/deliveries`.
+1. Проверьте `inconsensu_outbox_retry` и журнал доставок: `GET /api/v1/webhooks/{id}/deliveries`.
 2. Частая причина — недоступный или сменивший адрес потребитель. Исправьте адрес подписки
    (`PUT /api/v1/webhooks/{id}`) и верните события в очередь: экран «Webhooks» → «Повторить», либо
    `POST /ui/webhooks/events/{id}/retry`.
@@ -64,7 +64,7 @@ createdb cus && pg_restore --dbname=cus --no-owner cus-2026-08-19.dump
 
 1. Поднимите приложение — Flyway проверит совпадение схемы (`ddl-auto=validate`, миграции неизменяемы).
 2. Запустите проверку целостности журнала (см. выше): она подтверждает, что цепочки хешей не пострадали.
-3. Проверьте `cus_outbox_queue`: события, не доставленные до момента снимка, уйдут повторно — потребители
+3. Проверьте `inconsensu_outbox_queue`: события, не доставленные до момента снимка, уйдут повторно — потребители
    обязаны быть идемпотентными по `X-InConsensu-Delivery-Id` (`docs/webhooks.md`).
 
 **Важно про ключ шифрования.** Если включён `inconsensu.crypto.enabled`, дамп базы бесполезен без ключа
