@@ -6,6 +6,7 @@
 <div class="ic-layout">
     <aside th:replace="~{ui/fragments/layout :: sidebar('notifications')}"></aside>
     <main class="ic-content">
+        <nav th:replace="~{ui/fragments/layout :: breadcrumbs('Уведомления', '/ui/notifications', 'Текст уведомления')}"></nav>
         <div th:replace="~{ui/fragments/layout :: flash}"></div>
         <h1 class="h4 mb-1">Текст уведомления</h1>
         <p class="text-muted">

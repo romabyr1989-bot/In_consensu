@@ -18,6 +18,9 @@ body {
 .ic-layout {
     display: flex;
     min-height: calc(100vh - 56px);
+    /* UI-0.5: рабочая область сотрудника рассчитана на ширину от 1280 px; уже — горизонтальная прокрутка,
+       а не съезжающая вёрстка. Мобильная адаптация обязательна только для страницы клиента. */
+    min-width: 1280px;
 }
 
 .ic-sidebar {
@@ -131,4 +134,38 @@ body {
 .ic-sortable[aria-sort="ascending"] a,
 .ic-sortable[aria-sort="descending"] a {
     font-weight: 600;
+}
+
+/* UI-0.11: контраст по WCAG 2.1 AA. Имя и роль в верхней панели набирались text-white-50 — примерно
+   2:1 на синем фоне, ниже требуемых 4,5:1. */
+.ic-topbar .ic-user {
+    color: rgba(255, 255, 255, 0.92);
+}
+
+/* UI-0.7: «заменено новым» — серый контурный бейдж, чтобы отличаться от сплошного серого «истекло». */
+.badge.ic-badge-outline {
+    background: transparent;
+    border: 1px solid #6c757d;
+    color: #495057;
+}
+
+/* UI-0.6: состояние загрузки. htmx сам вешает класс htmx-request на элемент с hx-indicator. */
+.htmx-request {
+    opacity: 0.6;
+    cursor: progress;
+}
+
+.htmx-request::after {
+    content: " …";
+}
+
+/* UI-0.12: основной цвет оператора виден и на странице клиента, а не только объявлен переменной. */
+.ic-self-brand {
+    border-bottom: 3px solid var(--ic-primary, #0d6efd);
+    padding-bottom: 8px;
+}
+
+.ic-self .btn-primary {
+    background-color: var(--ic-primary, #0d6efd);
+    border-color: var(--ic-primary, #0d6efd);
 }

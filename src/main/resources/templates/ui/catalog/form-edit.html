@@ -6,6 +6,7 @@
 <div class="ic-layout">
     <aside th:replace="~{ui/fragments/layout :: sidebar('forms')}"></aside>
     <main class="ic-content">
+        <nav th:replace="~{ui/fragments/layout :: breadcrumbs('Формы согласий', '/ui/catalog/forms', 'Конструктор')}"></nav>
         <h1 class="h4 mb-3">
             Конструктор формы
             <small class="text-muted" th:text="${form.form().code} + ' · версия ' + ${form.form().versionNumber}">CODE · версия 1</small>
@@ -77,7 +78,7 @@
                     <div class="d-flex gap-2">
                         <button class="btn btn-primary" type="submit">Сохранить черновик</button>
                         <!-- UI-8: проверка идёт по сохранённому черновику, поэтому это названо явно. -->
-                        <button class="btn btn-outline-secondary" type="button"
+                        <button class="btn btn-outline-secondary" type="button" hx-indicator="this"
                                 th:hx-get="@{/ui/catalog/forms/{id}/preview(id=${form.form().id})}"
                                 hx-target="#form-preview" hx-swap="outerHTML">Проверить сохранённое</button>
                     </div>

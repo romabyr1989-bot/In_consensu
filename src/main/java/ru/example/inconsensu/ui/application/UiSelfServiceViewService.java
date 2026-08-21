@@ -52,6 +52,7 @@ public class UiSelfServiceViewService {
     private final ru.example.inconsensu.catalog.application.ConsentTypeService types;
     private final ru.example.inconsensu.integration.application.SelfServiceService selfService;
     private final UiFormats formats;
+    private final ru.example.inconsensu.thirdparty.application.ThirdPartyService thirdParties;
 
     public UiSelfServiceViewService(
             SelfUiSessionService sessions,
@@ -60,7 +61,8 @@ public class UiSelfServiceViewService {
             RevocationService revocation,
             ru.example.inconsensu.catalog.application.ConsentTypeService types,
             ru.example.inconsensu.integration.application.SelfServiceService selfService,
-            UiFormats formats) {
+            UiFormats formats,
+            ru.example.inconsensu.thirdparty.application.ThirdPartyService thirdParties) {
         this.sessions = sessions;
         this.subjects = subjects;
         this.consents = consents;
@@ -68,6 +70,7 @@ public class UiSelfServiceViewService {
         this.types = types;
         this.selfService = selfService;
         this.formats = formats;
+        this.thirdParties = thirdParties;
     }
 
     /** @return идентификатор открытой сессии страницы */
@@ -140,14 +143,43 @@ public class UiSelfServiceViewService {
                 ru.example.inconsensu.channels.domain.ChannelEvaluator.BASE_CONSENT_TYPE_CODE.equals(type.getCode());
         return new SelfConsent(
                 view.consent().getId(),
-                type.getNameRu(),
+                titleFor(view, type),
                 view.status().name(),
-                view.statusText(),
+                statusTextFor(view),
                 formats.date(view.consent().getGrantedAt()),
                 formats.validUntil(view.consent().getValidUntil()),
                 consequence(base, type.getChannels().isEmpty()),
                 cascadeTitles(view),
                 view.status() == ConsentStatus.ACTIVE || view.status() == ConsentStatus.EXPIRING);
+    }
+
+    /**
+     * Понятное название согласия для клиента (UI-18).
+     *
+     * <p>Название типа само по себе клиенту мало что говорит: «Передача ПДн третьему лицу» не отвечает на
+     * вопрос «кому и зачем». §16 приводит пример «Передача данных ООО «Моменто» для доставки
+     * корреспонденции», поэтому к названию добавляется партнёр.
+     */
+    private String titleFor(
+            ConsentQueryService.ConsentView view, ru.example.inconsensu.catalog.domain.ConsentType type) {
+        UUID thirdPartyId = view.consent().getThirdPartyId();
+        if (thirdPartyId == null) {
+            return type.getNameRu();
+        }
+        return type.getNameRu() + " — " + thirdParties.get(thirdPartyId).getName();
+    }
+
+    /**
+     * Статус с датой отзыва (UI-18).
+     *
+     * <p>§16 приводит текст «отозвано 02.06.2026»: без даты клиент не понимает, когда его обращение было
+     * исполнено, и звонит спрашивать.
+     */
+    private String statusTextFor(ConsentQueryService.ConsentView view) {
+        if (view.status() == ConsentStatus.REVOKED && view.consent().getRevokedAt() != null) {
+            return view.statusText() + " " + formats.date(view.consent().getRevokedAt());
+        }
+        return view.statusText();
     }
 
     /**

@@ -32,7 +32,7 @@
                placeholder="Телефон, email, ФИО или ID клиента" aria-label="Поиск клиента">
     </form>
     <div class="ms-auto d-flex align-items-center gap-3">
-        <span class="text-white-50 small">
+        <span class="ic-user small">
             <span th:text="${currentUserLogin}">admin</span> ·
             <span th:text="${currentUserRolesRu}">Администратор</span>
         </span>
@@ -147,11 +147,27 @@
     </ul>
 </nav>
 
+<!--
+  UI-0.5: хлебные крошки области контента. Раздел и заголовок приходят от экрана: свои крошки были
+  только на двух страницах, на остальных сотрудник не видел, где он находится.
+-->
+<nav th:fragment="breadcrumbs(section, sectionUrl, page)" aria-label="Хлебные крошки">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a th:href="@{/ui/}">Главная</a></li>
+        <li class="breadcrumb-item" th:if="${section != null}">
+            <a th:if="${sectionUrl != null}" th:href="@{${sectionUrl}}" th:text="${section}">Клиенты</a>
+            <span th:unless="${sectionUrl != null}" th:text="${section}">Клиенты</span>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page" th:text="${page}">Карточка</li>
+    </ol>
+</nav>
+
 <div th:fragment="flash" th:if="${flashMessage != null or flashError != null}">
     <div class="alert alert-success" role="alert" th:if="${flashMessage != null}" th:text="${flashMessage}"></div>
     <div class="alert alert-danger" role="alert" th:if="${flashError != null}">
         <span th:text="${flashError}">Ошибка</span>
-        <span class="text-muted small" th:if="${requestId != null}">Код обращения: <span th:text="${requestId}"></span></span>
+        <!-- UI-0.6: код обращения выводится всегда — по нему поддержка находит запрос в журнале. -->
+        <span class="text-muted small">Код обращения: <span th:text="${requestId} ?: '—'">R-1</span></span>
     </div>
 </div>
 

@@ -7,7 +7,6 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
-import ru.example.inconsensu.catalog.application.ConsentFormService;
 import ru.example.inconsensu.common.domain.RoleCode;
 import ru.example.inconsensu.ui.application.UiBrandingService;
 import ru.example.inconsensu.ui.application.UiFormats;
@@ -22,12 +21,15 @@ import ru.example.inconsensu.ui.application.UiFormats;
 public class UiModelAdvice {
 
     private final UiBrandingService branding;
-    private final ConsentFormService forms;
+    private final ru.example.inconsensu.catalog.application.FormWorkflowService workflow;
     private final UiFormats formats;
 
-    public UiModelAdvice(UiBrandingService branding, ConsentFormService forms, UiFormats formats) {
+    public UiModelAdvice(
+            UiBrandingService branding,
+            ru.example.inconsensu.catalog.application.FormWorkflowService workflow,
+            UiFormats formats) {
         this.branding = branding;
-        this.forms = forms;
+        this.workflow = workflow;
         this.formats = formats;
     }
 
@@ -43,6 +45,8 @@ public class UiModelAdvice {
         // UI-0.4: даты форматируются одним способом и в таймзоне оператора. #temporals.format в шаблоне
         // берёт таймзону JVM, из-за чего одно и то же время печаталось по-разному на сервере и у оператора.
         model.addAttribute("formats", formats);
+        // UI-0.6: код обращения показывается рядом с любой ошибкой экрана, а не только на странице 500.
+        model.addAttribute("requestId", ru.example.inconsensu.common.web.RequestIdFilter.currentRequestId());
         if (authentication == null || !authentication.isAuthenticated()) {
             return;
         }
@@ -55,10 +59,12 @@ public class UiModelAdvice {
         model.addAttribute("currentUserRoles", roles);
         model.addAttribute("currentUserRolesRu", rolesRu(roles));
         // UI-0.5: у пункта «Формы» счётчик виден только тем, кто действительно принимает решение.
+        // Счётчик считает формы, где решение именно этой роли ещё не принято: раньше он показывал все
+        // формы на согласовании, и юрист видел единицу даже после того, как сам одобрил форму.
         model.addAttribute(
                 "awaitingFormsCount",
                 roles.contains(RoleCode.LAWYER.name()) || roles.contains(RoleCode.DPO.name())
-                        ? forms.awaitingDecision().size()
+                        ? workflow.awaitingDecisionOf(roles).size()
                         : 0);
     }
 

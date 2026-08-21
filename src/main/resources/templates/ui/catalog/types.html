@@ -7,6 +7,7 @@
 <div class="ic-layout">
     <aside th:replace="~{ui/fragments/layout :: sidebar('types')}"></aside>
     <main class="ic-content">
+        <nav th:replace="~{ui/fragments/layout :: breadcrumbs('Каталог', null, 'Типы согласий')}"></nav>
         <h1 class="h4 mb-3">Типы согласий</h1>
         <div th:replace="~{ui/fragments/layout :: flash}"></div>
 
@@ -57,17 +58,17 @@
                     <td th:text="${row.type.category.nameRu()}">Базовое</td>
                     <td>
                         <span class="badge bg-light text-dark me-1" th:each="channel : ${row.type.channels}"
-                              th:text="${channel.nameRu()}">Электронная почта</span>
+                              th:text="${channel.nameRu()}" th:aria-label="${channel.nameRu()}">Электронная почта</span>
                     </td>
                     <td th:text="${row.type.requiresThirdParty} ? 'нужно' : '—'">—</td>
                     <td th:text="${formats.period(row.type.defaultValidity)}">до отзыва</td>
                     <td th:text="${row.type.dependsOn != null} ? ${row.type.dependsOn.code} : '—'">—</td>
                     <td th:text="${row.type.businessSignificant} ? 'да' : 'нет'">нет</td>
                     <td>
-                        <span class="badge bg-success" th:text="${row.active}" title="Действующие">10</span>
+                        <span class="badge bg-success" th:text="${row.active}" title="Действующие" th:aria-label="${row.active}">10</span>
                         <span class="badge bg-warning text-dark" th:text="${row.expiringSoon}"
-                              title="Истекают в ближайшие 30 дней">1</span>
-                        <span class="badge bg-danger" th:text="${row.revoked}" title="Отозванные">2</span>
+                              title="Истекают в ближайшие 30 дней" th:aria-label="${row.expiringSoon}">1</span>
+                        <span class="badge bg-danger" th:text="${row.revoked}" title="Отозванные" th:aria-label="${row.revoked}">2</span>
                     </td>
                     <td>
                         <span class="badge bg-success" th:if="${row.type.active}">активен</span>

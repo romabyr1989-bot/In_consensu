@@ -7,6 +7,7 @@
 <div class="ic-layout">
     <aside th:replace="~{ui/fragments/layout :: sidebar('third-parties')}"></aside>
     <main class="ic-content">
+        <nav th:replace="~{ui/fragments/layout :: breadcrumbs('Третьи лица', null, 'Справочник')}"></nav>
         <h1 class="h4 mb-3">Третьи лица</h1>
         <div th:replace="~{ui/fragments/layout :: flash}"></div>
 
@@ -33,14 +34,14 @@
                         <span class="text-muted small" th:if="${!#strings.isEmpty(party.contractUntil)}"
                               th:text="'до ' + ${party.contractUntil}">до 31.12.2026</span>
                         <span class="badge" th:if="${!#strings.isEmpty(party.contractBadge)}"
-                              th:classappend="${party.contractBadgeKind}" th:text="${party.contractBadge}">истекает</span>
+                              th:classappend="${party.contractBadgeKind}" th:text="${party.contractBadge}" th:aria-label="${party.contractBadge}">истекает</span>
                     </td>
                     <td th:text="${party.categoriesRu}">ФИО, номер телефона</td>
                     <td>
-                        <span class="badge bg-success" th:text="${party.consentsActive}" title="Действующие">10</span>
+                        <span class="badge bg-success" th:text="${party.consentsActive}" title="Действующие" th:aria-label="${party.consentsActive}">10</span>
                         <span class="badge bg-warning text-dark" th:text="${party.consentsExpiring}"
-                              title="Истекают в ближайшие 30 дней">1</span>
-                        <span class="badge bg-danger" th:text="${party.consentsRevoked}" title="Отозванные">2</span>
+                              title="Истекают в ближайшие 30 дней" th:aria-label="${party.consentsExpiring}">1</span>
+                        <span class="badge bg-danger" th:text="${party.consentsRevoked}" title="Отозванные" th:aria-label="${party.consentsRevoked}">2</span>
                     </td>
                     <td>
                         <span class="badge bg-success" th:if="${party.active}">активно</span>

@@ -6,6 +6,7 @@
 <div class="ic-layout">
     <aside th:replace="~{ui/fragments/layout :: sidebar('webhooks')}"></aside>
     <main class="ic-content">
+        <nav th:replace="~{ui/fragments/layout :: breadcrumbs('Webhooks', null, 'Подписки')}"></nav>
         <h1 class="h4 mb-3">Подписки на события</h1>
         <div th:replace="~{ui/fragments/layout :: flash}"></div>
 
@@ -26,7 +27,7 @@
                 <td class="text-truncate" style="max-width: 320px" th:text="${subscription.url}">https://…</td>
                 <td>
                     <span class="badge bg-light text-dark me-1" th:each="type : ${subscription.eventTypes}"
-                          th:text="${type}">consent.revoked</span>
+                          th:text="${type}" th:aria-label="${type}">consent.revoked</span>
                     <span class="text-muted small" th:if="${subscription.eventTypes.isEmpty()}">все события</span>
                 </td>
                 <td>
@@ -36,7 +37,7 @@
                         <span th:text="${subscription.lastDeliveryAt}">17.08.2026 10:00</span>
                         <span class="badge"
                               th:classappend="${subscription.lastDeliverySuccessful} ? 'bg-success' : 'bg-danger'"
-                              th:text="${subscription.lastDeliveryResult}">код 200</span>
+                              th:text="${subscription.lastDeliveryResult}" th:aria-label="${subscription.lastDeliveryResult}">код 200</span>
                     </span>
                 </td>
                 <td>

@@ -7,6 +7,7 @@
 <div class="ic-layout">
     <aside th:replace="~{ui/fragments/layout :: sidebar('third-parties')}"></aside>
     <main class="ic-content">
+        <nav th:replace="~{ui/fragments/layout :: breadcrumbs('Третьи лица', '/ui/third-parties', 'Карточка партнёра')}"></nav>
         <div th:replace="~{ui/fragments/layout :: flash}"></div>
         <h1 class="h4 mb-3" th:text="${thirdParty.name}">ООО «Моменто»</h1>
 

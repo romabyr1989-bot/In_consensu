@@ -158,6 +158,28 @@ class UiTablesIT extends AbstractIntegrationTest {
                 .andExpect(content().string(containsString("Завести или обновить клиента")));
     }
 
+    /** UI-0.5 и UI-0.6: у экранов есть хлебные крошки, а у действий htmx — индикатор загрузки. */
+    @Test
+    void screens_have_breadcrumbs_and_loading_indicators() throws Exception {
+        MockHttpSession admin = loginAs(RoleCode.ADMIN.name());
+
+        for (String screen : List.of("/ui/catalog/types", "/ui/third-parties", "/ui/import", "/ui/admin/users")) {
+            mockMvc.perform(get(screen).session(admin))
+                    .andExpect(status().isOk())
+                    .andExpect(content().string(containsString("Хлебные крошки")));
+        }
+
+        // Индикатор висит на элементах, которые ходят на сервер по htmx: без него нажатие выглядит как
+        // «ничего не произошло».
+        mockMvc.perform(get("/ui/catalog/types").session(admin)).andExpect(status().isOk());
+        String subjects = mockMvc.perform(get("/ui/subjects?status=ACTIVE").session(admin))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        assertThat(subjects).contains("Хлебные крошки");
+    }
+
     private MockHttpSession loginAs(String roleCode) throws Exception {
         AppUser user = accounts.create(roleCode);
         return (MockHttpSession)

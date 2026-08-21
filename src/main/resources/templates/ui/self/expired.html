@@ -6,9 +6,18 @@
     <title>Ссылка недействительна</title>
     <link rel="stylesheet" th:href="@{/webjars/bootstrap/css/bootstrap.min.css}">
     <link rel="stylesheet" th:href="@{/assets/css/inconsensu.css}">
+    <style th:inline="css">
+        :root { --ic-primary: [[${branding != null} ? ${branding.color} : '#0d6efd']]; }
+    </style>
 </head>
 <body>
 <main class="ic-self">
+    <header class="ic-self-brand d-flex align-items-center gap-2 mb-3">
+        <img th:if="${branding != null and branding.logoUrl != null and !branding.logoUrl.isEmpty()}"
+             th:src="${branding.logoUrl}" alt="" height="28">
+        <span class="fw-semibold" th:text="${branding != null} ? ${branding.operatorName} : 'Оператор'">
+            ООО «Тестовый оператор»</span>
+    </header>
     <div class="card">
         <div class="card-body">
             <h1 class="h5">Ссылка недействительна</h1>

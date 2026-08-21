@@ -7,6 +7,7 @@
 <div class="ic-layout">
     <aside th:replace="~{ui/fragments/layout :: sidebar('subjects')}"></aside>
     <main class="ic-content">
+        <nav th:replace="~{ui/fragments/layout :: breadcrumbs('Клиенты', null, 'Поиск')}"></nav>
         <h1 class="h4 mb-3">Клиенты</h1>
 
         <form class="row g-2 mb-4" th:action="@{/ui/subjects/search}" method="post">
@@ -159,7 +160,7 @@
                         </div>
                     </td>
                     <td>
-                        <span class="badge bg-success" th:text="'действует ' + ${row.active}">действует 2</span>
+                        <span class="badge bg-success" th:text="'действует ' + ${row.active}" th:aria-label="'действует ' + ${row.active}">действует 2</span>
                         <span class="badge bg-warning text-dark" th:if="${row.expiring > 0}"
                               th:text="'заканчивается ' + ${row.expiring}">заканчивается 1</span>
                         <span class="badge bg-danger" th:if="${row.revoked > 0}"

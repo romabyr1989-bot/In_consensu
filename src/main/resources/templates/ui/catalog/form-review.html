@@ -7,6 +7,7 @@
 <div class="ic-layout">
     <aside th:replace="~{ui/fragments/layout :: sidebar('forms')}"></aside>
     <main class="ic-content">
+        <nav th:replace="~{ui/fragments/layout :: breadcrumbs('Формы согласий', '/ui/catalog/forms', 'Согласование')}"></nav>
         <div th:replace="~{ui/fragments/layout :: flash}"></div>
         <h1 class="h4 mb-1">Согласование формы</h1>
         <p class="text-muted">

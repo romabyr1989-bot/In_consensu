@@ -326,6 +326,27 @@ public class FormWorkflowService {
                 .toList();
     }
 
+    /**
+     * Формы, ждущие решения именно этих ролей (UI-0.5).
+     *
+     * <p>Счётчик в меню показывал все формы на согласовании: юрист видел единицу и после того, как сам
+     * одобрил форму, — по ней ждали уже не его.
+     */
+    @Transactional(readOnly = true)
+    public List<ConsentForm> awaitingDecisionOf(java.util.Collection<String> roles) {
+        Set<String> required = requiredRoles();
+        Set<String> mine = roles.stream().filter(required::contains).collect(java.util.stream.Collectors.toSet());
+        if (mine.isEmpty()) {
+            return List.of();
+        }
+        return formService.awaitingDecision().stream()
+                .filter(form -> {
+                    Set<String> approved = approvedRoles(form);
+                    return mine.stream().anyMatch(role -> !approved.contains(role));
+                })
+                .toList();
+    }
+
     /** Роли, чьё одобрение обязательно для перехода в APPROVED (FR-2.1). */
     @Transactional(readOnly = true)
     public Set<String> requiredRoles() {

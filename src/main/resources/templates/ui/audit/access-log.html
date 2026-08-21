@@ -6,6 +6,7 @@
 <div class="ic-layout">
     <aside th:replace="~{ui/fragments/layout :: sidebar('audit')}"></aside>
     <main class="ic-content">
+        <nav th:replace="~{ui/fragments/layout :: breadcrumbs('Аудит', null, 'Доступ к ПДн')}"></nav>
         <h1 class="h4 mb-3">Аудит</h1>
         <ul class="nav nav-tabs mb-3">
             <li class="nav-item"><a class="nav-link" th:href="@{/ui/audit}">События</a></li>

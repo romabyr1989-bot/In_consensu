@@ -26,7 +26,7 @@
                     <span class="text-muted small" th:text="${contact.typeRu} + ':'">Телефон:</span>
                     <span th:id="'contact-' + ${contact.type}" th:text="${contact.value}">+7 9** ***-**-41</span>
                     <button class="btn btn-link btn-sm p-0" th:if="${contact.masked}"
-                            sec:authorize="hasAnyRole('MANAGER','DPO','ADMIN')"
+                            sec:authorize="hasAnyRole('MANAGER','DPO','ADMIN')" hx-indicator="this"
                             th:hx-post="@{/ui/subjects/{id}/reveal(id=${card.subject.id},type=${contact.type})}"
                             th:hx-target="'#contact-' + ${contact.type}" hx-swap="outerHTML">Показать</button>
                 </div>
@@ -37,7 +37,7 @@
             <a class="btn btn-outline-secondary" th:href="@{/ui/subjects/{id}/card.pdf(id=${card.subject.id})}">
                 Экспорт в PDF</a>
             <button class="btn btn-outline-danger" type="button"
-                    sec:authorize="hasAnyRole('MANAGER','DPO','ADMIN')"
+                    sec:authorize="hasAnyRole('MANAGER','DPO','ADMIN')" hx-indicator="this"
                     th:hx-get="@{/ui/subjects/{id}/revocation-dialog(id=${card.subject.id})}"
                     hx-target="#ic-modal-content" hx-swap="innerHTML">Отозвать согласие</button>
         </div>
@@ -47,7 +47,7 @@
 
     <ul class="nav nav-tabs mt-4" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link active" type="button" role="tab"
+            <button class="nav-link active" type="button" role="tab" hx-indicator="this"
                     th:hx-get="@{/ui/subjects/{id}/tab/consents(id=${card.subject.id})}"
                     hx-target="#card-tab" hx-swap="innerHTML"
                     onclick="document.querySelectorAll('.nav-tabs .nav-link').forEach(function(b){b.classList.remove('active')});this.classList.add('active')">
@@ -55,7 +55,7 @@
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" type="button" role="tab"
+            <button class="nav-link" type="button" role="tab" hx-indicator="this"
                     th:hx-get="@{/ui/subjects/{id}/tab/transfers(id=${card.subject.id})}"
                     hx-target="#card-tab" hx-swap="innerHTML"
                     onclick="document.querySelectorAll('.nav-tabs .nav-link').forEach(function(b){b.classList.remove('active')});this.classList.add('active')">
@@ -63,7 +63,7 @@
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" type="button" role="tab"
+            <button class="nav-link" type="button" role="tab" hx-indicator="this"
                     th:hx-get="@{/ui/subjects/{id}/tab/history(id=${card.subject.id})}"
                     hx-target="#card-tab" hx-swap="innerHTML"
                     onclick="document.querySelectorAll('.nav-tabs .nav-link').forEach(function(b){b.classList.remove('active')});this.classList.add('active')">
@@ -133,7 +133,8 @@
                 <span class="badge"
                       th:classappend="${row.view.status.name() == 'ACTIVE'} ? 'bg-success' :
                           (${row.view.status.name() == 'EXPIRING'} ? 'bg-warning text-dark' :
-                          (${row.view.status.name() == 'REVOKED'} ? 'bg-danger' : 'bg-secondary'))"
+                          (${row.view.status.name() == 'REVOKED'} ? 'bg-danger' :
+                          (${row.view.status.name() == 'SUPERSEDED'} ? 'ic-badge-outline' : 'bg-secondary')))"
                       th:text="${row.view.statusText}" th:aria-label="${row.view.statusText}">действует</span>
             </td>
             <td th:text="${row.grantedAt}">12.03.2025</td>
@@ -141,12 +142,12 @@
             <td th:text="${row.source}">Договор Д-2025/4471</td>
             <td class="text-end">
                 <!-- UI-4: сотруднику нужен документ, который подписал клиент, а не только название типа. -->
-                <button class="btn btn-sm btn-link"
+                <button class="btn btn-sm btn-link" hx-indicator="this"
                         th:hx-get="@{/ui/consents/{id}/text(id=${row.view.consent.id})}"
                         hx-target="#ic-modal-content" hx-swap="innerHTML">Текст согласия</button>
                 <a class="btn btn-sm btn-link" th:href="@{/ui/consents/{id}(id=${row.view.consent.id})}">Досье</a>
                 <button class="btn btn-sm btn-outline-danger" th:if="${row.revocable}"
-                        sec:authorize="hasAnyRole('MANAGER','DPO','ADMIN')"
+                        sec:authorize="hasAnyRole('MANAGER','DPO','ADMIN')" hx-indicator="this"
                         th:hx-get="@{/ui/consents/{id}/revocation-dialog(id=${row.view.consent.id})}"
                         hx-target="#ic-modal-content" hx-swap="innerHTML">Отозвать</button>
             </td>
@@ -195,7 +196,7 @@
 <!-- UI-4, вкладка «История» -->
 <!-- UI-4, вкладка «История»: лента событий, а не список согласий -->
 <div th:fragment="history" id="card-history">
-    <form class="row g-2 mb-3" th:hx-get="@{/ui/subjects/{id}/history(id=${subjectId})}"
+    <form class="row g-2 mb-3" hx-indicator="this" th:hx-get="@{/ui/subjects/{id}/history(id=${subjectId})}"
           hx-target="#card-history" hx-swap="outerHTML">
         <div class="col-12 col-md-4">
             <label class="form-label" for="history-event-type">Тип события</label>
@@ -220,7 +221,7 @@
 
     <div class="d-flex justify-content-between align-items-center mb-2">
         <span class="text-muted small">События по клиенту в порядке возникновения</span>
-        <button class="btn btn-sm btn-outline-primary"
+        <button class="btn btn-sm btn-outline-primary" hx-indicator="this"
                 th:hx-post="@{/ui/subjects/{id}/history/verify(id=${subjectId})}"
                 hx-target="#integrity-result" hx-swap="innerHTML">Проверить целостность</button>
     </div>
@@ -289,7 +290,7 @@
     <form method="post"
           th:action="${consent != null}
               ? @{/ui/consents/{id}/revoke(id=${consent.consent.id},returnTo=${returnTo})}
-              : @{/ui/consents/revoke}"
+              : @{/ui/consents/revoke}" hx-indicator="this"
           th:hx-post="${consent != null}
               ? @{/ui/consents/{id}/revoke(id=${consent.consent.id},returnTo=${returnTo})}
               : @{/ui/consents/revoke}"

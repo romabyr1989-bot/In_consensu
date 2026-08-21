@@ -6,6 +6,7 @@
 <div class="ic-layout">
     <aside th:replace="~{ui/fragments/layout :: sidebar('users')}"></aside>
     <main class="ic-content">
+        <nav th:replace="~{ui/fragments/layout :: breadcrumbs('Администрирование', null, 'Пользователи')}"></nav>
         <h1 class="h4 mb-3">Пользователи</h1>
         <div th:replace="~{ui/fragments/layout :: flash}"></div>
 

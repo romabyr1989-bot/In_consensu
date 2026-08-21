@@ -6,6 +6,7 @@
 <div class="ic-layout">
     <aside th:replace="~{ui/fragments/layout :: sidebar('notifications')}"></aside>
     <main class="ic-content">
+        <nav th:replace="~{ui/fragments/layout :: breadcrumbs('Уведомления', null, 'Правила и журнал')}"></nav>
         <h1 class="h4 mb-3">Уведомления</h1>
         <div th:replace="~{ui/fragments/layout :: flash}"></div>
 
@@ -44,7 +45,7 @@
                 <td th:text="${rule.filtersRu}">все</td>
                 <td th:text="${rule.recipients}">Ответственный за ПДн</td>
                 <td><span class="badge bg-light text-dark me-1" th:each="channel : ${rule.channelsRu}"
-                          th:text="${channel}">письмо</span></td>
+                          th:text="${channel}" th:aria-label="${channel}">письмо</span></td>
                 <td>
                     <span class="badge bg-success" th:if="${rule.active}">включено</span>
                     <span class="badge bg-secondary" th:unless="${rule.active}">выключено</span>

@@ -23,9 +23,23 @@ public class SelfUiController {
     private static final String SESSION_ATTRIBUTE = "inconsensu.self.session";
 
     private final UiSelfServiceViewService view;
+    private final ru.example.inconsensu.ui.application.UiBrandingService branding;
 
-    public SelfUiController(UiSelfServiceViewService view) {
+    public SelfUiController(
+            UiSelfServiceViewService view, ru.example.inconsensu.ui.application.UiBrandingService branding) {
         this.view = view;
+        this.branding = branding;
+    }
+
+    /**
+     * UI-0.12: страница клиента отдаётся в брендировании оператора.
+     *
+     * <p>Каркас сотрудника сюда не подключается — у страницы своя разметка, — поэтому брендирование
+     * кладётся в модель отдельно, в том числе на страницу «Ссылка недействительна».
+     */
+    @org.springframework.web.bind.annotation.ModelAttribute("branding")
+    public ru.example.inconsensu.ui.application.UiBrandingService.Branding branding() {
+        return branding.branding();
     }
 
     @GetMapping("/self/ui")

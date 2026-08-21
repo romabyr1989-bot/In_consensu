@@ -6,6 +6,7 @@
 <div class="ic-layout">
     <aside th:replace="~{ui/fragments/layout :: sidebar('import')}"></aside>
     <main class="ic-content">
+        <nav th:replace="~{ui/fragments/layout :: breadcrumbs('Импорт', '/ui/import', 'Формат файла')}"></nav>
         <h1 class="h4 mb-1">Формат файла импорта</h1>
         <p class="text-muted">
             Тот же формат, что у эндпоинта загрузки (FR-4.5). Порядок колонок произвольный, регистр

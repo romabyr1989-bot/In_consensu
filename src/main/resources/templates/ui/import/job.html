@@ -6,6 +6,7 @@
 <div class="ic-layout">
     <aside th:replace="~{ui/fragments/layout :: sidebar('import')}"></aside>
     <main class="ic-content">
+        <nav th:replace="~{ui/fragments/layout :: breadcrumbs('Импорт', '/ui/import', 'Задача')}"></nav>
         <div th:replace="~{ui/fragments/layout :: flash}"></div>
         <h1 class="h4 mb-3" th:text="'Импорт: ' + ${job.job().fileName}">Импорт</h1>
 

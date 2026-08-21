@@ -15,6 +15,13 @@
 </head>
 <body>
 <main class="ic-self">
+    <!-- UI-0.12: страница клиента идёт в брендировании оператора — логотип, название и основной цвет. -->
+    <header class="ic-self-brand d-flex align-items-center gap-2 mb-3">
+        <img th:if="${branding != null and branding.logoUrl != null and !branding.logoUrl.isEmpty()}"
+             th:src="${branding.logoUrl}" alt="" height="28">
+        <span class="fw-semibold" th:text="${branding != null} ? ${branding.operatorName} : 'Оператор'">
+            ООО «Тестовый оператор»</span>
+    </header>
     <h1 class="h4 mb-1" th:text="${page.greeting()}">Здравствуйте, Иван Сергеевич!</h1>
     <p class="text-muted">Здесь собраны согласия, которые вы давали. Любое из них можно отозвать.</p>
 
@@ -43,7 +50,7 @@
                 <span class="badge"
                       th:classappend="${consent.status() == 'ACTIVE'} ? 'bg-success' :
                           (${consent.status() == 'EXPIRING'} ? 'bg-warning text-dark' : 'bg-secondary')"
-                      th:text="${consent.statusText()}">действует</span>
+                      th:text="${consent.statusText()}" th:aria-label="${consent.statusText()}">действует</span>
             </div>
             <p class="small mt-2 mb-2" th:text="${consent.consequence()}">Мы перестанем звонить вам с предложениями.</p>
             <!-- UI-18: отзыв необратим, поэтому список погасающих согласий виден до нажатия, а не только
@@ -53,7 +60,7 @@
                 <span th:text="${#strings.listJoin(consent.cascadeTitles(), ', ')}">Реклама по телефону</span>.
             </p>
             <div class="d-flex gap-2">
-                <button class="btn btn-sm btn-link p-0" type="button"
+                <button class="btn btn-sm btn-link p-0" type="button" hx-indicator="this"
                         th:hx-get="@{/self/ui/consents/{id}/text(id=${consent.id()})}"
                         hx-target="#self-modal-content" hx-swap="innerHTML">Текст согласия</button>
                 <form th:action="@{/self/ui/consents/{id}/revoke(id=${consent.id()})}" method="post"
@@ -73,7 +80,7 @@
         <div class="card-body py-2">
             <div class="d-flex justify-content-between">
                 <span th:text="${consent.title()}">Реклама по email</span>
-                <span class="badge bg-secondary" th:text="${consent.statusText()}">отозвано</span>
+                <span class="badge bg-secondary" th:text="${consent.statusText()}" th:aria-label="${consent.statusText()}">отозвано</span>
             </div>
         </div>
     </div>
