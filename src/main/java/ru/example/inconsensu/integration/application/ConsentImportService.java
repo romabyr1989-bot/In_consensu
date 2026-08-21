@@ -40,6 +40,14 @@ public class ConsentImportService {
     /** Сколько ошибочных строк попадает в отчёт: остальные считаются, но не раздувают JSON. */
     private static final int MAX_REPORTED_ROWS = 1000;
 
+    /**
+     * Сколько строк идёт одной транзакцией (NFR-1).
+     *
+     * <p>Двести — компромисс: коммит амортизируется, а при срыве пакета построчно переигрывается не весь
+     * файл, а двести строк.
+     */
+    private static final int CHUNK_SIZE = 50;
+
     private static final int PROGRESS_STEP = 100;
 
     private final ImportJobRepository jobs;
@@ -138,28 +146,83 @@ public class ConsentImportService {
 
             // Справочники и форма читаются один раз на задачу, а не на каждую строку (NFR-1).
             ImportCache cache = new ImportCache();
+            List<ImportRow> chunk = new ArrayList<>(CHUNK_SIZE);
             for (ImportRow row : rows) {
                 if (!row.valid()) {
                     rejected++;
                     addToReport(report, row.lineNumber(), row.violations());
                     continue;
                 }
-                try {
-                    rowProcessor.importRow(jobId, row, dryRun, cache);
-                    imported++;
-                } catch (ApiException e) {
-                    rejected++;
-                    addToReport(report, row.lineNumber(), List.of(new ImportRow.Violation("row", e.getMessage())));
-                }
-                if ((imported + rejected) % PROGRESS_STEP == 0) {
+                chunk.add(row);
+                if (chunk.size() == CHUNK_SIZE) {
+                    Counts counts = processChunk(jobId, chunk, dryRun, cache, report);
+                    imported += counts.imported();
+                    rejected += counts.rejected();
+                    chunk.clear();
                     jobStore.updateProgress(jobId, imported, rejected);
                 }
+            }
+            if (!chunk.isEmpty()) {
+                Counts counts = processChunk(jobId, chunk, dryRun, cache, report);
+                imported += counts.imported();
+                rejected += counts.rejected();
             }
             jobStore.complete(jobId, imported, rejected, report, rows.size());
         } catch (RuntimeException e) {
             LOG.error("Импорт {} завершился ошибкой", jobId, e);
             jobStore.fail(jobId, e.getMessage());
         }
+    }
+
+    /** @param imported сколько строк записано, {@code rejected} — сколько отклонено */
+    private record Counts(int imported, int rejected) {}
+
+    /**
+     * Пакет строк: сначала быстрым путём одной транзакцией, при срыве — построчно (FR-4.5, NFR-1).
+     *
+     * <p>Пакет откатывается целиком, только если строка сорвалась уже на записи. Тогда пакет проходится
+     * заново по строке за раз: гарантия «ошибка в строке не роняет файл» важнее скорости.
+     */
+    private Counts processChunk(
+            UUID jobId, List<ImportRow> chunk, boolean dryRun, ImportCache cache, List<Map<String, Object>> report) {
+        try {
+            int imported = 0;
+            int rejected = 0;
+            for (var outcome : rowProcessor.importChunk(jobId, List.copyOf(chunk), dryRun, cache)) {
+                if (outcome.imported()) {
+                    imported++;
+                } else {
+                    rejected++;
+                    addToReport(
+                            report,
+                            outcome.row().lineNumber(),
+                            List.of(new ImportRow.Violation("row", outcome.rejectionReason())));
+                }
+            }
+            return new Counts(imported, rejected);
+        } catch (RuntimeException chunkFailed) {
+            LOG.warn(
+                    "Пакет импорта {} не прошёл целиком ({}), строки обрабатываются по одной",
+                    jobId,
+                    chunkFailed.getMessage());
+            return processChunkRowByRow(jobId, chunk, dryRun, cache, report);
+        }
+    }
+
+    private Counts processChunkRowByRow(
+            UUID jobId, List<ImportRow> chunk, boolean dryRun, ImportCache cache, List<Map<String, Object>> report) {
+        int imported = 0;
+        int rejected = 0;
+        for (ImportRow row : chunk) {
+            try {
+                rowProcessor.importRow(jobId, row, dryRun, cache);
+                imported++;
+            } catch (ApiException e) {
+                rejected++;
+                addToReport(report, row.lineNumber(), List.of(new ImportRow.Violation("row", e.getMessage())));
+            }
+        }
+        return new Counts(imported, rejected);
     }
 
     List<ImportRow> parse(String content) {

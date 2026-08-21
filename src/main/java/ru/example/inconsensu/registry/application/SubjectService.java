@@ -321,7 +321,8 @@ public class SubjectService {
         Subject existing =
                 repository.findWithContactsByExternalId(form.externalId()).orElse(null);
         if (existing == null) {
-            return upsert(form);
+            // Субъекта уже искали: повторный поиск внутри upsert удваивал число запросов на строку импорта.
+            return save(null, form);
         }
 
         List<ContactForm> merged = new ArrayList<>();
@@ -341,14 +342,24 @@ public class SubjectService {
             }
         }
 
-        return upsert(new SubjectForm(
-                form.externalId(), form.lastName(), form.firstName(), form.middleName(), form.birthDate(), merged));
+        return save(
+                existing,
+                new SubjectForm(
+                        form.externalId(),
+                        form.lastName(),
+                        form.firstName(),
+                        form.middleName(),
+                        form.birthDate(),
+                        merged));
     }
 
     @Transactional
     public Subject upsert(SubjectForm form) {
-        Subject subject =
-                repository.findWithContactsByExternalId(form.externalId()).orElse(null);
+        return save(repository.findWithContactsByExternalId(form.externalId()).orElse(null), form);
+    }
+
+    /** @param subject уже найденный субъект или {@code null}, если его нет: повторный поиск не нужен */
+    private Subject save(Subject subject, SubjectForm form) {
         boolean created = subject == null;
         if (created) {
             subject = new Subject(

@@ -205,6 +205,35 @@ class ConsentImportIT extends AbstractIntegrationTest {
     }
 
     /**
+     * FR-4.5 при пакетной записи: отклонённая строка не оставляет следов и не мешает соседям.
+     *
+     * <p>Строки пишутся пакетом ради скорости (NFR-1), поэтому проверка обязательна: если бы отказ
+     * случался уже после записи субъекта, в базе оседали бы клиенты из отклонённых строк.
+     */
+    @Test
+    void a_rejected_row_writes_nothing_and_does_not_stop_the_batch() {
+        String prefix = "CRM-BATCH-" + UUID.randomUUID().toString().substring(0, 8);
+        String header = "external_id,last_name,first_name,middle_name,phone,email,consent_type_code,form_code,"
+                + "form_version,granted_at,valid_until,source,source_ref,third_party_inn,pdn_categories,"
+                + "document_ref,note\n";
+        // Вторая строка без document_ref и note: основание обязательно (FR-4.2), строка будет отклонена.
+        String csv = header
+                + prefix + "-1,Первый,Иван,,,,PDN_PROCESSING," + form.getCode()
+                + ",1,12.03.2025,,CLIENT_BASE_IMPORT,Б-1,,FIO,,перенос\n"
+                + prefix + "-2,Второй,Пётр,,,,PDN_PROCESSING," + form.getCode()
+                + ",1,12.03.2025,,CLIENT_BASE_IMPORT,Б-2,,FIO,,\n"
+                + prefix + "-3,Третий,Сидор,,,,PDN_PROCESSING," + form.getCode()
+                + ",1,12.03.2025,,CLIENT_BASE_IMPORT,Б-3,,FIO,,перенос\n";
+
+        ImportJob job = runImport(csv, false);
+
+        assertThat(job.getImported()).isEqualTo(2);
+        assertThat(job.getRejected()).isEqualTo(1);
+        assertThat(subjects.findByExternalId(prefix + "-1")).isPresent();
+        assertThat(subjects.findByExternalId(prefix + "-3")).isPresent();
+        assertThat(subjects.findByExternalId(prefix + "-2")).isEmpty();
+    }
+    /**
      * Критерий приёмки этапа 3 (§13): импорт ста тысяч строк проходит.
      *
      * <p>Прогон пробный: проверяются разбор файла, справочники и правила по каждой строке — тот самый путь,

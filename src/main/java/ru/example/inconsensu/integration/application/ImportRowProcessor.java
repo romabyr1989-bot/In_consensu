@@ -51,9 +51,69 @@ public class ImportRowProcessor {
         this.registration = registration;
     }
 
+    /** Результат строки в пакете: строка либо записана, либо отклонена со своей причиной (FR-4.5). */
+    public record RowOutcome(ImportRow row, boolean imported, String rejectionReason) {}
+
+    /**
+     * Пакет строк одной транзакцией (NFR-1).
+     *
+     * <p>Построчная транзакция FR-4.5 стоит дорого: на каждую строку приходится собственный коммит, и
+     * запись упиралась в сотню строк в секунду. Здесь коммит один на пакет, а изоляция строки достигается
+     * иначе: строка сначала проверяется целиком — теми же правилами, что и пробный прогон, — и пишется
+     * только после этого. Отклонённая строка не успевает ничего записать, поэтому не задевает соседей.
+     *
+     * <p>Если строка всё же сорвалась на записи, пакет откатывается целиком и вызывающий перезапускает его
+     * построчно: медленно, зато с прежней гарантией «ошибка в строке не роняет файл».
+     */
+    @Transactional
+    public List<RowOutcome> importChunk(UUID jobId, List<ImportRow> rows, boolean dryRun, ImportCache cache) {
+        List<RowOutcome> outcomes = new ArrayList<>(rows.size());
+        for (ImportRow row : rows) {
+            PreparedRow prepared;
+            try {
+                prepared = prepare(jobId, row, cache);
+            } catch (ApiException rejected) {
+                outcomes.add(new RowOutcome(row, false, rejected.getMessage()));
+                continue;
+            }
+            if (!dryRun) {
+                // Отказ на этой стадии означает, что часть строки уже записана: пакет откатывается, и
+                // вызывающий пройдёт его построчно.
+                write(prepared);
+            }
+            outcomes.add(new RowOutcome(row, true, null));
+        }
+        return outcomes;
+    }
+
     /** Одна строка — одна транзакция (FR-4.5): ошибка в строке не роняет весь файл. */
     @Transactional
     public void importRow(UUID jobId, ImportRow row, boolean dryRun, ImportCache cache) {
+        PreparedRow prepared = prepare(jobId, row, cache);
+        if (dryRun) {
+            // Проверка без записи: пробный прогон обязан находить те же ошибки, но ничего не менять.
+            return;
+        }
+        write(prepared);
+    }
+
+    /** Строка, проверенная целиком: справочники разрешены, правила применены, писать можно. */
+    private record PreparedRow(
+            ImportRow row,
+            ConsentType type,
+            ConsentForm form,
+            ConsentFormItem item,
+            ThirdParty thirdParty,
+            List<String> categories,
+            Map<String, Object> evidence) {}
+
+    /**
+     * Проверка строки без единой записи (FR-4.5).
+     *
+     * <p>Вынесено отдельно, чтобы пакетная запись могла отклонить строку, ничего не тронув: только так
+     * один коммит на пакет остаётся совместимым с правилом «ошибка в строке не роняет остальные».
+     */
+    private PreparedRow prepare(UUID jobId, ImportRow row, ImportCache cache) {
         ConsentType type = cache.type(row.consentTypeCode(), () -> types.getByCode(row.consentTypeCode()));
         if (!type.isActive()) {
             throw new ApiException(ErrorCode.VALIDATION_FAILED, "Тип согласия деактивирован: " + row.consentTypeCode());
@@ -78,30 +138,34 @@ public class ImportRowProcessor {
             throw new ApiException(
                     ErrorCode.VALIDATION_FAILED, "Для импортированного согласия нужен document_ref или note (FR-4.2)");
         }
+        // Пригодность версии формы проверяется до записи: иначе отказ пришёлся бы на середину строки,
+        // когда субъект уже создан.
+        registration.requireImportableForm(form, row.grantedAt());
+        return new PreparedRow(row, type, form, item, thirdParty, categories, evidence);
+    }
 
-        if (dryRun) {
-            // Проверка субъекта без записи: dry-run обязан находить те же ошибки, но ничего не менять.
-            return;
-        }
-
+    private void write(PreparedRow prepared) {
+        ImportRow row = prepared.row();
         // FR-4.5: строка без контакта не должна стирать уже загруженные — контакты дополняются.
         Subject subject = subjects.upsertMerging(subjectFormOf(row));
         registration.registerImported(
-                form,
+                prepared.form(),
                 new ConsentRegistrationService.ImportedConsent(
                         subject.getId(),
-                        type.getId(),
-                        form == null ? null : form.getId(),
-                        item == null ? null : item.getId(),
-                        form == null ? null : form.getRenderedChecksum(),
+                        prepared.type().getId(),
+                        prepared.form() == null ? null : prepared.form().getId(),
+                        prepared.item() == null ? null : prepared.item().getId(),
+                        prepared.form() == null ? null : prepared.form().getRenderedChecksum(),
                         row.source(),
                         row.sourceRef(),
                         row.grantedAt(),
                         row.validUntil(),
-                        thirdParty == null ? null : thirdParty.getId(),
-                        categories,
-                        item == null ? List.of() : item.getPurposes(),
-                        evidence,
+                        prepared.thirdParty() == null
+                                ? null
+                                : prepared.thirdParty().getId(),
+                        prepared.categories(),
+                        prepared.item() == null ? List.of() : prepared.item().getPurposes(),
+                        prepared.evidence(),
                         row.idempotencyKey()));
     }
 

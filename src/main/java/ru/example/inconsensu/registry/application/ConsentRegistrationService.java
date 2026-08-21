@@ -340,6 +340,19 @@ public class ConsentRegistrationService {
      * ссылка на черновик недопустима: его никто не согласовывал и не публиковал. Вопрос о том, нужно ли
      * заводить архивные версии задним числом, вынесен в OPEN_QUESTIONS (вопрос 18).
      */
+    /**
+     * Та же проверка пригодности формы, доступная до записи (FR-2.3, NFR-1).
+     *
+     * <p>Нужна пакетному импорту: он обязан отклонить строку, ничего не записав, а без этого отказ
+     * приходился бы на середину строки — субъект уже создан, согласие ещё нет.
+     */
+    @Transactional(readOnly = true)
+    public void requireImportableForm(ConsentForm form, Instant grantedAt) {
+        if (form != null) {
+            requireUsableForm(form, ConsentSource.CLIENT_BASE_IMPORT, grantedAt);
+        }
+    }
+
     private void requireUsableForm(ConsentForm form, ConsentSource source, Instant grantedAt) {
         boolean historicalImport = source == ConsentSource.CLIENT_BASE_IMPORT;
         if (form.getStatus() == FormStatus.PUBLISHED) {
