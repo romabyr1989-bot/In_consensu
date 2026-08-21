@@ -24,6 +24,8 @@ import ru.example.inconsensu.common.web.RequestIdFilter;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class UiExceptionHandler {
 
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(UiExceptionHandler.class);
+
     private final ru.example.inconsensu.ui.application.UiBrandingService branding;
 
     public UiExceptionHandler(ru.example.inconsensu.ui.application.UiBrandingService branding) {
@@ -52,6 +54,36 @@ public class UiExceptionHandler {
      * <p>Текст ошибки на страницу не выводится: он может содержать ПДн, а UI-0.6 требует показывать
      * сообщение без технических деталей и без персональных данных.
      */
+    /**
+     * Запрос экрана без обязательного параметра или с неразбираемым значением (UI-0.6).
+     *
+     * <p>Это ошибка запроса, а не сервера: сюда приводит ссылка с потерянным параметром или ручная правка
+     * адреса. Отвечаем 400 и страницей с кодом обращения, в журнал — предупреждение без текста запроса.
+     */
+    @ExceptionHandler({
+        org.springframework.web.bind.ServletRequestBindingException.class,
+        org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class
+    })
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public String badRequest(Exception exception, Model model) {
+        LOG.warn("Запрос отклонён: {}", exception.getClass().getSimpleName());
+        common(model);
+        return "ui/error/server-error";
+    }
+
+    /**
+     * Непредвиденная ошибка экрана: страница с кодом обращения (UI-17).
+     *
+     * <p>Текст исключения на страницу не выводится — в нём может быть и ПДн, и внутренние детали.
+     */
+    @ExceptionHandler(Exception.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public String unexpected(Exception exception, Model model) {
+        LOG.error("Ошибка на экране сотрудника", exception);
+        common(model);
+        return "ui/error/server-error";
+    }
+
     @ExceptionHandler(ApiException.class)
     public String apiException(ApiException exception, Model model, jakarta.servlet.http.HttpServletResponse response) {
         common(model);

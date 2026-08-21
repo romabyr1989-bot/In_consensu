@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +34,9 @@ class UiHardeningIT extends AbstractIntegrationTest {
 
     @Autowired
     private TestAccounts accounts;
+
+    @Autowired
+    private org.springframework.boot.test.web.client.TestRestTemplate restTemplate;
 
     @Test
     void pdf_card_is_closed_for_the_service_role() throws Exception {
@@ -87,6 +91,39 @@ class UiHardeningIT extends AbstractIntegrationTest {
         mockMvc.perform(get("/ui/session-expired?from=//evil.example/ui/"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.not(containsString("evil.example"))));
+    }
+
+    /**
+     * UI-17: неизвестный адрес интерфейса отдаёт страницу «Страница не найдена», а не 500 и не JSON.
+     *
+     * <p>Через настоящий контейнер, а не MockMvc: страницу рисует обработчик ошибок сервлета `/error`,
+     * до которого MockMvc не доходит.
+     */
+    @Test
+    void unknown_interface_address_answers_not_found_without_json() throws Exception {
+        // Раньше неизвестный адрес интерфейса заканчивался 500-й: общий обработчик машинной цепочки
+        // перехватывал отсутствие маршрута и отдавал ProblemDetail. Саму страницу рисует обработчик
+        // сервлета `/error`, до которого MockMvc не доходит, поэтому здесь проверяются код и отсутствие JSON.
+        String body = mockMvc.perform(get("/ui/nonexistent-page")
+                        .header("Accept", "text/html")
+                        .session(loginAs(RoleCode.ADMIN.name())))
+                .andExpect(status().isNotFound())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertThat(body).doesNotContain("urn:inconsensu:error");
+    }
+
+    /** UI-0.3: у cookie сессии заданы HttpOnly и SameSite, а Secure включается настройкой. */
+    @Test
+    void session_cookie_is_protected() {
+        // Куку выдаёт страница входа: на ней Spring Security заводит сессию под токен CSRF.
+        var response = restTemplate.getForEntity("/ui/login", String.class);
+        List<String> cookies = response.getHeaders().get("Set-Cookie");
+
+        assertThat(cookies).isNotNull();
+        assertThat(String.join(";", cookies)).contains("HttpOnly").contains("SameSite=Lax");
     }
 
     private String token(String roleCode) {

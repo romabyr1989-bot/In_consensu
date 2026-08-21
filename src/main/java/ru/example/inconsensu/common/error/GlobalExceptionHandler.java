@@ -91,6 +91,30 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return handleExceptionInternal(exception, problem, headers, ErrorCode.VALIDATION_FAILED.status(), request);
     }
 
+    /**
+     * Несуществующий адрес интерфейса отдаётся страницей, а не ProblemDetail (UI-17).
+     *
+     * <p>Обработчик общий на всё приложение, и «/ui/опечатка» он превращал в JSON, а до этого — в 500-ю:
+     * до контроллера дело не доходит, обработчик экранов не срабатывает. Здесь такой запрос
+     * пробрасывается дальше, и страницу рисует обработчик ошибок сервлета.
+     */
+    @Override
+    protected ResponseEntity<Object> handleNoResourceFoundException(
+            org.springframework.web.servlet.resource.NoResourceFoundException exception,
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request) {
+        if (isInterfacePath(request)) {
+            throw exception;
+        }
+        return super.handleNoResourceFoundException(exception, headers, status, request);
+    }
+
+    private static boolean isInterfacePath(WebRequest request) {
+        String path = request.getDescription(false);
+        return path != null && (path.startsWith("uri=/ui/") || path.startsWith("uri=/self/ui"));
+    }
+
     @Override
     protected ResponseEntity<Object> handleExceptionInternal(
             Exception exception, Object body, HttpHeaders headers, HttpStatusCode statusCode, WebRequest request) {

@@ -16,3 +16,10 @@ spring:
   jpa:
     properties:
       hibernate.format_sql: true
+
+server:
+  servlet:
+    session:
+      cookie:
+        # Локальный запуск идёт по HTTP: с флагом Secure браузер не вернул бы куку сессии.
+        secure: false

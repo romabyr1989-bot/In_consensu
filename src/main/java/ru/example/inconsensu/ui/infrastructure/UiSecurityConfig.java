@@ -1,6 +1,5 @@
 package ru.example.inconsensu.ui.infrastructure;
 
-import java.time.Duration;
 import org.springframework.boot.web.servlet.server.CookieSameSiteSupplier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,9 +20,6 @@ import ru.example.inconsensu.common.domain.RoleCode;
  */
 @Configuration
 public class UiSecurityConfig {
-
-    /** UI-0.3: таймаут неактивности сессии сотрудника. */
-    public static final Duration SESSION_TIMEOUT = Duration.ofMinutes(30);
 
     public static final String LOGIN_PATH = "/ui/login";
 
@@ -146,7 +142,12 @@ public class UiSecurityConfig {
         };
     }
 
-    /** UI-0.3: cookie сессии не должна уезжать на сторонние сайты. */
+    /**
+     * UI-0.3: cookie сессии не должна уезжать на сторонние сайты.
+     *
+     * <p>Остальные атрибуты — HttpOnly, Secure и таймаут неактивности — заданы настройками
+     * {@code server.servlet.session} в application.yml: там их видно оператору, а не только в коде.
+     */
     @Bean
     public CookieSameSiteSupplier sessionCookieSameSiteSupplier() {
         return CookieSameSiteSupplier.ofLax();

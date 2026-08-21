@@ -66,6 +66,16 @@ spring:
       enabled: false
 
 server:
+  servlet:
+    session:
+      # UI-0.3: таймаут неактивности сотрудника — настройка, а не умолчание фреймворка.
+      timeout: ${INCONSENSU_SESSION_TIMEOUT:30m}
+      cookie:
+        http-only: true
+        # Secure по умолчанию: интерфейс работает по HTTPS (NFR-3). Для локального HTTP профиль dev
+        # выключает флаг — иначе браузер не вернёт куку и вход не заработает.
+        secure: ${INCONSENSU_SESSION_COOKIE_SECURE:true}
+        same-site: lax
   port: ${INCONSENSU_PORT:8080}
   shutdown: graceful
   forward-headers-strategy: framework
