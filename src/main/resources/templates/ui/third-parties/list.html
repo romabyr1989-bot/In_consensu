@@ -11,6 +11,25 @@
         <h1 class="h4 mb-3">Третьи лица</h1>
         <div th:replace="~{ui/fragments/layout :: flash}"></div>
 
+        <!--
+          UI-0.8: фильтр виден на экране, а не только в адресной строке. Плитка дашборда «Договоров
+          истекает за 30 дней» приводит сюда с параметром, и без этой панели список выглядел бы неполным
+          справочником без объяснения.
+        -->
+        <form class="row g-2 mb-3" th:action="@{/ui/third-parties}" method="get">
+            <div class="col-12 col-md-4">
+                <label class="form-label" for="filter-contract">Договор</label>
+                <select class="form-select" id="filter-contract" name="contract">
+                    <option value="" th:selected="${contractFilter == null or contractFilter.isEmpty()}">все</option>
+                    <option value="EXPIRING" th:selected="${contractFilter == 'EXPIRING'}">истекает или истёк</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-auto align-self-end">
+                <button class="btn btn-outline-secondary" type="submit">Применить</button>
+                <a class="btn btn-link" th:href="@{/ui/third-parties}">Сбросить фильтры</a>
+            </div>
+        </form>
+
         <div class="table-responsive mb-4">
             <table class="table bg-white align-middle">
                 <thead>
@@ -52,7 +71,11 @@
                     </td>
                 </tr>
                 <tr th:if="${thirdParties.isEmpty()}">
-                    <td colspan="7" class="text-muted">Третьих лиц ещё нет. Добавьте партнёра формой ниже.</td>
+                    <td colspan="7" class="text-muted" th:if="${contractFilter == null or contractFilter.isEmpty()}">
+                        Третьих лиц ещё нет. Добавьте партнёра формой ниже.</td>
+                    <td colspan="7" class="text-muted" th:unless="${contractFilter == null or contractFilter.isEmpty()}">
+                        Ничего не найдено: договоры ни у одного партнёра не заканчиваются в ближайшие 30 дней.
+                        Снимите фильтр, чтобы увидеть весь справочник.</td>
                 </tr>
                 </tbody>
             </table>

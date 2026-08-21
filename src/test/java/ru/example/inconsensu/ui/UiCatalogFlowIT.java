@@ -227,4 +227,95 @@ class UiCatalogFlowIT extends AbstractIntegrationTest {
                 .as("порядок сортировки не должен обнуляться при правке")
                 .isEqualTo(777);
     }
+
+    /**
+     * UI-2, UI-7: «ждут вашего решения» — это дела самого согласующего.
+     *
+     * <p>И плитка дашборда, и блок на списке форм показывали все формы на согласовании, а счётчик в меню —
+     * только личные: юрист, уже одобривший форму, видел её среди своих дел и три разных числа на трёх
+     * экранах.
+     */
+    @Test
+    void approved_form_leaves_the_lawyers_own_queue_but_stays_on_review() throws Exception {
+        AppUser lawyerUser = accounts.create(RoleCode.LAWYER.name());
+        MockHttpSession lawyer = loginAs(lawyerUser);
+        String title = "Форма очереди " + UUID.randomUUID().toString().substring(0, 8);
+        UUID formId = submitForReview(lawyer, title);
+
+        assertThat(ownQueueOf(lawyer))
+                .as("форма только что отправлена на согласование и ждёт решения юриста")
+                .contains(title);
+
+        mockMvc.perform(post("/ui/catalog/forms/" + formId + "/approve")
+                        .session(lawyer)
+                        .with(csrf())
+                        .param("comment", "проверено юристом"))
+                .andExpect(status().is3xxRedirection());
+
+        // Юрист своё решение принял: форма ушла из его очереди, но остаётся на согласовании у DPO.
+        assertThat(ownQueueOf(lawyer))
+                .as("одобренную форму юрист не должен видеть среди ждущих его решения")
+                .doesNotContain(title);
+        assertThat(forms.get(formId).getStatus()).isEqualTo(FormStatus.ON_REVIEW);
+        assertThat(ownQueueOf(loginAs(RoleCode.DPO.name())))
+                .as("решения DPO по форме ещё нет")
+                .contains(title);
+    }
+
+    /**
+     * Содержимое блока «ждут решения» на списке форм.
+     *
+     * <p>Только блок, а не вся страница: форма на согласовании стоит и в общей таблице, поэтому поиск по
+     * всему ответу ничего не доказывал бы.
+     */
+    private String ownQueueOf(MockHttpSession session) throws Exception {
+        String page = mockMvc.perform(get("/ui/catalog/forms").session(session))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        int header = page.indexOf("На согласовании — ждут решения");
+        if (header < 0) {
+            return "";
+        }
+        int table = page.indexOf("table-responsive", header);
+        return page.substring(header, table < 0 ? page.length() : table);
+    }
+
+    /** Черновик, доведённый до состояния «на согласовании»: то же, что делает юрист в конструкторе. */
+    private UUID submitForReview(MockHttpSession lawyer, String title) throws Exception {
+        String code = "UI_QUEUE_" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        String redirect = mockMvc.perform(post("/ui/catalog/forms")
+                        .session(lawyer)
+                        .with(csrf())
+                        .param("code", code)
+                        .param("title", title))
+                .andReturn()
+                .getResponse()
+                .getRedirectedUrl();
+        UUID formId = UUID.fromString(redirect.replaceAll(".*/forms/([0-9a-f-]{36})/edit", "$1"));
+        mockMvc.perform(post("/ui/catalog/forms/" + formId + "/edit")
+                        .session(lawyer)
+                        .with(csrf())
+                        .param("title", title)
+                        .param(
+                                "body",
+                                "Я, {{subject.fio}}, телефон {{subject.phone}}, даю согласие {{operator.name}} "
+                                        + "({{operator.address}}) на обработку персональных данных.")
+                        .param("processingActions", "сбор, запись, хранение, уничтожение")
+                        .param("revocationProcedure", "действует до отзыва; отзыв — в личном кабинете")
+                        .param("sourceChannels", "WEBSITE_APPLICATION")
+                        .param("items[0].typeCode", "PDN_PROCESSING")
+                        .param("items[0].text", "Согласие на обработку персональных данных")
+                        .param("items[0].purposes", "рассмотрение заявки")
+                        .param("items[0].categories", "FIO")
+                        .param("items[0].categories", "PHONE")
+                        .param("items[0].mandatory", "true"))
+                .andExpect(status().is3xxRedirection());
+        mockMvc.perform(post("/ui/catalog/forms/" + formId + "/submit")
+                        .session(lawyer)
+                        .with(csrf()))
+                .andExpect(status().is3xxRedirection());
+        return formId;
+    }
 }

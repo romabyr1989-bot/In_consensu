@@ -28,11 +28,21 @@
                     <div class="text-muted">Отозвано за 30 дней</div>
                 </a>
             </div>
-            <div class="col-6 col-xl-3">
+            <!--
+              UI-2: согласующему плитка показывает его собственные дела, остальным — все формы на
+              согласовании. Одно число на обе подписи означало бы, что юристу под словами «ждут вашего
+              решения» показывают формы, которые он уже одобрил.
+            -->
+            <div class="col-6 col-xl-3" sec:authorize="hasAnyRole('LAWYER','DPO')">
+                <a class="ic-tile" th:href="@{/ui/catalog/forms(status='ON_REVIEW')}">
+                    <div class="ic-tile-value" th:text="${awaitingFormsCount}">0</div>
+                    <div class="text-muted">Ждут вашего решения</div>
+                </a>
+            </div>
+            <div class="col-6 col-xl-3" sec:authorize="!hasAnyRole('LAWYER','DPO')">
                 <a class="ic-tile" th:href="@{/ui/catalog/forms(status='ON_REVIEW')}">
                     <div class="ic-tile-value" th:text="${stats.awaitingApproval()}">0</div>
-                    <div class="text-muted" sec:authorize="hasAnyRole('LAWYER','DPO')">Ждут вашего решения</div>
-                    <div class="text-muted" sec:authorize="!hasAnyRole('LAWYER','DPO')">Форм на согласовании</div>
+                    <div class="text-muted">Форм на согласовании</div>
                 </a>
             </div>
             <div class="col-6 col-xl-3">

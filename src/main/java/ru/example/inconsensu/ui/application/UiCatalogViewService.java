@@ -166,9 +166,15 @@ public class UiCatalogViewService {
                 new ConsentFormService.FormFilter(filter, source, blankToNull(typeCode), thirdPartyId, text), pageable);
     }
 
+    /**
+     * UI-7: блок «ждут решения» — формы, где не хватает решения именно этой роли.
+     *
+     * <p>Список брался общий, по всем формам на согласовании: юрист, уже одобривший форму, продолжал
+     * видеть её в своих делах, и число в меню расходилось с содержимым блока.
+     */
     @Transactional(readOnly = true)
     public List<ConsentForm> awaitingDecision() {
-        return forms.awaitingDecision();
+        return workflow.awaitingDecisionOf(ru.example.inconsensu.common.security.CurrentUser.roles());
     }
 
     @Transactional(readOnly = true)
