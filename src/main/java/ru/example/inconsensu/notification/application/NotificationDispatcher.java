@@ -84,10 +84,31 @@ public class NotificationDispatcher {
 
         int sent = 0;
         for (List<Notification> group : groups.values()) {
-            sent += group.size() > threshold ? sendDigest(group) : sendIndividually(group);
+            Notification sample = group.get(0);
+            // Решение принимается по всей очереди правила, а не по этой порции: при очереди длиннее порции
+            // получатель получал и дайджест, и отдельные письма за один день (FR-9.2).
+            long queued = sample.getRuleId() == null
+                    ? group.size()
+                    : notifications.pendingCount(sample.getRuleId(), sample.getRecipient());
+            if (queued <= threshold) {
+                sent += sendIndividually(group);
+                continue;
+            }
+            List<Notification> whole = sample.getRuleId() == null
+                    ? group
+                    : notifications.pendingOf(sample.getRuleId(), sample.getRecipient(), DIGEST_MAX_ROWS);
+            sent += sendDigest(whole);
         }
         return sent;
     }
+
+    /**
+     * Верхняя граница дайджеста.
+     *
+     * <p>Письмо с таблицей и вложением не должно вырасти в мегабайты: остаток уйдёт следующим дайджестом,
+     * а не отдельными письмами.
+     */
+    private static final int DIGEST_MAX_ROWS = 5_000;
 
     private int sendIndividually(List<Notification> group) {
         int sent = 0;

@@ -38,10 +38,27 @@ public class PdnAccessLogService {
         record(endpoint, null, subjectsCount);
     }
 
+    /**
+     * Адрес, по которому сотрудник обратился на самом деле (FR-10.5, UI-15).
+     *
+     * <p>Сервисы называют свой эндпоинт строкой, и открытие карточки из интерфейса писалось в журнал как
+     * `/api/v1/subjects/{id}` — аудитор не отличал работу сотрудника от обращения интеграции. Здесь берётся
+     * шаблон текущего запроса: он называет и экран, и API, и не содержит идентификаторов.
+     */
+    private String currentEndpoint(String declared) {
+        var attributes = org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+        if (!(attributes instanceof org.springframework.web.context.request.ServletRequestAttributes servlet)) {
+            return declared;
+        }
+        Object pattern = servlet.getRequest()
+                .getAttribute(org.springframework.web.servlet.HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
+        return pattern == null ? declared : pattern.toString();
+    }
+
     private void record(String endpoint, UUID subjectId, int subjectsCount) {
         repository.save(new PdnAccessLogEntry(
                 CurrentUser.id().orElse(null),
-                endpoint,
+                currentEndpoint(endpoint),
                 subjectId,
                 subjectsCount,
                 RequestIdFilter.currentRequestId(),

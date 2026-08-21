@@ -21,6 +21,17 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
 
     List<Notification> findByStatusOrderByCreatedAtAsc(NotificationStatus status, Pageable pageable);
 
+    /**
+     * Сколько уведомлений правила ждёт отправки этому получателю (FR-9.2).
+     *
+     * <p>Решение «дайджест или отдельные письма» принимается по всей очереди правила, а не по порции: при
+     * очереди больше порции получатель получал и дайджест, и отдельные письма за тот же день.
+     */
+    long countByStatusAndRuleIdAndRecipient(NotificationStatus status, UUID ruleId, String recipient);
+
+    List<Notification> findByStatusAndRuleIdAndRecipientOrderByCreatedAtAsc(
+            NotificationStatus status, UUID ruleId, String recipient, Pageable pageable);
+
     Page<Notification> findAllByOrderByCreatedAtDesc(Pageable pageable);
 
     List<Notification> findByConsentIdOrderByCreatedAtDesc(UUID consentId);

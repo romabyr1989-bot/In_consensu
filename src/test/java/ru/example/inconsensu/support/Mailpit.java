@@ -68,6 +68,31 @@ public final class Mailpit {
         }
     }
 
+    /**
+     * Сколько писем содержит подстроку.
+     *
+     * <p>Нужно там, где проверяется не текст письма, а их число: одно письмо-дайджест вместо пачки
+     * отдельных (FR-9.2). Ожидание общее с {@link #search}: отправка идёт своим потоком.
+     */
+    public static int count(String query) {
+        long deadline = System.nanoTime() + DELIVERY_TIMEOUT.toNanos();
+        while (true) {
+            long found = Arrays.stream(SERVER.getReceivedMessages())
+                    .map(Mailpit::raw)
+                    .filter(message -> message.contains(query))
+                    .count();
+            if (found > 0 || System.nanoTime() > deadline) {
+                return (int) found;
+            }
+            try {
+                Thread.sleep(POLL_INTERVAL.toMillis());
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                return (int) found;
+            }
+        }
+    }
+
     private static String matching(String query) {
         return Arrays.stream(SERVER.getReceivedMessages())
                 .map(Mailpit::raw)

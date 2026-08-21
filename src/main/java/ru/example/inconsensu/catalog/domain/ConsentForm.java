@@ -165,9 +165,16 @@ public class ConsentForm extends AuditableEntity {
         renderedChecksum = checksum;
     }
 
+    /**
+     * FR-2.1: в архив уходит опубликованная версия.
+     *
+     * <p>Одобренная форма архивировалась тоже, а такого перехода в статусной модели нет: APPROVED ждёт
+     * публикации, и уход в архив мимо неё оставлял версию, которую уже нельзя ни опубликовать, ни вернуть в
+     * работу. §16 и так предлагает «В архив» только для опубликованной.
+     */
     public void archive(Instant moment) {
-        if (status != FormStatus.PUBLISHED && status != FormStatus.APPROVED) {
-            throw new IllegalStateException("В архив отправляется опубликованная или одобренная форма");
+        if (status != FormStatus.PUBLISHED) {
+            throw new IllegalStateException("В архив отправляется опубликованная форма");
         }
         status = FormStatus.ARCHIVED;
         validTo = moment;

@@ -8,6 +8,15 @@ logging:
     com.github.dockerjava: WARN
     tc: WARN
 
+spring:
+  datasource:
+    hikari:
+      # Каждый тестовый контекст с иными свойствами Spring поднимает отдельно, а с ним — отдельный пул.
+      # С пулом по умолчанию (10) прогон упирался в max_connections PostgreSQL: контекстов уже полдюжины,
+      # и падал не тот тест, который виноват, а тот, кому не хватило соединения.
+      maximum-pool-size: 4
+      minimum-idle: 1
+
 management:
   endpoint:
     health:

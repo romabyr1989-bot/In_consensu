@@ -144,6 +144,19 @@ public class NotificationService {
         return notifications.findByStatusOrderByCreatedAtAsc(NotificationStatus.PENDING, PageRequest.of(0, limit));
     }
 
+    /** Сколько уведомлений правила ждёт отправки этому получателю: по этому числу решается дайджест (FR-9.2). */
+    @Transactional(readOnly = true)
+    public long pendingCount(UUID ruleId, String recipient) {
+        return notifications.countByStatusAndRuleIdAndRecipient(NotificationStatus.PENDING, ruleId, recipient);
+    }
+
+    /** Вся очередь правила по получателю — из неё собирается одно письмо-дайджест (FR-9.2). */
+    @Transactional(readOnly = true)
+    public List<Notification> pendingOf(UUID ruleId, String recipient, int limit) {
+        return notifications.findByStatusAndRuleIdAndRecipientOrderByCreatedAtAsc(
+                NotificationStatus.PENDING, ruleId, recipient, PageRequest.of(0, limit));
+    }
+
     @Transactional(readOnly = true)
     public Page<Notification> list(Pageable pageable) {
         return notifications.findAllByOrderByCreatedAtDesc(pageable);

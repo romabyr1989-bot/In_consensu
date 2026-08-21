@@ -18,6 +18,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import ru.example.inconsensu.catalog.application.ConsentFormService;
 import ru.example.inconsensu.common.domain.ConsentSource;
+import ru.example.inconsensu.common.domain.FormStatus;
 import ru.example.inconsensu.common.domain.RoleCode;
 import ru.example.inconsensu.iam.application.OperatorSettingsService;
 import ru.example.inconsensu.support.AbstractIntegrationTest;
@@ -325,5 +326,98 @@ class FormLifecycleIT extends AbstractIntegrationTest {
                 PageRequest.of(0, 5));
         assertThat(unused.getTotalElements()).isZero();
         assertThat(unused.getContent()).isEmpty();
+    }
+
+    /**
+     * FR-3.1: остальные фильтры списка форм — статус, тип согласия, третье лицо и текст.
+     *
+     * <p>Проверен был только источник; прочие условия ТЗ называет наравне с ним, а ошибка в любом из них
+     * прячет от юриста форму, которая на самом деле есть.
+     */
+    @Test
+    void the_other_filters_of_the_form_list_narrow_the_selection_too() {
+        var published = forms.list(
+                new ConsentFormService.FormFilter(FormStatus.PUBLISHED, null, null, null, null), PageRequest.of(0, 20));
+        assertThat(published.getTotalElements()).isPositive();
+        assertThat(published.getContent())
+                .allSatisfy(form -> assertThat(form.getStatus()).isEqualTo(FormStatus.PUBLISHED));
+
+        var byType = forms.list(
+                new ConsentFormService.FormFilter(null, null, "PDN_PROCESSING", null, null), PageRequest.of(0, 20));
+        assertThat(byType.getTotalElements()).isPositive();
+        // Пункты читаются лениво, поэтому состав берётся через сервис: сущность вне сессии их не отдаст.
+        assertThat(byType.getContent()).allSatisfy(form -> assertThat(
+                        forms.get(form.getId()).getItems())
+                .anySatisfy(item -> assertThat(item.getConsentType().getCode()).isEqualTo("PDN_PROCESSING")));
+
+        var byUnknownType = forms.list(
+                new ConsentFormService.FormFilter(null, null, "НЕТ_ТАКОГО_ТИПА", null, null), PageRequest.of(0, 20));
+        assertThat(byUnknownType.getTotalElements()).isZero();
+
+        var byThirdParty = forms.list(
+                new ConsentFormService.FormFilter(null, null, null, UUID.randomUUID(), null), PageRequest.of(0, 20));
+        assertThat(byThirdParty.getTotalElements())
+                .as("несуществующее третье лицо не должно возвращать формы")
+                .isZero();
+
+        var byText = forms.list(
+                new ConsentFormService.FormFilter(null, null, null, null, "заведомо-небывалый-текст"),
+                PageRequest.of(0, 20));
+        assertThat(byText.getTotalElements()).isZero();
+    }
+
+    /**
+     * FR-1.5, FR-1.6: опубликованная версия не меняется вслед за реквизитами оператора.
+     *
+     * <p>Текст рендерится с реквизитами из настроек, и если бы он собирался заново при каждом чтении,
+     * контрольная сумма опубликованной версии разошлась бы с сохранённой — доказать согласие этой версией
+     * стало бы нечем. Проверка держит снимок: реквизиты меняются, текст и сумма — нет.
+     */
+    @Test
+    void a_published_version_keeps_its_text_and_checksum_when_the_operator_details_change() {
+        String code = "SNAP_" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        String id = (String) createDraft(code, "Форма-снимок").get("id");
+        call("/api/v1/forms/" + id + "/submit", HttpMethod.POST, lawyer, null, Map.class);
+        call("/api/v1/forms/" + id + "/approve", HttpMethod.POST, lawyer, Map.of("comment", "ок"), Map.class);
+        call("/api/v1/forms/" + id + "/approve", HttpMethod.POST, dpo, Map.of("comment", "ок"), Map.class);
+        call("/api/v1/forms/" + id + "/publish", HttpMethod.POST, dpo, null, Map.class);
+
+        UUID formId = UUID.fromString(id);
+        String textBefore = forms.canonicalText(forms.get(formId));
+        String checksumBefore = forms.checksumOf(forms.get(formId));
+        assertThat(textBefore).contains("ООО «Тестовый оператор»");
+
+        try {
+            settings.update(Map.of("operator.name", "ООО «Переименованный оператор»"));
+
+            assertThat(forms.canonicalText(forms.get(formId)))
+                    .as("текст опубликованной версии обязан остаться прежним")
+                    .isEqualTo(textBefore);
+            assertThat(forms.checksumOf(forms.get(formId))).isEqualTo(checksumBefore);
+            assertThat(forms.canonicalText(forms.get(formId))).doesNotContain("Переименованный");
+        } finally {
+            settings.update(Map.of("operator.name", "ООО «Тестовый оператор»"));
+        }
+    }
+
+    /**
+     * FR-2.1: в архив уходит опубликованная версия, а не одобренная.
+     *
+     * <p>Домен пропускал и APPROVED, хотя такого перехода в статусной модели нет: одобренная форма
+     * оказывалась в архиве, где её уже нельзя ни опубликовать, ни вернуть в работу.
+     */
+    @Test
+    void an_approved_form_cannot_be_archived_past_publication() {
+        String code = "ARCH_" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+
+        String id = (String) createDraft(code, "Форма для архива").get("id");
+        call("/api/v1/forms/" + id + "/submit", HttpMethod.POST, lawyer, null, Map.class);
+        call("/api/v1/forms/" + id + "/approve", HttpMethod.POST, lawyer, Map.of("comment", "ок"), Map.class);
+        call("/api/v1/forms/" + id + "/approve", HttpMethod.POST, dpo, Map.of("comment", "ок"), Map.class);
+
+        ResponseEntity<Map> archived = call("/api/v1/forms/" + id + "/archive", HttpMethod.POST, dpo, null, Map.class);
+
+        assertThat(archived.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(forms.get(UUID.fromString(id)).getStatus()).isEqualTo(FormStatus.APPROVED);
     }
 }

@@ -3266,6 +3266,9 @@ components:
         formId:
           type: string
           format: uuid
+        formVersion:
+          type: integer
+          format: int32
         grantedAt:
           type: string
           format: date-time

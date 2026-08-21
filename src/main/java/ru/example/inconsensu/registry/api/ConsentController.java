@@ -58,10 +58,16 @@ public class ConsentController {
 
     public record ItemPayload(@NotNull UUID formItemId, boolean accepted) {}
 
+    /**
+     * @param formVersion §9: номер версии формы, на которую рассчитывала внешняя система. Необязателен, но
+     *     если указан и не совпадает с версией формы, регистрация отклоняется: за время между отрисовкой
+     *     формы и отправкой ответа оператор мог опубликовать новую редакцию текста
+     */
     public record RegisterConsentRequest(
             String subjectExternalId,
             SubjectPayload subject,
             @NotNull UUID formId,
+            Integer formVersion,
             @NotNull List<@Valid ItemPayload> items,
             Instant grantedAt,
             @NotNull ConsentSource source,
@@ -109,6 +115,7 @@ public class ConsentController {
             @RequestHeader(name = "Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody RegisterConsentRequest request) {
 
+        registration.requireVersion(request.formId(), request.formVersion());
         var result = registration.register(
                 idempotencyKey,
                 new ConsentRegistrationService.RegistrationRequest(

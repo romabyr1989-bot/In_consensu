@@ -28,6 +28,7 @@ import ru.example.inconsensu.registry.application.RevocationService;
 import ru.example.inconsensu.registry.application.SubjectService;
 import ru.example.inconsensu.registry.domain.Consent;
 import ru.example.inconsensu.support.AbstractIntegrationTest;
+import ru.example.inconsensu.support.RunAs;
 import ru.example.inconsensu.support.TestForms;
 
 /** Приёмка этапа 5: отзыв необратим, действует немедленно и гасит зависимые согласия (FR-8.2 … FR-8.5). */
@@ -162,6 +163,9 @@ class RevocationIT extends AbstractIntegrationTest {
         assertThat(reason).isEqualTo(ChannelDenyReason.REVOKED);
     }
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private ru.example.inconsensu.iam.application.OperatorSettingsService settings;
+
     @Test
     void revoking_the_base_consent_cascades_to_every_dependent_type() {
         var result = revocation.revoke(
@@ -178,6 +182,43 @@ class RevocationIT extends AbstractIntegrationTest {
                 .allSatisfy(decision -> assertThat(decision.allowed()).isFalse());
         assertThat(result.cascaded())
                 .allSatisfy(consent -> assertThat(consent.getRevocationSource()).isEqualTo(RevocationSource.CASCADE));
+    }
+
+    /**
+     * FR-8.4: каскад выключается настройкой.
+     *
+     * <p>Ветка выключенного каскада не проверялась ни разу: тесты шли только по умолчанию. Оператор,
+     * которому юридическая служба запретила гасить зависимые согласия молча, полагается именно на неё.
+     */
+    @Test
+    void the_cascade_can_be_switched_off_by_a_setting() {
+        String previous = settings.value(RevocationService.CASCADE_SETTING);
+        RunAs.rolesVoid(
+                "test-admin",
+                List.of("ADMIN"),
+                () -> settings.update(Map.of(RevocationService.CASCADE_SETTING, "false")));
+        try {
+            assertThat(revocation.previewCascade(consentIdOf("PDN_PROCESSING")))
+                    .as("с выключенным каскадом диалог не должен обещать погашение зависимых")
+                    .isEmpty();
+
+            var result = revocation.revoke(
+                    consentIdOf("PDN_PROCESSING"),
+                    "Клиент отозвал согласие на обработку",
+                    RevocationSource.WRITTEN_REQUEST,
+                    "OBR-БЕЗ-КАСКАДА",
+                    Map.of("documentRef", "scan://2026/18"));
+
+            assertThat(result.cascaded()).isEmpty();
+            assertThat(consents.effectiveConsentsOf(subjectId))
+                    .as("зависимые согласия обязаны остаться, раз каскад выключен")
+                    .isNotEmpty();
+        } finally {
+            RunAs.rolesVoid(
+                    "test-admin",
+                    List.of("ADMIN"),
+                    () -> settings.update(Map.of(RevocationService.CASCADE_SETTING, previous)));
+        }
     }
 
     @Test

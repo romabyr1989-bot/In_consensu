@@ -79,6 +79,9 @@ public final class UiSettingsCatalog {
         META.put(
                 "inconsensu.retention.partner-exports",
                 new Meta("Хранение и удаление", "Хранить выгрузки партнёрам", "Период ISO-8601, например P30D"));
+        META.put(
+                "inconsensu.retention.notifications",
+                new Meta("Хранение и удаление", "Хранить журнал уведомлений", "Период ISO-8601, например P1Y"));
     }
 
     private static final String OTHER_GROUP = "Прочие настройки";

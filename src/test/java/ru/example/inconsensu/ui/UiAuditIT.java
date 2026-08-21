@@ -74,6 +74,35 @@ class UiAuditIT extends AbstractIntegrationTest {
                 .andExpect(content().string(not(containsString(manager.getId().toString()))));
     }
 
+    /**
+     * FR-10.5, UI-15: в журнале стоит тот адрес, по которому сотрудник обратился.
+     *
+     * <p>Сервис называет свой эндпоинт строкой, и открытие карточки из интерфейса писалось как
+     * `/api/v1/subjects/{id}`: аудитор не отличал работу сотрудника от обращения интеграции.
+     */
+    @Test
+    void access_log_names_the_screen_the_employee_actually_opened() throws Exception {
+        AppUser manager = accounts.create(RoleCode.MANAGER.name());
+        MockHttpSession session = loginAs(manager);
+
+        String redirect = mockMvc.perform(post("/ui/subjects/search")
+                        .session(session)
+                        .with(csrf())
+                        .param("query", "Травин"))
+                .andReturn()
+                .getResponse()
+                .getRedirectedUrl();
+        mockMvc.perform(get(redirect).session(session)).andExpect(status().isOk());
+
+        // Фильтр журнала по адресу экрана: запись обязана быть именно под ним, а не под адресом API.
+        mockMvc.perform(get("/ui/audit/access-log")
+                        .param("endpoint", "/ui/subjects")
+                        .session(loginAs(RoleCode.AUDITOR.name())))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(manager.getFullName())))
+                .andExpect(content().string(not(containsString("Ничего не найдено"))));
+    }
+
     @Test
     void access_log_filters_are_kept_and_can_be_reset() throws Exception {
         MockHttpSession auditor = loginAs(RoleCode.AUDITOR.name());

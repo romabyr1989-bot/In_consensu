@@ -29,6 +29,41 @@ sudo -u postgres psql -c "CREATE USER inconsensu WITH PASSWORD 'задайте-�
 sudo -u postgres psql -c "CREATE DATABASE inconsensu OWNER inconsensu;"
 ```
 
+### Вторая линия защиты журналов (FR-10.2)
+
+Журналы аудита и доступа к ПДн защищены триггером, который отклоняет UPDATE и DELETE. Триггер защищает от
+ошибки в приложении, но не от того, у кого есть его учётная запись к базе. Вторая линия — отзыв прав у той
+роли, под которой работает служба; для неё нужны две роли: владелец схемы выполняет миграции, служба ходит
+под своей.
+
+```bash
+# Владелец схемы: под ним идут миграции.
+sudo -u postgres psql -c "CREATE USER inconsensu_owner WITH PASSWORD 'пароль-владельца';"
+sudo -u postgres psql -c "CREATE DATABASE inconsensu OWNER inconsensu_owner;"
+# Роль службы: под ней работает приложение.
+sudo -u postgres psql -c "CREATE USER inconsensu WITH PASSWORD 'пароль-службы';"
+sudo -u postgres psql -d inconsensu -c "GRANT USAGE ON SCHEMA public TO inconsensu;"
+sudo -u postgres psql -d inconsensu -c "ALTER DEFAULT PRIVILEGES FOR ROLE inconsensu_owner IN SCHEMA public \
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO inconsensu;"
+sudo -u postgres psql -d inconsensu -c "ALTER DEFAULT PRIVILEGES FOR ROLE inconsensu_owner IN SCHEMA public \
+  GRANT USAGE, SELECT ON SEQUENCES TO inconsensu;"
+```
+
+В `inconsensu.env` добавьте:
+
+```properties
+INCONSENSU_DB_USER=inconsensu
+INCONSENSU_DB_PASSWORD=пароль-службы
+# Миграции идут под владельцем схемы, а не под ролью службы.
+SPRING_FLYWAY_USER=inconsensu_owner
+SPRING_FLYWAY_PASSWORD=пароль-владельца
+# Имя роли службы: миграция отзовёт у неё UPDATE и DELETE на журналах.
+INCONSENSU_DB_APP_ROLE=inconsensu
+```
+
+Без `INCONSENSU_DB_APP_ROLE` миграция отзыв пропускает, и журналы остаются под защитой одного триггера —
+для демонстрации этого достаточно, для эксплуатации с реальными ПДн лучше завести две роли.
+
 ## 3. Учётная запись службы и каталоги
 
 ```bash

@@ -38,7 +38,8 @@ public class RevocationService {
     /** ч. 5 ст. 21 152-ФЗ: обработку нужно прекратить в течение 30 дней после отзыва (FR-8.5). */
     public static final Duration PROCESSING_STOP_PERIOD = Duration.ofDays(30);
 
-    private static final String CASCADE_SETTING = "inconsensu.revocation.cascade-enabled";
+    /** FR-8.4: ключ настройки каскада; открыт, чтобы вызывающая сторона и тесты не повторяли строку. */
+    public static final String CASCADE_SETTING = "inconsensu.revocation.cascade-enabled";
 
     /** Результат отзыва: само согласие плюс погашенные каскадом (FR-8.4). */
     public record RevocationResult(

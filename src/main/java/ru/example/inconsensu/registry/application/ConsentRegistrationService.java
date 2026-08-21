@@ -354,6 +354,26 @@ public class ConsentRegistrationService {
     }
 
     /**
+     * §9, FR-4.1: версия формы, заявленная внешней системой, обязана совпасть с текущей.
+     *
+     * <p>Между тем, как личный кабинет показал клиенту текст, и тем, как он прислал ответ, оператор мог
+     * опубликовать новую редакцию. Молча записать согласие «по новой версии» нельзя: клиент видел другой
+     * текст, и доказать согласие этой версией уже не выйдет.
+     */
+    @Transactional(readOnly = true)
+    public void requireVersion(UUID formId, Integer expectedVersion) {
+        if (expectedVersion == null || formId == null) {
+            return;
+        }
+        ConsentForm form = forms.get(formId);
+        if (form.getVersionNumber() != expectedVersion) {
+            throw new ApiException(
+                    ErrorCode.CONFLICT,
+                    "Указана версия формы " + expectedVersion + ", действует версия " + form.getVersionNumber());
+        }
+    }
+
+    /**
      * FR-4.2: дата выражения согласия не может быть из будущего дальше допуска на рассинхрон часов.
      *
      * <p>Правило проверялось только на пути регистрации, а импорт его обходил: опечатка в годе (2226

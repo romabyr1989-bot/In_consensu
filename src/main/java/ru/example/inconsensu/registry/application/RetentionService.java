@@ -34,6 +34,14 @@ public class RetentionService {
     public static final String AUDIT_EVENTS = "inconsensu.retention.audit-events";
     public static final String PARTNER_EXPORTS = "inconsensu.retention.partner-exports";
 
+    /**
+     * Срок хранения журнала уведомлений (NFR-5).
+     *
+     * <p>Отправленные письма удалялись по сроку выгрузок партнёрам — тридцать дней: журнал уведомлений
+     * исчезал вместе с телами файлов, хотя это разные сущности с разными основаниями хранения.
+     */
+    public static final String NOTIFICATIONS = "inconsensu.retention.notifications";
+
     private static final Logger LOG = LoggerFactory.getLogger(RetentionService.class);
 
     /** @param dryRun пробный прогон только считает записи и ничего не переносит */
@@ -85,14 +93,15 @@ public class RetentionService {
         Instant consentsBefore = horizon(now, CONSENTS_AFTER_REVOCATION, Period.ofYears(3));
         Instant eventsBefore = horizon(now, AUDIT_EVENTS, Period.ofYears(5));
         Instant exportsBefore = horizon(now, PARTNER_EXPORTS, Period.ofDays(30));
+        Instant notificationsBefore = horizon(now, NOTIFICATIONS, Period.ofYears(1));
 
         long consents =
                 count("select count(*) from consent where revoked_at is not null and revoked_at < ?", consentsBefore);
         long agedEvents = count("select count(*) from audit_event where occurred_at < ?", eventsBefore);
         long exports = count(
                 "select count(*) from partner_export_log where expires_at < ? and content is not null", exportsBefore);
-        long notifications =
-                count("select count(*) from notification where status = 'SENT' and created_at < ?", exportsBefore);
+        long notifications = count(
+                "select count(*) from notification where status = 'SENT' and created_at < ?", notificationsBefore);
 
         if (!dryRun) {
             archiveConsents(consentsBefore);
@@ -102,7 +111,7 @@ public class RetentionService {
                     java.sql.Timestamp.from(exportsBefore));
             jdbc.update(
                     "delete from notification where status = 'SENT' and created_at < ?",
-                    java.sql.Timestamp.from(exportsBefore));
+                    java.sql.Timestamp.from(notificationsBefore));
         }
 
         jdbc.update(
