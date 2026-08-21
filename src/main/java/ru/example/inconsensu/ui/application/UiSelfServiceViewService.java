@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.example.inconsensu.common.domain.ConsentStatus;
 import ru.example.inconsensu.common.domain.RevocationSource;
+import ru.example.inconsensu.common.error.ApiException;
 import ru.example.inconsensu.integration.application.SelfUiSessionService;
 import ru.example.inconsensu.integration.domain.SelfUiSession;
 import ru.example.inconsensu.registry.application.ConsentQueryService;
@@ -97,6 +98,34 @@ public class UiSelfServiceViewService {
                 .toList();
 
         return new SelfPage(greeting(subject), active, revokedList);
+    }
+
+    /**
+     * Согласие для окна подтверждения отзыва (UI-18).
+     *
+     * <p>Отзыв подтверждается в два шага, поэтому карточка для окна собирается заново и с проверкой: между
+     * открытием страницы и нажатием кнопки согласие могло истечь или его мог отозвать оператор.
+     */
+    @Transactional(readOnly = true)
+    public SelfConsent revocable(UUID sessionId, UUID consentId) {
+        return page(sessionId).consents().stream()
+                .filter(consent -> consent.id().equals(consentId) && consent.revocable())
+                .findFirst()
+                .orElseThrow(() -> ApiException.notFound("Это согласие уже нельзя отозвать"));
+    }
+
+    /** Рекламные согласия, которые погасит кнопка «Отказаться от всей рекламы» (UI-18). */
+    @Transactional(readOnly = true)
+    public List<String> advertisingTitles(UUID sessionId) {
+        SelfUiSession session = sessions.activeSession(sessionId);
+        Subject subject = subjects.get(session.getSubjectId());
+        // Тот же набор типов, что гасит сам отзыв: список в окне не должен расходиться с результатом.
+        java.util.Set<UUID> advertising = types.advertisingTypeIds();
+        return consents.currentConsentsOf(subject.getId()).stream()
+                .filter(view -> view.status() == ConsentStatus.ACTIVE || view.status() == ConsentStatus.EXPIRING)
+                .filter(view -> advertising.contains(view.consent().getConsentTypeId()))
+                .map(view -> titleFor(view, types.get(view.consent().getConsentTypeId())))
+                .toList();
     }
 
     @Transactional(readOnly = true)

@@ -10,5 +10,71 @@
         <pre class="small mb-0" style="white-space: pre-wrap" th:text="${text}">Текст согласия</pre>
     </div>
 </div>
+
+<!-- UI-18: второй шаг отзыва. Последствия названы до кнопки, кнопка подписана действием, а не «ОК». -->
+<div th:fragment="revokeDialog">
+    <div class="modal-header">
+        <h2 class="modal-title h6">Отозвать согласие?</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+    </div>
+    <div class="modal-body">
+        <p class="fw-semibold mb-1" th:text="${consent.title()}">Реклама по телефону</p>
+        <p class="mb-2" th:text="${consent.consequence()}">Мы перестанем звонить вам с предложениями.</p>
+        <div th:if="${!consent.cascadeTitles().isEmpty()}">
+            <p class="mb-1">Вместе с ним будут отозваны:</p>
+            <ul class="mb-2">
+                <li th:each="title : ${consent.cascadeTitles()}" th:text="${title}">Реклама по email</li>
+            </ul>
+        </div>
+        <p class="text-danger mb-0">Отзыв необратим: вернуть согласие можно только выдав его заново.</p>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Оставить как есть</button>
+        <form th:action="@{/self/ui/consents/{id}/revoke(id=${consent.id()})}" method="post">
+            <button class="btn btn-danger" type="submit">Да, отозвать</button>
+        </form>
+    </div>
+</div>
+
+<!-- UI-18: отказ от всей рекламы — то же подтверждение, но со списком согласий, которые погаснут. -->
+<div th:fragment="revokeAllDialog">
+    <div class="modal-header">
+        <h2 class="modal-title h6">Отказаться от всей рекламы?</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+    </div>
+    <div class="modal-body">
+        <p class="mb-2">Мы перестанем присылать вам рекламные предложения по всем каналам.</p>
+        <div th:if="${!titles.isEmpty()}">
+            <p class="mb-1">Будут отозваны:</p>
+            <ul class="mb-2">
+                <li th:each="title : ${titles}" th:text="${title}">Реклама по телефону</li>
+            </ul>
+        </div>
+        <p class="text-muted mb-0" th:if="${titles.isEmpty()}">
+            Действующих рекламных согласий сейчас нет — отзывать нечего.</p>
+        <p class="text-danger mb-0" th:if="${!titles.isEmpty()}">
+            Отзыв необратим: вернуть согласия можно только выдав их заново.</p>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Оставить как есть</button>
+        <form th:action="@{/self/ui/consents/revoke-all-advertising}" method="post" th:if="${!titles.isEmpty()}">
+            <button class="btn btn-danger" type="submit">Да, отказаться</button>
+        </form>
+    </div>
+</div>
+
+<!-- Окно с одним сообщением: согласие уже отозвано или истекло, подтверждать нечего. -->
+<div th:fragment="dialogMessage">
+    <div class="modal-header">
+        <h2 class="modal-title h6">Ничего не меняем</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+    </div>
+    <div class="modal-body">
+        <p class="mb-0" th:text="${message}">Это согласие уже нельзя отозвать</p>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Закрыть</button>
+    </div>
+</div>
 </body>
 </html>

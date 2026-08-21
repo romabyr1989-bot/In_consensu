@@ -95,6 +95,52 @@ class SelfServiceUiIT extends AbstractIntegrationTest {
                 .isFalse());
     }
 
+    /**
+     * UI-18: отзыв клиентом подтверждается в два шага.
+     *
+     * <p>Кнопка на карточке только открывает окно; сам отзыв происходит из этого окна. Раньше страница
+     * спрашивала одним диалогом браузера, и необратимое действие отделял от клиента один щелчок.
+     */
+    @Test
+    void client_confirms_revocation_in_two_steps() throws Exception {
+        Consent consent = registerConsent();
+        MockHttpSession session =
+                (MockHttpSession) mockMvc.perform(get("/self/ui").param("token", tokenOf(issueLink(consent))))
+                        .andReturn()
+                        .getRequest()
+                        .getSession(false);
+
+        // Первый шаг: на странице стоит кнопка, которая открывает окно, а не отправляет отзыв.
+        mockMvc.perform(get("/self/ui").session(session))
+                .andExpect(content().string(containsString("/revoke-dialog")))
+                .andExpect(content().string(containsString("/revoke-all-advertising-dialog")));
+
+        // Второй шаг: окно называет последствия и несёт форму отзыва.
+        mockMvc.perform(get("/self/ui/consents/" + consent.getId() + "/revoke-dialog")
+                        .session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Отозвать согласие?")))
+                .andExpect(content().string(containsString("Отзыв необратим")))
+                .andExpect(content().string(containsString("Да, отозвать")));
+
+        mockMvc.perform(get("/self/ui/consents/revoke-all-advertising-dialog").session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Отказаться от всей рекламы?")))
+                .andExpect(content().string(containsString("Да, отказаться")));
+
+        mockMvc.perform(post("/self/ui/consents/" + consent.getId() + "/revoke")
+                        .session(session)
+                        .with(csrf()))
+                .andExpect(content().string(containsString("Согласие отозвано")));
+
+        // Отозванное согласие второй раз не подтверждается: окно объясняет это словами, а не молчит.
+        mockMvc.perform(get("/self/ui/consents/" + consent.getId() + "/revoke-dialog")
+                        .session(session))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("уже нельзя отозвать")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(containsString("Да, отозвать"))));
+    }
+
     @Test
     void page_without_a_session_asks_to_return_to_the_personal_account() throws Exception {
         mockMvc.perform(get("/self/ui"))

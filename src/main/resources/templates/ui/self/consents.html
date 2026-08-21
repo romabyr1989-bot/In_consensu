@@ -32,10 +32,10 @@
         </ul>
     </div>
 
-    <form th:action="@{/self/ui/consents/revoke-all-advertising}" method="post" class="mb-3"
-          data-confirm="Мы перестанем присылать вам рекламные предложения по всем каналам. Отозвать все рекламные согласия?">
-        <button class="btn btn-outline-danger w-100" type="submit">Отказаться от всей рекламы</button>
-    </form>
+    <!-- UI-18: подтверждение в два шага — окно со списком того, что погаснет, и только потом кнопка. -->
+    <button class="btn btn-outline-danger w-100 mb-3" type="button" hx-indicator="this"
+            th:hx-get="@{/self/ui/consents/revoke-all-advertising-dialog}"
+            hx-target="#self-modal-content" hx-swap="innerHTML">Отказаться от всей рекламы</button>
 
     <div class="card" th:each="consent : ${page.consents()}">
         <div class="card-body">
@@ -63,14 +63,10 @@
                 <button class="btn btn-sm btn-link p-0" type="button" hx-indicator="this"
                         th:hx-get="@{/self/ui/consents/{id}/text(id=${consent.id()})}"
                         hx-target="#self-modal-content" hx-swap="innerHTML">Текст согласия</button>
-                <form th:action="@{/self/ui/consents/{id}/revoke(id=${consent.id()})}" method="post"
-                      th:if="${consent.revocable()}" class="ms-auto"
-                      th:data-confirm="${consent.consequence()}
-                          + (${consent.cascadeTitles().isEmpty()} ? ''
-                             : ' Вместе с ним будут отозваны: ' + ${#strings.listJoin(consent.cascadeTitles(), ', ')} + '.')
-                          + ' Отзыв необратим. Отозвать согласие?'">
-                    <button class="btn btn-sm btn-outline-danger" type="submit">Отозвать</button>
-                </form>
+                <button class="btn btn-sm btn-outline-danger ms-auto" type="button" hx-indicator="this"
+                        th:if="${consent.revocable()}"
+                        th:hx-get="@{/self/ui/consents/{id}/revoke-dialog(id=${consent.id()})}"
+                        hx-target="#self-modal-content" hx-swap="innerHTML">Отозвать</button>
             </div>
         </div>
     </div>

@@ -90,6 +90,41 @@ public class SelfUiController {
         return "ui/self/consents";
     }
 
+    /**
+     * UI-18: первый шаг отзыва — окно с последствиями, второй шаг — кнопка в самом окне.
+     *
+     * <p>Раньше отзыв подтверждался одним вопросом браузера. Для клиента это необратимое действие, и ТЗ
+     * требует двухшагового подтверждения: сначала показать, что именно погаснет, и только потом принять
+     * решение.
+     */
+    @GetMapping("/self/ui/consents/{id}/revoke-dialog")
+    public String revokeDialog(@PathVariable UUID id, HttpSession httpSession, Model model) {
+        UUID sessionId = (UUID) httpSession.getAttribute(SESSION_ATTRIBUTE);
+        if (sessionId == null) {
+            return "ui/self/expired";
+        }
+        try {
+            model.addAttribute("consent", view.revocable(sessionId, id));
+            return "ui/self/fragments :: revokeDialog";
+        } catch (ApiException alreadyGone) {
+            // Окно грузится по HTMX, а он не подставляет ответы с ошибкой: клиент увидел бы, что кнопка
+            // просто не работает. Поэтому объяснение приходит обычным фрагментом.
+            model.addAttribute("message", alreadyGone.getMessage());
+            return "ui/self/fragments :: dialogMessage";
+        }
+    }
+
+    /** UI-18: то же подтверждение для отказа от всей рекламы — со списком того, что будет отозвано. */
+    @GetMapping("/self/ui/consents/revoke-all-advertising-dialog")
+    public String revokeAllAdvertisingDialog(HttpSession httpSession, Model model) {
+        UUID sessionId = (UUID) httpSession.getAttribute(SESSION_ATTRIBUTE);
+        if (sessionId == null) {
+            return "ui/self/expired";
+        }
+        model.addAttribute("titles", view.advertisingTitles(sessionId));
+        return "ui/self/fragments :: revokeAllDialog";
+    }
+
     /** Текст согласия открывается модальным окном — отдельным фрагментом, без ухода со страницы. */
     @GetMapping("/self/ui/consents/{id}/text")
     public String consentText(@PathVariable UUID id, HttpSession httpSession, Model model) {
