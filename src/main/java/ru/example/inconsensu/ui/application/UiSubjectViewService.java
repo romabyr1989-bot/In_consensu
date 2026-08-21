@@ -358,6 +358,12 @@ public class UiSubjectViewService {
         return integrity.verifySubject(subjectId);
     }
 
+    /** UI-0.1: заведение и правка клиента с экрана поиска (§9 `POST /subjects`). */
+    @Transactional
+    public Subject saveSubject(SubjectService.SubjectForm form) {
+        return subjects.upsertMerging(form);
+    }
+
     @Transactional(readOnly = true)
     public ConsentQueryService.ConsentView consent(UUID consentId) {
         return consents.get(consentId);

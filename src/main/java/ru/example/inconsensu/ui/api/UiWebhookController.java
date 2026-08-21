@@ -51,7 +51,9 @@ public class UiWebhookController {
             @RequestParam(required = false) String direction,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) UUID edit,
             Model model) {
+        model.addAttribute("editing", edit == null ? null : subscriptions.get(edit));
         model.addAttribute(
                 "subscriptions",
                 ru.example.inconsensu.ui.application.UiSorting.page(
@@ -92,15 +94,28 @@ public class UiWebhookController {
         return "redirect:/ui/webhooks/" + id + "/deliveries";
     }
 
+    /**
+     * Создание и правка подписки одной формой (UI-0.1, §9 `PUT /webhooks/{id}`).
+     *
+     * <p>Правки не было: поменять адрес или список событий можно было только выключив подписку и заведя
+     * новую — с новым секретом, который пришлось бы прописывать потребителю.
+     */
     @PostMapping("/ui/webhooks")
     public String create(
             @RequestParam String name,
             @RequestParam String url,
             @RequestParam(required = false) Set<String> eventTypes,
+            @RequestParam(required = false) UUID subscriptionId,
             RedirectAttributes redirect) {
         try {
-            var created = subscriptions.create(new WebhookSubscriptionService.SubscriptionForm(
-                    name, url, eventTypes == null ? Set.of() : eventTypes, Map.of(), true));
+            var form = new WebhookSubscriptionService.SubscriptionForm(
+                    name, url, eventTypes == null ? Set.of() : eventTypes, Map.of(), true);
+            if (subscriptionId != null) {
+                subscriptions.update(subscriptionId, form);
+                redirect.addFlashAttribute("flashMessage", "Подписка изменена");
+                return "redirect:/ui/webhooks";
+            }
+            var created = subscriptions.create(form);
             // UI-14: секрет показывается один раз — дальше его можно только заменить, поэтому он выводится
             // отдельным блоком с кнопкой копирования, а не строкой в тексте сообщения.
             redirect.addFlashAttribute("flashMessage", "Подписка создана");

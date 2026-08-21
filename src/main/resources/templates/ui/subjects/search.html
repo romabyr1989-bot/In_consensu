@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" lang="ru">
 <head th:replace="~{ui/fragments/layout :: head('Клиенты')}"></head>
 <body>
 <nav th:replace="~{ui/fragments/layout :: topbar}"></nav>
@@ -88,6 +89,47 @@
         </details>
 
         <div class="alert alert-warning" role="alert" th:if="${searchHint != null}" th:text="${searchHint}"></div>
+
+        <!--
+          UI-0.1: заведение клиента вручную. Ключ — внешний идентификатор: повторная отправка того же
+          идентификатора правит запись, а не создаёт вторую (FR-4.4).
+        -->
+        <details class="mb-4" sec:authorize="hasAnyRole('MANAGER','DPO','ADMIN')">
+            <summary class="mb-2">Завести или обновить клиента</summary>
+            <form class="row g-2" method="post" th:action="@{/ui/subjects}">
+                <div class="col-md-3">
+                    <label class="form-label" for="externalId">Внешний идентификатор <span aria-hidden="true">*</span></label>
+                    <input class="form-control" id="externalId" name="externalId" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="lastName">Фамилия <span aria-hidden="true">*</span></label>
+                    <input class="form-control" id="lastName" name="lastName" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="firstName">Имя <span aria-hidden="true">*</span></label>
+                    <input class="form-control" id="firstName" name="firstName" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="middleName">Отчество</label>
+                    <input class="form-control" id="middleName" name="middleName">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="birthDate">Дата рождения</label>
+                    <input class="form-control" type="date" id="birthDate" name="birthDate">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="phone">Телефон</label>
+                    <input class="form-control" id="phone" name="phone" placeholder="+7 916 000-00-00">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="email">Email</label>
+                    <input class="form-control" type="email" id="email" name="email">
+                </div>
+                <div class="col-md-3 align-self-end">
+                    <button class="btn btn-primary" type="submit">Сохранить клиента</button>
+                </div>
+            </form>
+        </details>
 
         <p class="text-muted" th:if="${results == null}">Введите запрос, чтобы найти клиента.</p>
         <p class="text-muted" th:if="${results != null and results.isEmpty()}">

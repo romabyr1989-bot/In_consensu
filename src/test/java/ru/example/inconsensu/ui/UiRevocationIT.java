@@ -367,6 +367,36 @@ class UiRevocationIT extends AbstractIntegrationTest {
                 .andExpect(content().string(org.hamcrest.Matchers.not(containsString("Открыть карточку"))));
     }
 
+    /** UI-0.1: клиент заводится с экрана поиска, повторная отправка того же идентификатора правит запись. */
+    @Test
+    void client_is_created_and_updated_from_the_search_screen() throws Exception {
+        MockHttpSession session = loginAs(RoleCode.ADMIN.name());
+        String externalId = "CRM-NEW-" + UUID.randomUUID().toString().substring(0, 8);
+
+        mockMvc.perform(post("/ui/subjects")
+                        .session(session)
+                        .with(csrf())
+                        .param("externalId", externalId)
+                        .param("lastName", "Заозёрская")
+                        .param("firstName", "Ольга")
+                        .param("phone", "+7 916 044-10-11"))
+                .andExpect(status().is3xxRedirection());
+
+        var created = subjects.findByExternalId(externalId);
+        assertThat(created).isPresent();
+
+        mockMvc.perform(post("/ui/subjects")
+                        .session(session)
+                        .with(csrf())
+                        .param("externalId", externalId)
+                        .param("lastName", "Заозёрская-Петрова")
+                        .param("firstName", "Ольга"))
+                .andExpect(status().is3xxRedirection());
+
+        // Тот же внешний идентификатор — тот же клиент: второй записи появиться не должно (FR-4.4).
+        assertThat(subjects.get(created.get().getId()).getLastName()).isEqualTo("Заозёрская-Петрова");
+    }
+
     /** UI-0.8: таблица результатов поиска сортируется по колонкам, и ссылка хранит фильтр. */
     @Test
     void search_results_table_is_sortable() throws Exception {

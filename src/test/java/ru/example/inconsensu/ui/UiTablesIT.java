@@ -3,7 +3,9 @@ package ru.example.inconsensu.ui;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestBuilders.formLogin;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -112,6 +114,48 @@ class UiTablesIT extends AbstractIntegrationTest {
                 .andExpect(content().string(containsString("Срок жизни ссылки")))
                 .andExpect(content().string(containsString("Режим аутентификации")))
                 .andExpect(content().string(containsString("Основной цвет")));
+    }
+
+    /** UI-0.1: операции §9, которые раньше были только в API, доступны и с экранов. */
+    @Test
+    void interface_covers_editing_of_rules_subscriptions_and_clients() throws Exception {
+        MockHttpSession dpo = loginAs(RoleCode.DPO.name());
+        MockHttpSession admin = loginAs(RoleCode.ADMIN.name());
+
+        // Правило заводится через тот же экран: кнопка «Изменить» появляется в строке правила.
+        mockMvc.perform(post("/ui/notifications/rules")
+                        .session(dpo)
+                        .with(csrf())
+                        .param(
+                                "name",
+                                "Правка "
+                                        + java.util.UUID.randomUUID().toString().substring(0, 6))
+                        .param("triggerType", "EXPIRING")
+                        .param("daysBefore", "30")
+                        .param("recipientRoles", RoleCode.DPO.name())
+                        .param("channels", "EMAIL"))
+                .andExpect(status().is3xxRedirection());
+
+        mockMvc.perform(get("/ui/notifications").session(dpo))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Изменить")));
+
+        mockMvc.perform(post("/ui/webhooks")
+                        .session(admin)
+                        .with(csrf())
+                        .param(
+                                "name",
+                                "CRM " + java.util.UUID.randomUUID().toString().substring(0, 6))
+                        .param("url", "https://crm.example.ru/hooks/cus"))
+                .andExpect(status().is3xxRedirection());
+
+        mockMvc.perform(get("/ui/webhooks").session(admin))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Изменить")));
+
+        mockMvc.perform(get("/ui/subjects").session(admin))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Завести или обновить клиента")));
     }
 
     private MockHttpSession loginAs(String roleCode) throws Exception {

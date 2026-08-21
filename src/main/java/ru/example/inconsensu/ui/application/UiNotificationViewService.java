@@ -85,6 +85,12 @@ public class UiNotificationViewService {
         this.formats = formats;
     }
 
+    /** Правило для формы правки (UI-0.1). */
+    @Transactional(readOnly = true)
+    public NotificationRule rule(UUID id) {
+        return rules.get(id);
+    }
+
     @Transactional(readOnly = true)
     public List<RuleRow> rules(String sortField, boolean descending) {
         List<RuleRow> rows = rules();

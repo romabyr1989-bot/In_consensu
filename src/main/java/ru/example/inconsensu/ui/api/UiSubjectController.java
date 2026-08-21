@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import ru.example.inconsensu.catalog.application.ConsentTypeService;
 import ru.example.inconsensu.common.domain.CommunicationChannel;
 import ru.example.inconsensu.common.domain.ConsentSource;
@@ -355,6 +356,50 @@ public class UiSubjectController {
         model.addAttribute("showSuperseded", false);
         model.addAttribute("revocationMessage", message);
         return "ui/subjects/fragments :: cardBody";
+    }
+
+    /**
+     * Заведение и правка клиента (UI-0.1, §9 `POST /subjects` — upsert по external_id).
+     *
+     * <p>Операция не интеграционная: по Приложению E ею пользуются MANAGER, DPO и ADMIN, а в интерфейсе
+     * её не было — клиента можно было только найти. Ключ — внешний идентификатор: повторная отправка того
+     * же идентификатора правит запись, а не создаёт вторую (FR-4.4).
+     */
+    @PostMapping("/ui/subjects")
+    @PreAuthorize("hasAnyRole('MANAGER','DPO','ADMIN')")
+    public String saveSubject(
+            @RequestParam String externalId,
+            @RequestParam String lastName,
+            @RequestParam String firstName,
+            @RequestParam(required = false) String middleName,
+            @RequestParam(required = false)
+                    @org.springframework.format.annotation.DateTimeFormat(
+                            iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE)
+                    java.time.LocalDate birthDate,
+            @RequestParam(required = false) String phone,
+            @RequestParam(required = false) String email,
+            RedirectAttributes redirect) {
+        List<SubjectService.ContactForm> contacts = new java.util.ArrayList<>();
+        if (phone != null && !phone.isBlank()) {
+            contacts.add(new SubjectService.ContactForm(ContactType.PHONE, phone.trim(), true));
+        }
+        if (email != null && !email.isBlank()) {
+            contacts.add(new SubjectService.ContactForm(ContactType.EMAIL, email.trim(), true));
+        }
+        try {
+            var saved = view.saveSubject(new SubjectService.SubjectForm(
+                    externalId.trim(),
+                    lastName.trim(),
+                    firstName.trim(),
+                    middleName == null || middleName.isBlank() ? null : middleName.trim(),
+                    birthDate,
+                    contacts));
+            redirect.addFlashAttribute("flashMessage", "Клиент сохранён");
+            return "redirect:/ui/subjects/" + saved.getId();
+        } catch (ApiException e) {
+            redirect.addFlashAttribute("flashError", e.getMessage());
+            return "redirect:/ui/subjects";
+        }
     }
 
     /** UI-4: диалог из шапки карточки сначала спрашивает, какое согласие отзываем. */

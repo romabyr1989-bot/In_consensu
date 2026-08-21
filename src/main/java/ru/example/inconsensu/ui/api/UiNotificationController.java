@@ -68,8 +68,12 @@ public class UiNotificationController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(required = false) String sort,
             @RequestParam(required = false) String direction,
+            @RequestParam(required = false) UUID edit,
             Model model) {
         model.addAttribute("tab", "journal".equals(tab) ? "journal" : "rules");
+        // UI-0.1: та же форма правит существующее правило — иначе изменить порог можно было бы только
+        // выключив правило и заведя новое.
+        model.addAttribute("editing", edit == null ? null : view.rule(edit));
         model.addAttribute("rules", view.rules(sort, UiSorting.descending(direction)));
         model.addAttribute(
                 "notifications", view.journal(status, ruleId, channel, from, to, page(page, size, sort, direction)));
@@ -114,6 +118,12 @@ public class UiNotificationController {
         return PageRequest.of(Math.max(page, 0), UiSorting.pageSize(size), order);
     }
 
+    /**
+     * Создание и правка правила одной формой (UI-0.1, §9 `PUT /notification-rules/{id}`).
+     *
+     * <p>Раньше правило можно было только завести заново: правки не было ни в контроллере, ни в шаблоне,
+     * и чтобы поменять порог, приходилось выключать старое правило и создавать новое.
+     */
     @PostMapping("/ui/notifications/rules")
     public String saveRule(
             @RequestParam String name,
@@ -124,9 +134,10 @@ public class UiNotificationController {
             @RequestParam Set<NotificationChannel> channels,
             @RequestParam(required = false) UUID consentTypeId,
             @RequestParam(required = false) UUID thirdPartyId,
+            @RequestParam(required = false) UUID ruleId,
             RedirectAttributes redirect) {
         try {
-            rules.create(new NotificationRuleService.RuleForm(
+            NotificationRuleService.RuleForm form = new NotificationRuleService.RuleForm(
                     name,
                     triggerType,
                     thresholds(daysBefore),
@@ -137,8 +148,14 @@ public class UiNotificationController {
                     recipientEmails == null ? Set.of() : recipientEmails,
                     recipientRoles == null ? Set.of() : recipientRoles,
                     channels,
-                    true));
-            redirect.addFlashAttribute("flashMessage", "Правило создано");
+                    true);
+            if (ruleId == null) {
+                rules.create(form);
+                redirect.addFlashAttribute("flashMessage", "Правило создано");
+            } else {
+                rules.update(ruleId, form);
+                redirect.addFlashAttribute("flashMessage", "Правило изменено");
+            }
         } catch (ApiException e) {
             redirect.addFlashAttribute("flashError", e.getMessage());
         }

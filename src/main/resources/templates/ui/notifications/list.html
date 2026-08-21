@@ -50,6 +50,7 @@
                     <span class="badge bg-secondary" th:unless="${rule.active}">выключено</span>
                 </td>
                 <td class="text-end">
+                    <a class="btn btn-sm btn-link" th:href="@{/ui/notifications(edit=${rule.id})}">Изменить</a>
                     <form th:action="@{/ui/notifications/rules/{id}/deactivate(id=${rule.id})}" method="post"
                           th:if="${rule.active}">
                         <button class="btn btn-sm btn-outline-danger" type="submit">Выключить</button>
@@ -65,35 +66,43 @@
         <div class="row g-3 mt-1">
             <div class="col-12 col-xl-8">
                 <div class="card">
-                    <div class="card-header">Новое правило</div>
+                    <div class="card-header" th:text="${editing == null} ? 'Новое правило' : 'Правка правила'">
+                        Новое правило</div>
                     <div class="card-body">
                         <form th:action="@{/ui/notifications/rules}" method="post" class="row g-3">
+                            <input type="hidden" name="ruleId" th:if="${editing != null}" th:value="${editing.id}">
                             <div class="col-md-6">
                                 <label class="form-label" for="name">Название <span aria-hidden="true">*</span></label>
-                                <input class="form-control" id="name" name="name" required>
+                                <input class="form-control" id="name" name="name" required
+                                       th:value="${editing != null} ? ${editing.name} : ''">
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label" for="triggerType">Повод <span aria-hidden="true">*</span></label>
                                 <select class="form-select" id="triggerType" name="triggerType" required>
                                     <option th:each="trigger : ${triggers}" th:value="${trigger}"
-                                            th:text="${trigger.nameRu()}">заканчивается срок</option>
+                                            th:text="${trigger.nameRu()}"
+                                            th:selected="${editing != null and trigger == editing.triggerType}">
+                                        заканчивается срок</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label" for="daysBefore">Пороги, дней</label>
-                                <input class="form-control" id="daysBefore" name="daysBefore" placeholder="30, 15, 7, 1">
+                                <input class="form-control" id="daysBefore" name="daysBefore" placeholder="30, 15, 7, 1"
+                                       th:value="${editing != null} ? ${#strings.listJoin(editing.daysBefore, ', ')} : ''">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label" for="recipientRoles">Роли-получатели</label>
                                 <select class="form-select" id="recipientRoles" name="recipientRoles" multiple size="4">
-                                    <option th:each="role : ${roles}" th:value="${role}" th:text="${role.nameRu()}">DPO</option>
+                                    <option th:each="role : ${roles}" th:value="${role}" th:text="${role.nameRu()}"
+                                            th:selected="${editing != null and editing.recipientRoles.contains(role.name())}">DPO</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label" for="channels">Каналы <span aria-hidden="true">*</span></label>
                                 <select class="form-select" id="channels" name="channels" multiple size="4" required>
                                     <option th:each="channel : ${channels}" th:value="${channel}"
-                                            th:text="${channel.nameRu()}">письмо</option>
+                                            th:text="${channel.nameRu()}"
+                                            th:selected="${editing != null and editing.channels.contains(channel)}">письмо</option>
                                 </select>
                             </div>
                             <div class="col-md-6">
@@ -101,7 +110,9 @@
                                 <select class="form-select" id="consentTypeId" name="consentTypeId">
                                     <option value="">любой тип</option>
                                     <option th:each="type : ${consentTypes}" th:value="${type.id}"
-                                            th:text="${type.nameRu}">Реклама по email</option>
+                                            th:text="${type.nameRu}"
+                                            th:selected="${editing != null and type.id == editing.consentTypeId}">
+                                        Реклама по email</option>
                                 </select>
                             </div>
                             <div class="col-md-6">
@@ -109,15 +120,22 @@
                                 <select class="form-select" id="thirdPartyId" name="thirdPartyId">
                                     <option value="">любое</option>
                                     <option th:each="party : ${thirdParties}" th:value="${party.id}"
-                                            th:text="${party.name}">ООО «Моменто»</option>
+                                            th:text="${party.name}"
+                                            th:selected="${editing != null and party.id == editing.thirdPartyId}">
+                                        ООО «Моменто»</option>
                                 </select>
                             </div>
                             <div class="col-12">
                                 <label class="form-label" for="recipientEmails">Адреса получателей (через запятую)</label>
-                                <input class="form-control" id="recipientEmails" name="recipientEmails">
+                                <input class="form-control" id="recipientEmails" name="recipientEmails"
+                                       th:value="${editing != null} ? ${#strings.setJoin(editing.recipientEmails, ', ')} : ''">
                             </div>
                             <div class="col-12">
-                                <button class="btn btn-primary" type="submit">Создать правило</button>
+                                <button class="btn btn-primary" type="submit"
+                                        th:text="${editing == null} ? 'Создать правило' : 'Сохранить правило'">
+                                    Создать правило</button>
+                                <a class="btn btn-link" th:if="${editing != null}"
+                                   th:href="@{/ui/notifications}">Отмена</a>
                             </div>
                         </form>
                     </div>

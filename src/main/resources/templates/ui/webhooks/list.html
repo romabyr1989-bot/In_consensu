@@ -44,6 +44,7 @@
                     <span class="badge bg-secondary" th:unless="${subscription.active}">выключена</span>
                 </td>
                 <td class="text-end">
+                    <a class="btn btn-sm btn-link" th:href="@{/ui/webhooks(edit=${subscription.id})}">Изменить</a>
                     <a class="btn btn-sm btn-link" th:href="@{/ui/webhooks/{id}/deliveries(id=${subscription.id})}">Доставки</a>
                     <form class="d-inline" th:action="@{/ui/webhooks/{id}/test(id=${subscription.id})}" method="post">
                         <button class="btn btn-sm btn-outline-primary" type="submit">Тест</button>
@@ -81,21 +82,26 @@
         </div>
 
         <div class="card mb-4">
-            <div class="card-header">Новая подписка</div>
+            <div class="card-header" th:text="${editing == null} ? 'Новая подписка' : 'Правка подписки'">
+                Новая подписка</div>
             <div class="card-body">
                 <form th:action="@{/ui/webhooks}" method="post" class="row g-3">
+                    <input type="hidden" name="subscriptionId" th:if="${editing != null}" th:value="${editing.id}">
                     <div class="col-md-4">
                         <label class="form-label" for="name">Название <span aria-hidden="true">*</span></label>
-                        <input class="form-control" id="name" name="name" required>
+                        <input class="form-control" id="name" name="name" required
+                               th:value="${editing != null} ? ${editing.name} : ''">
                     </div>
                     <div class="col-md-5">
                         <label class="form-label" for="url">Адрес <span aria-hidden="true">*</span></label>
-                        <input class="form-control" id="url" name="url" placeholder="https://crm.example.ru/hooks/cus" required>
+                        <input class="form-control" id="url" name="url" placeholder="https://crm.example.ru/hooks/cus"
+                               required th:value="${editing != null} ? ${editing.url} : ''">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label" for="eventTypes">События (пусто — все)</label>
                         <select class="form-select" id="eventTypes" name="eventTypes" multiple size="5">
-                            <option th:each="type : ${eventTypes}" th:value="${type}" th:text="${type}">consent.revoked</option>
+                            <option th:each="type : ${eventTypes}" th:value="${type}" th:text="${type}"
+                                    th:selected="${editing != null and editing.eventTypes.contains(type)}">consent.revoked</option>
                         </select>
                     </div>
                     <div class="col-12">

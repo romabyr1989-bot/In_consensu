@@ -78,6 +78,18 @@ public class UiHomeController {
      * <p>Адрес приходит параметром от стратегии истёкшей сессии: до фильтра, сохраняющего запрос, дело не
      * доходит, и без параметра ссылка «Войти» вела бы на главную, обещая на странице обратное.
      */
+    /**
+     * Неизвестный адрес интерфейса (UI-17).
+     *
+     * <p>Без такого маршрута запрос уходил к обработчику статики, а оттуда — в общий обработчик машинной
+     * цепочки, и сотрудник получал 500 с телом ProblemDetail. Шаблон «/ui/**» самый общий, поэтому
+     * настоящие экраны по-прежнему выигрывают сопоставление.
+     */
+    @GetMapping("/ui/**")
+    public String unknownPage() {
+        throw ru.example.inconsensu.common.error.ApiException.notFound("Страница не найдена");
+    }
+
     @GetMapping("/ui/session-expired")
     public String sessionExpired(
             @org.springframework.web.bind.annotation.RequestParam(required = false) String from, Model model) {
