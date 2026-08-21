@@ -65,10 +65,13 @@
                     <td th:text="${row.type.dependsOn != null} ? ${row.type.dependsOn.code} : '—'">—</td>
                     <td th:text="${row.type.businessSignificant} ? 'да' : 'нет'">нет</td>
                     <td>
-                        <span class="badge bg-success" th:text="${row.active}" title="Действующие" th:aria-label="${row.active}">10</span>
+                        <span class="badge bg-success" th:text="${row.active}" title="Действующие"
+                              th:aria-label="'Действующих согласий: ' + ${row.active}">10</span>
                         <span class="badge bg-warning text-dark" th:text="${row.expiringSoon}"
-                              title="Истекают в ближайшие 30 дней" th:aria-label="${row.expiringSoon}">1</span>
-                        <span class="badge bg-danger" th:text="${row.revoked}" title="Отозванные" th:aria-label="${row.revoked}">2</span>
+                              title="Истекают в ближайшие 30 дней"
+                              th:aria-label="'Истекающих согласий: ' + ${row.expiringSoon}">1</span>
+                        <span class="badge bg-danger" th:text="${row.revoked}" title="Отозванные"
+                              th:aria-label="'Отозванных согласий: ' + ${row.revoked}">2</span>
                     </td>
                     <td>
                         <span class="badge bg-success" th:if="${row.type.active}">активен</span>

@@ -20,7 +20,7 @@
                 <td th:text="${delivery.attempt}">1</td>
                 <td>
                     <span class="badge" th:classappend="${delivery.successful} ? 'bg-success' : 'bg-danger'"
-                          th:text="${delivery.responseCode}" th:aria-label="${delivery.responseCode}">200</span>
+                          th:text="${delivery.responseCode}" th:aria-label="'Код ответа: ' + ${delivery.responseCode}">200</span>
                 </td>
                 <td th:text="${delivery.error}"></td>
                 <td class="text-end">

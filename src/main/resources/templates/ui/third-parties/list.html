@@ -38,10 +38,13 @@
                     </td>
                     <td th:text="${party.categoriesRu}">ФИО, номер телефона</td>
                     <td>
-                        <span class="badge bg-success" th:text="${party.consentsActive}" title="Действующие" th:aria-label="${party.consentsActive}">10</span>
+                        <span class="badge bg-success" th:text="${party.consentsActive}" title="Действующие"
+                              th:aria-label="'Действующих согласий: ' + ${party.consentsActive}">10</span>
                         <span class="badge bg-warning text-dark" th:text="${party.consentsExpiring}"
-                              title="Истекают в ближайшие 30 дней" th:aria-label="${party.consentsExpiring}">1</span>
-                        <span class="badge bg-danger" th:text="${party.consentsRevoked}" title="Отозванные" th:aria-label="${party.consentsRevoked}">2</span>
+                              title="Истекают в ближайшие 30 дней"
+                              th:aria-label="'Истекающих согласий: ' + ${party.consentsExpiring}">1</span>
+                        <span class="badge bg-danger" th:text="${party.consentsRevoked}" title="Отозванные"
+                              th:aria-label="'Отозванных согласий: ' + ${party.consentsRevoked}">2</span>
                     </td>
                     <td>
                         <span class="badge bg-success" th:if="${party.active}">активно</span>

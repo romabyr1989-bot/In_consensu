@@ -54,6 +54,10 @@
     // UI-0.9: предупреждение о несохранённых изменениях на страницах редактирования.
     document.querySelectorAll('form[data-warn-unsaved]').forEach(function (form) {
         var dirty = false;
+        // 'input' наравне с 'change': набранный, но не покинутый текст — тоже несохранённое изменение.
+        form.addEventListener('input', function () {
+            dirty = true;
+        });
         form.addEventListener('change', function () {
             dirty = true;
         });
