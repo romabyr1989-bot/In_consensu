@@ -10,6 +10,7 @@ import ru.example.inconsensu.audit.application.AuditService;
 import ru.example.inconsensu.common.domain.AuditEventType;
 import ru.example.inconsensu.common.error.ApiException;
 import ru.example.inconsensu.common.error.ErrorCode;
+import ru.example.inconsensu.common.error.ValidationErrorItem;
 import ru.example.inconsensu.notification.domain.NotificationChannel;
 import ru.example.inconsensu.notification.domain.NotificationRule;
 import ru.example.inconsensu.notification.domain.NotificationTrigger;
@@ -101,6 +102,10 @@ public class NotificationRuleService {
                 form.active());
     }
 
+    /** Поводы, у которых порог в днях осмыслен: уведомление уходит заранее, а не по факту события. */
+    private static final Set<NotificationTrigger> NEEDS_THRESHOLDS =
+            Set.of(NotificationTrigger.EXPIRING, NotificationTrigger.THIRD_PARTY_CONTRACT_EXPIRING);
+
     private void validate(RuleForm form) {
         if (form.name() == null || form.name().isBlank()) {
             throw new ApiException(ErrorCode.VALIDATION_FAILED, "Укажите название правила");
@@ -118,9 +123,13 @@ public class NotificationRuleService {
             throw new ApiException(
                     ErrorCode.VALIDATION_FAILED, "Для канала «письмо» укажите адреса или роли получателей");
         }
-        if (form.triggerType() != NotificationTrigger.EXPIRED
+        // Порог в днях есть только у поводов «до срока»: отзыв и выдача согласия — события, до них не
+        // остаётся дней. Требование порога делало правило на отзыв (FR-8.5) невозможным без выдуманного числа.
+        if (NEEDS_THRESHOLDS.contains(form.triggerType())
                 && (form.daysBefore() == null || form.daysBefore().isEmpty())) {
-            throw new ApiException(ErrorCode.VALIDATION_FAILED, "Укажите хотя бы один порог в днях");
+            throw ApiException.validation(
+                    "Укажите хотя бы один порог в днях",
+                    List.of(new ValidationErrorItem("daysBefore", "Укажите хотя бы один порог, например 30")));
         }
         if (form.daysBefore() != null && form.daysBefore().stream().anyMatch(days -> days == null || days < 0)) {
             throw new ApiException(ErrorCode.VALIDATION_FAILED, "Порог в днях не может быть отрицательным");

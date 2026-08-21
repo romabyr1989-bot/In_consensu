@@ -47,10 +47,12 @@
                     <div class="col-md-6">
                         <label class="form-label" for="name">Наименование <span aria-hidden="true">*</span></label>
                         <input class="form-control" id="name" name="name" th:value="${thirdParty.name}" required>
+                        <div th:replace="~{ui/fragments/layout :: fieldError('name')}"></div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label" for="shortName">Краткое наименование</label>
                         <input class="form-control" id="shortName" name="shortName" th:value="${thirdParty.shortName}">
+                        <div th:replace="~{ui/fragments/layout :: fieldError('shortName')}"></div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label" for="inn">ИНН</label>
@@ -60,6 +62,7 @@
                     <div class="col-md-4">
                         <label class="form-label" for="ogrn">ОГРН</label>
                         <input class="form-control" id="ogrn" name="ogrn" th:value="${thirdParty.ogrn}">
+                        <div th:replace="~{ui/fragments/layout :: fieldError('ogrn')}"></div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label" for="role">Роль</label>
@@ -67,28 +70,29 @@
                             <option th:each="role : ${roles}" th:value="${role}" th:text="${role.nameRu()}"
                                     th:selected="${role == thirdParty.role}">Обработчик</option>
                         </select>
-                    <div th:replace="~{ui/fragments/layout :: fieldError('ogrn')}"></div>
-                    <div th:replace="~{ui/fragments/layout :: fieldError('shortName')}"></div>
-                    <div th:replace="~{ui/fragments/layout :: fieldError('name')}"></div>
                     </div>
                     <div class="col-12">
                         <label class="form-label" for="address">Адрес <span aria-hidden="true">*</span></label>
                         <input class="form-control" id="address" name="address" th:value="${thirdParty.address}" required>
+                        <div th:replace="~{ui/fragments/layout :: fieldError('address')}"></div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label" for="contractNumber">Номер договора</label>
                         <input class="form-control" id="contractNumber" name="contractNumber"
                                th:value="${thirdParty.contractNumber}">
+                        <div th:replace="~{ui/fragments/layout :: fieldError('contractNumber')}"></div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label" for="contractDate">Дата договора</label>
                         <input class="form-control" type="date" id="contractDate" name="contractDate"
                                th:value="${thirdParty.contractDate}">
+                        <div th:replace="~{ui/fragments/layout :: fieldError('contractDate')}"></div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label" for="contractValidUntil">Действует до</label>
                         <input class="form-control" type="date" id="contractValidUntil" name="contractValidUntil"
                                th:value="${thirdParty.contractValidUntil}">
+                        <div th:replace="~{ui/fragments/layout :: fieldError('contractValidUntil')}"></div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label" for="allowedPdnCategories">Разрешённые категории ПДн</label>
@@ -97,15 +101,12 @@
                                     th:text="${category.nameRu}"
                                     th:selected="${#arrays.contains(thirdParty.allowedPdnCategories, category.code)}">ФИО</option>
                         </select>
-                    <div th:replace="~{ui/fragments/layout :: fieldError('contractValidUntil')}"></div>
-                    <div th:replace="~{ui/fragments/layout :: fieldError('contractDate')}"></div>
-                    <div th:replace="~{ui/fragments/layout :: fieldError('contractNumber')}"></div>
-                    <div th:replace="~{ui/fragments/layout :: fieldError('address')}"></div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label" for="contactEmail">Контактный email</label>
                         <input class="form-control" id="contactEmail" name="contactEmail"
                                th:value="${thirdParty.contactEmail}">
+                        <div th:replace="~{ui/fragments/layout :: fieldError('contactEmail')}"></div>
                     </div>
                     <div class="col-12">
                         <button class="btn btn-primary" type="submit">Сохранить</button>
@@ -167,7 +168,6 @@
                                 <option value="csv">CSV</option>
                                 <option value="json">JSON</option>
                             </select>
-                    <div th:replace="~{ui/fragments/layout :: fieldError('contactEmail')}"></div>
                         </div>
                         <dl class="row mb-0">
                             <dt class="col-sm-5">Попадёт записей</dt>

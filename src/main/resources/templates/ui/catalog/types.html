@@ -115,10 +115,12 @@
                         <label class="form-label" for="code">Код <span aria-hidden="true">*</span></label>
                         <input class="form-control" id="code" name="code" required th:value="${editing?.code}"
                                th:readonly="${editing != null}">
+                        <div th:replace="~{ui/fragments/layout :: fieldError('code')}"></div>
                     </div>
                     <div class="col-md-5">
                         <label class="form-label" for="nameRu">Название <span aria-hidden="true">*</span></label>
                         <input class="form-control" id="nameRu" name="nameRu" required th:value="${editing?.nameRu}">
+                        <div th:replace="~{ui/fragments/layout :: fieldError('nameRu')}"></div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label" for="category">Категория <span aria-hidden="true">*</span></label>
@@ -127,8 +129,6 @@
                                     th:text="${category.nameRu()}"
                                     th:selected="${editing != null and editing.category == category}">Базовое</option>
                         </select>
-                    <div th:replace="~{ui/fragments/layout :: fieldError('nameRu')}"></div>
-                    <div th:replace="~{ui/fragments/layout :: fieldError('code')}"></div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label" for="channels">Каналы</label>
@@ -142,7 +142,7 @@
                         <label class="form-label" for="defaultValidity">Срок по умолчанию (ISO-8601)</label>
                         <input class="form-control" id="defaultValidity" name="defaultValidity" placeholder="P1Y"
                                th:value="${editing?.defaultValidity}">
-                    <div th:replace="~{ui/fragments/layout :: fieldError('defaultValidity')}"></div>
+                        <div th:replace="~{ui/fragments/layout :: fieldError('defaultValidity')}"></div>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label" for="dependsOnCode">Зависит от типа</label>

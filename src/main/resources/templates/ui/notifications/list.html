@@ -76,6 +76,7 @@
                                 <label class="form-label" for="name">Название <span aria-hidden="true">*</span></label>
                                 <input class="form-control" id="name" name="name" required
                                        th:value="${editing != null} ? ${editing.name} : ''">
+                                <div th:replace="~{ui/fragments/layout :: fieldError('name')}"></div>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label" for="triggerType">Повод <span aria-hidden="true">*</span></label>
@@ -85,12 +86,12 @@
                                             th:selected="${editing != null and trigger == editing.triggerType}">
                                         заканчивается срок</option>
                                 </select>
-                    <div th:replace="~{ui/fragments/layout :: fieldError('name')}"></div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label" for="daysBefore">Пороги, дней</label>
                                 <input class="form-control" id="daysBefore" name="daysBefore" placeholder="30, 15, 7, 1"
                                        th:value="${editing != null} ? ${#strings.listJoin(editing.daysBefore, ', ')} : ''">
+                                <div th:replace="~{ui/fragments/layout :: fieldError('daysBefore')}"></div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label" for="recipientRoles">Роли-получатели</label>
@@ -98,7 +99,6 @@
                                     <option th:each="role : ${roles}" th:value="${role}" th:text="${role.nameRu()}"
                                             th:selected="${editing != null and editing.recipientRoles.contains(role.name())}">DPO</option>
                                 </select>
-                    <div th:replace="~{ui/fragments/layout :: fieldError('daysBefore')}"></div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label" for="channels">Каналы <span aria-hidden="true">*</span></label>
@@ -132,6 +132,7 @@
                                 <label class="form-label" for="recipientEmails">Адреса получателей (через запятую)</label>
                                 <input class="form-control" id="recipientEmails" name="recipientEmails"
                                        th:value="${editing != null} ? ${#strings.setJoin(editing.recipientEmails, ', ')} : ''">
+                                <div th:replace="~{ui/fragments/layout :: fieldError('recipientEmails')}"></div>
                             </div>
                             <div class="col-12">
                                 <button class="btn btn-primary" type="submit"
@@ -187,7 +188,6 @@
                         <option th:each="value : ${statuses}" th:value="${value}" th:text="${value.nameRu()}"
                                 th:selected="${value == selectedStatus}">отправлено</option>
                     </select>
-                    <div th:replace="~{ui/fragments/layout :: fieldError('recipientEmails')}"></div>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label" for="ruleId">Правило</label>

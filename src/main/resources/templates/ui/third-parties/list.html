@@ -93,22 +93,23 @@
                     <div class="col-md-3">
                         <label class="form-label" for="inn">ИНН <span aria-hidden="true">*</span></label>
                         <input class="form-control" id="inn" name="inn" required>
+                        <div th:replace="~{ui/fragments/layout :: fieldError('inn')}"></div>
                     </div>
                     <div class="col-md-5">
                         <label class="form-label" for="name">Наименование <span aria-hidden="true">*</span></label>
                         <input class="form-control" id="name" name="name" required>
+                        <div th:replace="~{ui/fragments/layout :: fieldError('name')}"></div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label" for="role">Роль <span aria-hidden="true">*</span></label>
                         <select class="form-select" id="role" name="role" required>
                             <option th:each="role : ${roles}" th:value="${role}" th:text="${role.nameRu()}">Обработчик</option>
                         </select>
-                    <div th:replace="~{ui/fragments/layout :: fieldError('name')}"></div>
-                    <div th:replace="~{ui/fragments/layout :: fieldError('inn')}"></div>
                     </div>
                     <div class="col-md-8">
                         <label class="form-label" for="address">Адрес <span aria-hidden="true">*</span></label>
                         <input class="form-control" id="address" name="address" required>
+                        <div th:replace="~{ui/fragments/layout :: fieldError('address')}"></div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label" for="contractNumber">Договор</label>
@@ -128,7 +129,6 @@
                             <option th:each="category : ${categories}" th:value="${category.code}"
                                     th:text="${category.nameRu}">ФИО</option>
                         </select>
-                    <div th:replace="~{ui/fragments/layout :: fieldError('address')}"></div>
                     </div>
                     <div class="col-12">
                         <button class="btn btn-primary" type="submit">Добавить</button>

@@ -179,9 +179,35 @@ class UiThirdPartyIT extends AbstractIntegrationTest {
                 .getResponse()
                 .getRedirectedUrl();
 
-        mockMvc.perform(get(redirect).session(lawyer))
+        String page = mockMvc.perform(get(redirect).session(lawyer))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("invalid-feedback")));
+                .andExpect(content().string(containsString("invalid-feedback")))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        // Подпись обязана стоять у своего поля: «где-то на странице» — это сводка сверху, а не UI-0.9.
+        assertThat(errorFieldOf(page, "Такой ИНН уже есть в справочнике"))
+                .as("подпись об ошибке ИНН стоит под другим полем")
+                .isEqualTo("inn");
+    }
+
+    /**
+     * Имя поля, под которым стоит подпись с указанным текстом.
+     *
+     * <p>Разметка идёт сверху вниз, поэтому поле подписи — ближайший элемент формы выше неё. Именно эта
+     * проверка ловит перепутанные местами подписи, которые видны глазом, но не отличимы поиском по строке.
+     */
+    private static String errorFieldOf(String page, String message) {
+        int error = page.indexOf(message);
+        assertThat(error).as("подписи «%s» на странице нет", message).isNotNegative();
+        java.util.regex.Matcher fields =
+                java.util.regex.Pattern.compile("id=\"([A-Za-z0-9_]+)\"").matcher(page.substring(0, error));
+        String last = null;
+        while (fields.find()) {
+            last = fields.group(1);
+        }
+        return last;
     }
 
     private String formatted(LocalDate date) {
