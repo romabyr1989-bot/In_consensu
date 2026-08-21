@@ -104,6 +104,8 @@
                             <option th:each="type : ${eventTypes}" th:value="${type}" th:text="${type}"
                                     th:selected="${editing != null and editing.eventTypes.contains(type)}">consent.revoked</option>
                         </select>
+                    <div th:replace="~{ui/fragments/layout :: fieldError('url')}"></div>
+                    <div th:replace="~{ui/fragments/layout :: fieldError('name')}"></div>
                     </div>
                     <div class="col-12">
                         <button class="btn btn-primary" type="submit">Создать подписку</button>

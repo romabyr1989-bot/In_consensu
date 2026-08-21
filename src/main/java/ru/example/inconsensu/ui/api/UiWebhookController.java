@@ -121,7 +121,7 @@ public class UiWebhookController {
             redirect.addFlashAttribute("flashMessage", "Подписка создана");
             redirect.addFlashAttribute("flashSecret", created.secret());
         } catch (ApiException e) {
-            redirect.addFlashAttribute("flashError", e.getMessage());
+            ru.example.inconsensu.ui.application.UiFormErrors.report(redirect, e);
         }
         return "redirect:/ui/webhooks";
     }

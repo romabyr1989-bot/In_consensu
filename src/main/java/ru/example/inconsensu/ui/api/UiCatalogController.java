@@ -138,7 +138,7 @@ public class UiCatalogController {
                 redirect.addFlashAttribute("flashMessage", "Тип согласия создан");
             }
         } catch (ApiException e) {
-            redirect.addFlashAttribute("flashError", e.getMessage());
+            ru.example.inconsensu.ui.application.UiFormErrors.report(redirect, e);
             if (update) {
                 // Возвращаем на ту же форму правки, иначе введённое пропадёт вместе с сообщением.
                 return "redirect:/ui/catalog/types?edit=" + code;
@@ -214,7 +214,7 @@ public class UiCatalogController {
                             title, "", "", "", Set.of(ConsentSource.WEBSITE_APPLICATION), List.of()));
             return "redirect:/ui/catalog/forms/" + draft.getId() + "/edit";
         } catch (ApiException e) {
-            redirect.addFlashAttribute("flashError", e.getMessage());
+            ru.example.inconsensu.ui.application.UiFormErrors.report(redirect, e);
             return "redirect:/ui/catalog/forms";
         }
     }
@@ -248,7 +248,7 @@ public class UiCatalogController {
             view.saveDraft(id, request);
             redirect.addFlashAttribute("flashMessage", "Черновик сохранён");
         } catch (ApiException e) {
-            redirect.addFlashAttribute("flashError", e.getMessage());
+            ru.example.inconsensu.ui.application.UiFormErrors.report(redirect, e);
         }
         return "redirect:/ui/catalog/forms/" + id + "/edit";
     }
@@ -267,7 +267,7 @@ public class UiCatalogController {
             workflow.submit(id);
             redirect.addFlashAttribute("flashMessage", "Форма отправлена на согласование");
         } catch (ApiException e) {
-            redirect.addFlashAttribute("flashError", e.getMessage());
+            ru.example.inconsensu.ui.application.UiFormErrors.report(redirect, e);
         }
         return "redirect:/ui/catalog/forms/" + id + "/review";
     }
@@ -305,7 +305,7 @@ public class UiCatalogController {
             workflow.approve(id, comment);
             redirect.addFlashAttribute("flashMessage", "Форма одобрена");
         } catch (ApiException e) {
-            redirect.addFlashAttribute("flashError", e.getMessage());
+            ru.example.inconsensu.ui.application.UiFormErrors.report(redirect, e);
         }
         return "redirect:/ui/catalog/forms/" + id + "/review";
     }
@@ -317,7 +317,7 @@ public class UiCatalogController {
             workflow.reject(id, comment);
             redirect.addFlashAttribute("flashMessage", "Форма возвращена на доработку");
         } catch (ApiException e) {
-            redirect.addFlashAttribute("flashError", e.getMessage());
+            ru.example.inconsensu.ui.application.UiFormErrors.report(redirect, e);
         }
         return "redirect:/ui/catalog/forms/" + id + "/review";
     }
@@ -329,7 +329,7 @@ public class UiCatalogController {
             workflow.publish(id);
             redirect.addFlashAttribute("flashMessage", "Версия опубликована");
         } catch (ApiException e) {
-            redirect.addFlashAttribute("flashError", e.getMessage());
+            ru.example.inconsensu.ui.application.UiFormErrors.report(redirect, e);
         }
         return "redirect:/ui/catalog/forms/" + id;
     }
@@ -349,7 +349,7 @@ public class UiCatalogController {
             var created = forms.createNewVersion(id);
             return "redirect:/ui/catalog/forms/" + created.getId() + "/edit";
         } catch (ApiException e) {
-            redirect.addFlashAttribute("flashError", e.getMessage());
+            ru.example.inconsensu.ui.application.UiFormErrors.report(redirect, e);
             return "redirect:/ui/catalog/forms/" + id;
         }
     }

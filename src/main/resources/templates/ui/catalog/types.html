@@ -124,6 +124,8 @@
                                     th:text="${category.nameRu()}"
                                     th:selected="${editing != null and editing.category == category}">Базовое</option>
                         </select>
+                    <div th:replace="~{ui/fragments/layout :: fieldError('nameRu')}"></div>
+                    <div th:replace="~{ui/fragments/layout :: fieldError('code')}"></div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label" for="channels">Каналы</label>
@@ -137,6 +139,7 @@
                         <label class="form-label" for="defaultValidity">Срок по умолчанию (ISO-8601)</label>
                         <input class="form-control" id="defaultValidity" name="defaultValidity" placeholder="P1Y"
                                th:value="${editing?.defaultValidity}">
+                    <div th:replace="~{ui/fragments/layout :: fieldError('defaultValidity')}"></div>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label" for="dependsOnCode">Зависит от типа</label>

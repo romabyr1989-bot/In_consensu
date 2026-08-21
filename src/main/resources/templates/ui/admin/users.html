@@ -35,6 +35,8 @@
                             <option th:each="role : ${roles}" th:value="${role}" th:text="${role.nameRu()}"
                                     th:selected="${user.roleCodes.contains(role.name())}">Администратор</option>
                         </select>
+                    <div th:replace="~{ui/fragments/layout :: fieldError('email')}"></div>
+                    <div th:replace="~{ui/fragments/layout :: fieldError('fullName')}"></div>
                         <div>
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" name="active" value="true"
@@ -94,6 +96,8 @@
                         <select class="form-select" id="newRoles" name="roles" multiple size="5" required>
                             <option th:each="role : ${roles}" th:value="${role}" th:text="${role.nameRu()}">Менеджер</option>
                         </select>
+                    <div th:replace="~{ui/fragments/layout :: fieldError('password')}"></div>
+                    <div th:replace="~{ui/fragments/layout :: fieldError('login')}"></div>
                     </div>
                     <div class="col-12">
                         <button class="btn btn-primary" type="submit">Создать</button>

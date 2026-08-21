@@ -18,7 +18,7 @@ import ru.example.inconsensu.common.config.InConsensuProperties;
 import ru.example.inconsensu.common.domain.AuditEventType;
 import ru.example.inconsensu.common.domain.ThirdPartyRole;
 import ru.example.inconsensu.common.error.ApiException;
-import ru.example.inconsensu.common.error.ErrorCode;
+import ru.example.inconsensu.common.error.ValidationErrorItem;
 import ru.example.inconsensu.thirdparty.domain.ThirdParty;
 import ru.example.inconsensu.thirdparty.infrastructure.ThirdPartyRepository;
 
@@ -101,7 +101,10 @@ public class ThirdPartyService {
     @Transactional
     public ThirdParty create(String inn, ThirdPartyForm form) {
         if (repository.existsByInn(inn)) {
-            throw ApiException.conflict("Третье лицо с таким ИНН уже есть в справочнике");
+            // Поле названо явно: экран подписывает ошибку под ним, а не одной строкой сверху (UI-0.9).
+            throw ApiException.validation(
+                    "Третье лицо с таким ИНН уже есть в справочнике",
+                    List.of(new ValidationErrorItem("inn", "Такой ИНН уже есть в справочнике")));
         }
         validate(form);
         ThirdParty thirdParty = new ThirdParty(UUID.randomUUID(), form.name(), inn, form.address(), form.role());
@@ -134,11 +137,16 @@ public class ThirdPartyService {
         if (form.contractDate() != null
                 && form.contractValidUntil() != null
                 && form.contractValidUntil().isBefore(form.contractDate())) {
-            throw new ApiException(ErrorCode.VALIDATION_FAILED, "Срок договора не может заканчиваться раньше его даты");
+            throw ApiException.validation(
+                    "Срок договора не может заканчиваться раньше его даты",
+                    List.of(new ValidationErrorItem("contractValidUntil", "Дата окончания раньше даты договора")));
         }
         Set<String> requested = form.allowedPdnCategories() == null ? Set.of() : form.allowedPdnCategories();
         if (!pdnCategories.allExist(requested)) {
-            throw new ApiException(ErrorCode.VALIDATION_FAILED, "Указана несуществующая категория персональных данных");
+            throw ApiException.validation(
+                    "Указана несуществующая категория персональных данных",
+                    List.of(new ValidationErrorItem(
+                            "allowedPdnCategories", "Выбрана категория, которой нет в справочнике")));
         }
     }
 

@@ -152,7 +152,11 @@ public class WebhookSubscriptionService {
 
     private void validate(SubscriptionForm form) {
         if (form.name() == null || form.name().isBlank()) {
-            throw new ApiException(ErrorCode.VALIDATION_FAILED, "Укажите название подписки");
+            // Поле названо явно: экран подписывает ошибку под ним (UI-0.9).
+            throw ApiException.validation(
+                    "Укажите название подписки",
+                    java.util.List.of(new ru.example.inconsensu.common.error.ValidationErrorItem(
+                            "name", "Название обязательно")));
         }
         // NFR-4: адрес проверяется по списку разрешённых хостов — иначе роль ADMIN превращается в
         // возможность заставить сервис ходить в произвольный, в том числе внутренний, адрес.

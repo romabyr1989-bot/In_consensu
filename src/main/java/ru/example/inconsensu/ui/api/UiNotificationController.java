@@ -157,7 +157,7 @@ public class UiNotificationController {
                 redirect.addFlashAttribute("flashMessage", "Правило изменено");
             }
         } catch (ApiException e) {
-            redirect.addFlashAttribute("flashError", e.getMessage());
+            ru.example.inconsensu.ui.application.UiFormErrors.report(redirect, e);
         }
         return "redirect:/ui/notifications";
     }

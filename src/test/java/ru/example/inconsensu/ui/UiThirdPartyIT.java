@@ -160,6 +160,30 @@ class UiThirdPartyIT extends AbstractIntegrationTest {
         assertThat(page).doesNotContain("name=\"contractNumber\"");
     }
 
+    /** UI-0.9: отказ сервера показывается и сводкой сверху, и подписью под полем. */
+    @Test
+    void server_validation_marks_the_field_that_was_rejected() throws Exception {
+        MockHttpSession lawyer = loginAs(RoleCode.LAWYER.name());
+
+        // Повторный ИНН: справочник его не примет, и ошибка обязана указать на поле.
+        ThirdParty existing = createParty(LocalDate.now().plusYears(1));
+        String redirect = mockMvc.perform(post("/ui/third-parties")
+                        .session(lawyer)
+                        .with(csrf())
+                        .param("inn", existing.getInn())
+                        .param("name", "ООО «Ошибка»")
+                        .param("address", "Москва")
+                        .param("role", ThirdPartyRole.PROCESSOR.name()))
+                .andExpect(status().is3xxRedirection())
+                .andReturn()
+                .getResponse()
+                .getRedirectedUrl();
+
+        mockMvc.perform(get(redirect).session(lawyer))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("invalid-feedback")));
+    }
+
     private String formatted(LocalDate date) {
         return "%02d.%02d.%d".formatted(date.getDayOfMonth(), date.getMonthValue(), date.getYear());
     }

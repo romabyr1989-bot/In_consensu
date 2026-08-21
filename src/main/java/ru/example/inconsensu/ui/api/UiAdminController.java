@@ -69,7 +69,7 @@ public class UiAdminController {
             users.create(login, password, fullName, blankToNull(email), roles);
             redirect.addFlashAttribute("flashMessage", "Пользователь создан");
         } catch (ApiException e) {
-            redirect.addFlashAttribute("flashError", e.getMessage());
+            ru.example.inconsensu.ui.application.UiFormErrors.report(redirect, e);
         }
         return "redirect:/ui/admin/users";
     }
@@ -87,7 +87,7 @@ public class UiAdminController {
             users.update(id, fullName, blankToNull(email), roles, active);
             redirect.addFlashAttribute("flashMessage", "Учётная запись обновлена");
         } catch (ApiException e) {
-            redirect.addFlashAttribute("flashError", e.getMessage());
+            ru.example.inconsensu.ui.application.UiFormErrors.report(redirect, e);
         }
         return "redirect:/ui/admin/users";
     }
@@ -120,7 +120,7 @@ public class UiAdminController {
             settings.update(changes);
             redirect.addFlashAttribute("flashMessage", "Настройки сохранены");
         } catch (ApiException e) {
-            redirect.addFlashAttribute("flashError", e.getMessage());
+            ru.example.inconsensu.ui.application.UiFormErrors.report(redirect, e);
         }
         return "redirect:/ui/admin/settings";
     }

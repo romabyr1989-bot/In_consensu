@@ -397,7 +397,7 @@ public class UiSubjectController {
             redirect.addFlashAttribute("flashMessage", "Клиент сохранён");
             return "redirect:/ui/subjects/" + saved.getId();
         } catch (ApiException e) {
-            redirect.addFlashAttribute("flashError", e.getMessage());
+            ru.example.inconsensu.ui.application.UiFormErrors.report(redirect, e);
             return "redirect:/ui/subjects";
         }
     }

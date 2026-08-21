@@ -87,7 +87,7 @@ public class UiImportController {
             var job = imports.start(file.getOriginalFilename(), content, source.name(), dry);
             return "redirect:/ui/import/" + job.getId();
         } catch (ApiException e) {
-            redirect.addFlashAttribute("flashError", e.getMessage());
+            ru.example.inconsensu.ui.application.UiFormErrors.report(redirect, e);
             return "redirect:/ui/import";
         } catch (java.io.IOException e) {
             redirect.addFlashAttribute("flashError", "Не удалось прочитать файл");
@@ -109,7 +109,7 @@ public class UiImportController {
             redirect.addFlashAttribute("flashMessage", "Боевой импорт запущен");
             return "redirect:/ui/import/" + job.getId();
         } catch (ApiException e) {
-            redirect.addFlashAttribute("flashError", e.getMessage());
+            ru.example.inconsensu.ui.application.UiFormErrors.report(redirect, e);
             return "redirect:/ui/import/" + id;
         }
     }

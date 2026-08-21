@@ -101,14 +101,17 @@
                 <div class="col-md-3">
                     <label class="form-label" for="externalId">Внешний идентификатор <span aria-hidden="true">*</span></label>
                     <input class="form-control" id="externalId" name="externalId" required>
+                    <div th:replace="~{ui/fragments/layout :: fieldError('externalId')}"></div>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label" for="lastName">Фамилия <span aria-hidden="true">*</span></label>
                     <input class="form-control" id="lastName" name="lastName" required>
+                    <div th:replace="~{ui/fragments/layout :: fieldError('lastName')}"></div>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label" for="firstName">Имя <span aria-hidden="true">*</span></label>
                     <input class="form-control" id="firstName" name="firstName" required>
+                    <div th:replace="~{ui/fragments/layout :: fieldError('firstName')}"></div>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label" for="middleName">Отчество</label>
@@ -121,10 +124,12 @@
                 <div class="col-md-3">
                     <label class="form-label" for="phone">Телефон</label>
                     <input class="form-control" id="phone" name="phone" placeholder="+7 916 000-00-00">
+                    <div th:replace="~{ui/fragments/layout :: fieldError('phone')}"></div>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label" for="email">Email</label>
                     <input class="form-control" type="email" id="email" name="email">
+                    <div th:replace="~{ui/fragments/layout :: fieldError('email')}"></div>
                 </div>
                 <div class="col-md-3 align-self-end">
                     <button class="btn btn-primary" type="submit">Сохранить клиента</button>

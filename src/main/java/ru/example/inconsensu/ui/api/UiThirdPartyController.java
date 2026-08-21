@@ -133,7 +133,7 @@ public class UiThirdPartyController {
             redirect.addFlashAttribute("flashMessage", "Третье лицо добавлено");
             return "redirect:/ui/third-parties/" + created.getId();
         } catch (ApiException e) {
-            redirect.addFlashAttribute("flashError", e.getMessage());
+            ru.example.inconsensu.ui.application.UiFormErrors.report(redirect, e);
             return "redirect:/ui/third-parties";
         }
     }
@@ -169,7 +169,7 @@ public class UiThirdPartyController {
                             contactEmail));
             redirect.addFlashAttribute("flashMessage", "Изменения сохранены");
         } catch (ApiException e) {
-            redirect.addFlashAttribute("flashError", e.getMessage());
+            ru.example.inconsensu.ui.application.UiFormErrors.report(redirect, e);
         }
         return "redirect:/ui/third-parties/" + id;
     }
@@ -190,7 +190,7 @@ public class UiThirdPartyController {
             var created = exports.create(id, format);
             redirect.addFlashAttribute("flashMessage", "Выгрузка сформирована: записей " + created.getRecordsCount());
         } catch (ApiException e) {
-            redirect.addFlashAttribute("flashError", e.getMessage());
+            ru.example.inconsensu.ui.application.UiFormErrors.report(redirect, e);
         }
         return "redirect:/ui/third-parties/" + id + "?tab=exports";
     }

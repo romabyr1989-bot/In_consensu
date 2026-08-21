@@ -162,6 +162,14 @@
     </ol>
 </nav>
 
+<!--
+  UI-0.9: подпись под полем, которое сервер не принял. Сводка остаётся сверху во flash: одна строка
+  сверху не говорит, какое именно поле поправить.
+-->
+<div th:fragment="fieldError(field)" class="invalid-feedback d-block"
+     th:if="${fieldErrors != null and fieldErrors.containsKey(field)}"
+     th:text="${fieldErrors.get(field)}">Заполните поле</div>
+
 <div th:fragment="flash" th:if="${flashMessage != null or flashError != null}">
     <div class="alert alert-success" role="alert" th:if="${flashMessage != null}" th:text="${flashMessage}"></div>
     <div class="alert alert-danger" role="alert" th:if="${flashError != null}">

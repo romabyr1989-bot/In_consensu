@@ -77,6 +77,8 @@
                         <select class="form-select" id="role" name="role" required>
                             <option th:each="role : ${roles}" th:value="${role}" th:text="${role.nameRu()}">Обработчик</option>
                         </select>
+                    <div th:replace="~{ui/fragments/layout :: fieldError('name')}"></div>
+                    <div th:replace="~{ui/fragments/layout :: fieldError('inn')}"></div>
                     </div>
                     <div class="col-md-8">
                         <label class="form-label" for="address">Адрес <span aria-hidden="true">*</span></label>
@@ -100,6 +102,7 @@
                             <option th:each="category : ${categories}" th:value="${category.code}"
                                     th:text="${category.nameRu}">ФИО</option>
                         </select>
+                    <div th:replace="~{ui/fragments/layout :: fieldError('address')}"></div>
                     </div>
                     <div class="col-12">
                         <button class="btn btn-primary" type="submit">Добавить</button>

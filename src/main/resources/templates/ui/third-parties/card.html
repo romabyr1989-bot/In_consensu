@@ -45,7 +45,7 @@
                 <form th:action="@{/ui/third-parties/{id}(id=${thirdParty.id})}" method="post" class="row g-3"
                       sec:authorize="hasAnyRole('LAWYER','DPO','ADMIN')" data-warn-unsaved="true">
                     <div class="col-md-6">
-                        <label class="form-label" for="name">Наименование</label>
+                        <label class="form-label" for="name">Наименование <span aria-hidden="true">*</span></label>
                         <input class="form-control" id="name" name="name" th:value="${thirdParty.name}" required>
                     </div>
                     <div class="col-md-6">
@@ -67,9 +67,12 @@
                             <option th:each="role : ${roles}" th:value="${role}" th:text="${role.nameRu()}"
                                     th:selected="${role == thirdParty.role}">Обработчик</option>
                         </select>
+                    <div th:replace="~{ui/fragments/layout :: fieldError('ogrn')}"></div>
+                    <div th:replace="~{ui/fragments/layout :: fieldError('shortName')}"></div>
+                    <div th:replace="~{ui/fragments/layout :: fieldError('name')}"></div>
                     </div>
                     <div class="col-12">
-                        <label class="form-label" for="address">Адрес</label>
+                        <label class="form-label" for="address">Адрес <span aria-hidden="true">*</span></label>
                         <input class="form-control" id="address" name="address" th:value="${thirdParty.address}" required>
                     </div>
                     <div class="col-md-4">
@@ -94,6 +97,10 @@
                                     th:text="${category.nameRu}"
                                     th:selected="${#arrays.contains(thirdParty.allowedPdnCategories, category.code)}">ФИО</option>
                         </select>
+                    <div th:replace="~{ui/fragments/layout :: fieldError('contractValidUntil')}"></div>
+                    <div th:replace="~{ui/fragments/layout :: fieldError('contractDate')}"></div>
+                    <div th:replace="~{ui/fragments/layout :: fieldError('contractNumber')}"></div>
+                    <div th:replace="~{ui/fragments/layout :: fieldError('address')}"></div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label" for="contactEmail">Контактный email</label>
@@ -160,6 +167,7 @@
                                 <option value="csv">CSV</option>
                                 <option value="json">JSON</option>
                             </select>
+                    <div th:replace="~{ui/fragments/layout :: fieldError('contactEmail')}"></div>
                         </div>
                         <dl class="row mb-0">
                             <dt class="col-sm-5">Попадёт записей</dt>

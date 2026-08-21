@@ -85,6 +85,7 @@
                                             th:selected="${editing != null and trigger == editing.triggerType}">
                                         заканчивается срок</option>
                                 </select>
+                    <div th:replace="~{ui/fragments/layout :: fieldError('name')}"></div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label" for="daysBefore">Пороги, дней</label>
@@ -97,6 +98,7 @@
                                     <option th:each="role : ${roles}" th:value="${role}" th:text="${role.nameRu()}"
                                             th:selected="${editing != null and editing.recipientRoles.contains(role.name())}">DPO</option>
                                 </select>
+                    <div th:replace="~{ui/fragments/layout :: fieldError('daysBefore')}"></div>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label" for="channels">Каналы <span aria-hidden="true">*</span></label>
@@ -185,6 +187,7 @@
                         <option th:each="value : ${statuses}" th:value="${value}" th:text="${value.nameRu()}"
                                 th:selected="${value == selectedStatus}">отправлено</option>
                     </select>
+                    <div th:replace="~{ui/fragments/layout :: fieldError('recipientEmails')}"></div>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label" for="ruleId">Правило</label>
