@@ -86,3 +86,24 @@ body { background: #f5f6f8; }
 .ic-facts dd { margin: 0; }
 .ic-gap { margin-top: 12px; }
 .ic-form-text { white-space: pre-wrap; font-family: inherit; background: #f5f6f8; padding: 16px; border-radius: 8px; }
+/* UI-6, UI-8: формы правки в две колонки — иначе поля растягиваются на всю ширину экрана. */
+.ic-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0 16px; }
+.ic-span-2 { grid-column: span 2; }
+.ic-checks { display: flex; flex-direction: column; gap: 8px; justify-content: center; }
+.ic-awaiting { display: flex; gap: 12px; align-items: baseline; padding: 4px 0; }
+/* UI-9: решения по маршруту и сравнение версий. */
+.ic-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.ic-approval { display: flex; gap: 12px; align-items: baseline; padding: 4px 0; }
+.ic-diff { background: #f5f6f8; padding: 16px; border-radius: 8px; overflow-x: auto; }
+.ic-diff-added { background: #d8f2e0; display: block; }
+.ic-diff-removed { background: #ffd8d5; display: block; }
+.ic-diff-same { display: block; }
+/* UI-8: конструктор — поля слева, чек-лист реквизитов справа. */
+.ic-builder { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start; }
+@media (max-width: 1100px) { .ic-builder { grid-template-columns: 1fr; } }
+.ic-checklist { position: sticky; top: 88px; }
+.ic-requisite { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+.ic-requisite .ic-ok { color: #1e7a45; }
+.ic-requisite .ic-missing { color: #9aa0a6; }
+.ic-finding { padding: 2px 0; }
+.ic-item { margin-bottom: 8px; }
