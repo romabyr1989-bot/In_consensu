@@ -115,6 +115,9 @@ springdoc:
     operations-sorter: alpha
     tags-sorter: alpha
     display-request-duration: true
+  # §9 описывает постраничность параметрами page, size и sort. Без этого флага springdoc печатает один
+  # объектный параметр `pageable`, и контракт не совпадал с тем, что принимает сервис.
+  default-flat-param-object: true
   # Deterministic serialisation: docs/openapi.yaml must not churn between builds (§11).
   writer-with-order-by-keys: true
 

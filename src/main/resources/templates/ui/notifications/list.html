@@ -66,10 +66,10 @@
 
         <div class="row g-3 mt-1">
             <div class="col-12 col-xl-8">
-                <div class="card">
-                    <div class="card-header" th:text="${editing == null} ? 'Новое правило' : 'Правка правила'">
-                        Новое правило</div>
-                    <div class="card-body">
+                <!-- Форма свёрнута: вкладка начинается со списка правил, а не с пустых полей. -->
+                <details class="ic-create" th:attr="open=${editing != null or fieldErrors != null} ? 'open' : null">
+                    <summary th:text="${editing == null} ? 'Новое правило' : 'Правка правила'">Новое правило</summary>
+                    <div class="pt-3">
                         <form th:action="@{/ui/notifications/rules}" method="post" class="row g-3">
                             <input type="hidden" name="ruleId" th:if="${editing != null}" th:value="${editing.id}">
                             <div class="col-md-6">
@@ -143,7 +143,7 @@
                             </div>
                         </form>
                     </div>
-                </div>
+                </details>
             </div>
             <div class="col-12 col-xl-4">
                 <div class="card">

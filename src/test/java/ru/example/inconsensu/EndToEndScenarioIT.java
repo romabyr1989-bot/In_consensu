@@ -308,9 +308,14 @@ class EndToEndScenarioIT extends AbstractIntegrationTest {
                         .expiring()))
                 .as("задача обязана заметить согласие с порогом 30 дней")
                 .isPositive();
-        assertThat(dispatcher.dispatchNow()).isPositive();
-
-        String mailbox = Mailpit.search(restTemplate, dpoEmail);
+        // Порция диспетчера ограничена, и в неё могли попасть уведомления соседних тестов: проходов делается
+        // столько, сколько нужно, чтобы очередь дошла до нашего адресата. Раньше один проход мог отправить
+        // чужие письма, а этот сценарий оставался без своего.
+        String mailbox = "";
+        for (int pass = 0; pass < 10 && !mailbox.contains("заканчивается срок согласия"); pass++) {
+            dispatcher.dispatchNow();
+            mailbox = Mailpit.search(restTemplate, dpoEmail);
+        }
         assertThat(mailbox).contains("заканчивается срок согласия");
     }
 

@@ -230,8 +230,16 @@ class AccessHardeningIT extends AbstractIntegrationTest {
     void service_role_reads_only_what_the_matrix_allows() {
         HttpHeaders integration = accounts.authorizationFor(RoleCode.INTEGRATION.name());
 
-        for (String closed :
-                List.of("/api/v1/consent-types", "/api/v1/forms", "/api/v1/catalog/stats", "/api/v1/third-parties")) {
+        for (String closed : List.of(
+                "/api/v1/consent-types",
+                "/api/v1/forms",
+                "/api/v1/catalog/stats",
+                "/api/v1/third-parties",
+                // Реестр согласий — тоже не для служебной роли: постраничная выгрузка давала ей всё, что
+                // видит сотрудник, а Приложение E разрешает интеграции лишь чтение по внешнему идентификатору.
+                "/api/v1/consents",
+                "/api/v1/consents?subjectId=11111111-1111-4111-8111-111111111111",
+                "/api/v1/consents/22222222-2222-4222-8222-222222222222")) {
             assertThat(restTemplate
                             .exchange(closed, HttpMethod.GET, new HttpEntity<>(integration), String.class)
                             .getStatusCode())

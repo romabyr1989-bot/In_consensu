@@ -39,7 +39,7 @@
                     <th th:replace="~{ui/fragments/layout :: sortHeader('Роль', 'role')}"></th>
                     <th th:replace="~{ui/fragments/layout :: sortHeader('Договор', 'contract')}"></th>
                     <th scope="col">Категории ПДн</th>
-                    <th th:replace="~{ui/fragments/layout :: sortHeader('Согласий: действует / истекает / отозвано', 'consents')}"></th>
+                    <th th:replace="~{ui/fragments/layout :: sortHeader('Согласия', 'consents')}"></th>
                     <th scope="col">Активно</th>
                 </tr>
                 </thead>
@@ -86,9 +86,14 @@
         </div>
         </div>
 
-        <div class="card" sec:authorize="hasAnyRole('LAWYER','DPO','ADMIN')">
-            <div class="card-header">Добавить третье лицо</div>
-            <div class="card-body">
+        <!--
+          Форма создания свёрнута: экран справочника начинается с самого справочника, а не с пустых полей.
+          Открывается по щелчку и остаётся открытой, пока в ней есть ошибка (UI-0.9).
+        -->
+        <details class="ic-create" sec:authorize="hasAnyRole('LAWYER','DPO','ADMIN')"
+                 th:attr="open=${fieldErrors != null} ? 'open' : null">
+            <summary>Добавить третье лицо</summary>
+            <div class="pt-3">
                 <form th:action="@{/ui/third-parties}" method="post" class="row g-3">
                     <div class="col-md-3">
                         <label class="form-label" for="inn">ИНН <span aria-hidden="true">*</span></label>
@@ -135,7 +140,7 @@
                     </div>
                 </form>
             </div>
-        </div>
+        </details>
     </main>
 </div>
 <script th:src="@{/assets/js/inconsensu.js}"></script>

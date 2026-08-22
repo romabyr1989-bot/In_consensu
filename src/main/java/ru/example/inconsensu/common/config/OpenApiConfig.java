@@ -20,9 +20,23 @@ public class OpenApiConfig {
 
     private static final String API_VERSION = "v1";
 
+    /** §9: имя схемы безопасности в спецификации; на неё ссылается каждая операция. */
+    private static final String BEARER_SCHEME = "bearerAuth";
+
     @Bean
     public OpenAPI cusOpenApi() {
         return new OpenAPI()
+                .components(new io.swagger.v3.oas.models.Components()
+                        .addSecuritySchemes(
+                                BEARER_SCHEME,
+                                new io.swagger.v3.oas.models.security.SecurityScheme()
+                                        .type(io.swagger.v3.oas.models.security.SecurityScheme.Type.HTTP)
+                                        .scheme("bearer")
+                                        .bearerFormat("JWT")
+                                        .description("Токен доступа из POST /api/v1/auth/login (FR-11.1)")))
+                // §9: машинная цепочка работает по токену. Без этого блока в опубликованном контракте не было
+                // сказано, чем аутентифицируется вызов, и клиент узнавал об этом только из 401.
+                .addSecurityItem(new io.swagger.v3.oas.models.security.SecurityRequirement().addList(BEARER_SCHEME))
                 .info(new Info()
                         .title("In consensu — центр управления согласиями")
                         .version(API_VERSION)

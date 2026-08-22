@@ -107,6 +107,29 @@ public class UiWebhookViewService {
         }
         return delivery.getError() == null || delivery.getError().isBlank()
                 ? "нет ответа"
-                : "ошибка: " + delivery.getError();
+                : "ошибка: " + shortError(delivery.getError());
+    }
+
+    /**
+     * Короткая причина отказа вместо строки исключения (UI-0.6).
+     *
+     * <p>В списке подписок стояло «ResourceAccessException: I/O error on POST request for … null» —
+     * администратору это ничего не говорит, а на экране занимает половину строки. Полный текст остаётся в
+     * журнале доставок, где его и смотрят при разборе.
+     */
+    private static String shortError(String error) {
+        String text = error.trim();
+        if (text.contains("ResourceAccessException") || text.contains("ConnectException")) {
+            return "адрес недоступен";
+        }
+        if (text.contains("SocketTimeout") || text.contains("timed out")) {
+            return "истекло время ожидания";
+        }
+        if (text.contains("SSL") || text.contains("Certificate")) {
+            return "сертификат не принят";
+        }
+        int colon = text.indexOf(':');
+        String head = colon > 0 ? text.substring(0, colon) : text;
+        return head.length() > 60 ? head.substring(0, 60) + "…" : head;
     }
 }

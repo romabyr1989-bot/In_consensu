@@ -11,6 +11,8 @@ info:
 servers:
 - description: Текущий хост
   url: /
+security:
+- bearerAuth: []
 paths:
   /api/v1/audit/access-log:
     get:
@@ -45,11 +47,33 @@ paths:
         schema:
           type: string
           format: date-time
-      - in: query
-        name: pageable
-        required: true
+      - description: Zero-based page index (0..N)
+        in: query
+        name: page
+        required: false
         schema:
-          $ref: "#/components/schemas/Pageable"
+          type: integer
+          default: 0
+          minimum: 0
+      - description: The size of the page to be returned
+        in: query
+        name: size
+        required: false
+        schema:
+          type: integer
+          default: 20
+          minimum: 1
+      - description: "Sorting criteria in the format: property,(asc|desc). Default\
+          \ sort order is ascending. Multiple sort criteria are supported."
+        in: query
+        name: sort
+        required: false
+        schema:
+          type: array
+          default:
+          - "id,DESC"
+          items:
+            type: string
       responses:
         "200":
           content:
@@ -120,11 +144,33 @@ paths:
         schema:
           type: string
           format: date-time
-      - in: query
-        name: pageable
-        required: true
+      - description: Zero-based page index (0..N)
+        in: query
+        name: page
+        required: false
         schema:
-          $ref: "#/components/schemas/Pageable"
+          type: integer
+          default: 0
+          minimum: 0
+      - description: The size of the page to be returned
+        in: query
+        name: size
+        required: false
+        schema:
+          type: integer
+          default: 20
+          minimum: 1
+      - description: "Sorting criteria in the format: property,(asc|desc). Default\
+          \ sort order is ascending. Multiple sort criteria are supported."
+        in: query
+        name: sort
+        required: false
+        schema:
+          type: array
+          default:
+          - "id,DESC"
+          items:
+            type: string
       responses:
         "200":
           content:
@@ -360,11 +406,33 @@ paths:
         required: false
         schema:
           type: string
-      - in: query
-        name: pageable
-        required: true
+      - description: Zero-based page index (0..N)
+        in: query
+        name: page
+        required: false
         schema:
-          $ref: "#/components/schemas/Pageable"
+          type: integer
+          default: 0
+          minimum: 0
+      - description: The size of the page to be returned
+        in: query
+        name: size
+        required: false
+        schema:
+          type: integer
+          default: 50
+          minimum: 1
+      - description: "Sorting criteria in the format: property,(asc|desc). Default\
+          \ sort order is ascending. Multiple sort criteria are supported."
+        in: query
+        name: sort
+        required: false
+        schema:
+          type: array
+          default:
+          - "sortOrder,ASC"
+          items:
+            type: string
       responses:
         "200":
           content:
@@ -510,11 +578,31 @@ paths:
         schema:
           type: string
           format: date-time
-      - in: query
-        name: pageable
-        required: true
+      - description: Zero-based page index (0..N)
+        in: query
+        name: page
+        required: false
         schema:
-          $ref: "#/components/schemas/Pageable"
+          type: integer
+          default: 0
+          minimum: 0
+      - description: The size of the page to be returned
+        in: query
+        name: size
+        required: false
+        schema:
+          type: integer
+          default: 20
+          minimum: 1
+      - description: "Sorting criteria in the format: property,(asc|desc). Default\
+          \ sort order is ascending. Multiple sort criteria are supported."
+        in: query
+        name: sort
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         "200":
           content:
@@ -733,11 +821,33 @@ paths:
         required: false
         schema:
           type: string
-      - in: query
-        name: pageable
-        required: true
+      - description: Zero-based page index (0..N)
+        in: query
+        name: page
+        required: false
         schema:
-          $ref: "#/components/schemas/Pageable"
+          type: integer
+          default: 0
+          minimum: 0
+      - description: The size of the page to be returned
+        in: query
+        name: size
+        required: false
+        schema:
+          type: integer
+          default: 20
+          minimum: 1
+      - description: "Sorting criteria in the format: property,(asc|desc). Default\
+          \ sort order is ascending. Multiple sort criteria are supported."
+        in: query
+        name: sort
+        required: false
+        schema:
+          type: array
+          default:
+          - "code,ASC"
+          items:
+            type: string
       responses:
         "200":
           content:
@@ -1083,17 +1193,6 @@ paths:
         schema:
           type: boolean
           default: true
-      requestBody:
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                file:
-                  type: string
-                  format: binary
-              required:
-              - file
       responses:
         "202":
           content:
@@ -1107,11 +1206,31 @@ paths:
     get:
       operationId: jobs
       parameters:
-      - in: query
-        name: pageable
-        required: true
+      - description: Zero-based page index (0..N)
+        in: query
+        name: page
+        required: false
         schema:
-          $ref: "#/components/schemas/Pageable"
+          type: integer
+          default: 0
+          minimum: 0
+      - description: The size of the page to be returned
+        in: query
+        name: size
+        required: false
+        schema:
+          type: integer
+          default: 20
+          minimum: 1
+      - description: "Sorting criteria in the format: property,(asc|desc). Default\
+          \ sort order is ascending. Multiple sort criteria are supported."
+        in: query
+        name: sort
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         "200":
           content:
@@ -1295,11 +1414,31 @@ paths:
     get:
       operationId: list_8
       parameters:
-      - in: query
-        name: pageable
-        required: true
+      - description: Zero-based page index (0..N)
+        in: query
+        name: page
+        required: false
         schema:
-          $ref: "#/components/schemas/Pageable"
+          type: integer
+          default: 0
+          minimum: 0
+      - description: The size of the page to be returned
+        in: query
+        name: size
+        required: false
+        schema:
+          type: integer
+          default: 20
+          minimum: 1
+      - description: "Sorting criteria in the format: property,(asc|desc). Default\
+          \ sort order is ascending. Multiple sort criteria are supported."
+        in: query
+        name: sort
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         "200":
           content:
@@ -1506,11 +1645,31 @@ paths:
         required: false
         schema:
           type: string
-      - in: query
-        name: pageable
-        required: true
+      - description: Zero-based page index (0..N)
+        in: query
+        name: page
+        required: false
         schema:
-          $ref: "#/components/schemas/Pageable"
+          type: integer
+          default: 0
+          minimum: 0
+      - description: The size of the page to be returned
+        in: query
+        name: size
+        required: false
+        schema:
+          type: integer
+          default: 20
+          minimum: 1
+      - description: "Sorting criteria in the format: property,(asc|desc). Default\
+          \ sort order is ascending. Multiple sort criteria are supported."
+        in: query
+        name: sort
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         "200":
           content:
@@ -1696,11 +1855,33 @@ paths:
     get:
       operationId: list_2
       parameters:
-      - in: query
-        name: pageable
-        required: true
+      - description: Zero-based page index (0..N)
+        in: query
+        name: page
+        required: false
         schema:
-          $ref: "#/components/schemas/Pageable"
+          type: integer
+          default: 0
+          minimum: 0
+      - description: The size of the page to be returned
+        in: query
+        name: size
+        required: false
+        schema:
+          type: integer
+          default: 20
+          minimum: 1
+      - description: "Sorting criteria in the format: property,(asc|desc). Default\
+          \ sort order is ascending. Multiple sort criteria are supported."
+        in: query
+        name: sort
+        required: false
+        schema:
+          type: array
+          default:
+          - "name,ASC"
+          items:
+            type: string
       responses:
         "200":
           content:
@@ -1856,11 +2037,33 @@ paths:
     get:
       operationId: list_1
       parameters:
-      - in: query
-        name: pageable
-        required: true
+      - description: Zero-based page index (0..N)
+        in: query
+        name: page
+        required: false
         schema:
-          $ref: "#/components/schemas/Pageable"
+          type: integer
+          default: 0
+          minimum: 0
+      - description: The size of the page to be returned
+        in: query
+        name: size
+        required: false
+        schema:
+          type: integer
+          default: 20
+          minimum: 1
+      - description: "Sorting criteria in the format: property,(asc|desc). Default\
+          \ sort order is ascending. Multiple sort criteria are supported."
+        in: query
+        name: sort
+        required: false
+        schema:
+          type: array
+          default:
+          - "login,ASC"
+          items:
+            type: string
       responses:
         "200":
           content:
@@ -2056,11 +2259,31 @@ paths:
         schema:
           type: string
           format: uuid
-      - in: query
-        name: pageable
-        required: true
+      - description: Zero-based page index (0..N)
+        in: query
+        name: page
+        required: false
         schema:
-          $ref: "#/components/schemas/Pageable"
+          type: integer
+          default: 0
+          minimum: 0
+      - description: The size of the page to be returned
+        in: query
+        name: size
+        required: false
+        schema:
+          type: integer
+          default: 20
+          minimum: 1
+      - description: "Sorting criteria in the format: property,(asc|desc). Default\
+          \ sort order is ascending. Multiple sort criteria are supported."
+        in: query
+        name: sort
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
         "200":
           content:
@@ -3204,21 +3427,6 @@ components:
         totalPages:
           type: integer
           format: int32
-    Pageable:
-      type: object
-      properties:
-        page:
-          type: integer
-          format: int32
-          minimum: 0
-        size:
-          type: integer
-          format: int32
-          minimum: 1
-        sort:
-          type: array
-          items:
-            type: string
     PdnAccessLogResponse:
       type: object
       properties:
@@ -4026,3 +4234,9 @@ components:
           format: date-time
         url:
           type: string
+  securitySchemes:
+    bearerAuth:
+      bearerFormat: JWT
+      description: Токен доступа из POST /api/v1/auth/login (FR-11.1)
+      scheme: bearer
+      type: http

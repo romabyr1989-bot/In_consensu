@@ -47,6 +47,8 @@ import ru.example.inconsensu.thirdparty.domain.ThirdParty;
  */
 @Component
 @Profile("demo")
+// Базовые данные §11 создаются первыми: витрина (DemoShowcaseLoader) достраивает картину поверх них.
+@org.springframework.core.annotation.Order(10)
 public class DemoDataLoader implements ApplicationRunner {
 
     private static final Logger LOG = LoggerFactory.getLogger(DemoDataLoader.class);

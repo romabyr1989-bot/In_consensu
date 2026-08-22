@@ -207,10 +207,22 @@ fi
 
 step "Разрешённые каналы коммуникации до отзыва (FR-6.1)"
 CHANNELS_BEFORE="$(curl --fail --silent -H "$AUTH" "${BASE_URL}/api/v1/subjects/${SUBJECT_ID}/channels")"
-if grep -q '"summaryRu"' <<<"$CHANNELS_BEFORE"; then
-  ok "$(sed -n 's/.*"summaryRu":"\([^"]*\)".*/\1/p' <<<"$CHANNELS_BEFORE")"
+# Берём конкретный разрешённый канал и согласие, которое его открывает: без этого шаг «после отзыва»
+# проходил всегда — в ответе и до отзыва есть каналы с allowed=false, и проверка ничего не доказывала.
+READ_ALLOWED="$(python3 - "$CHANNELS_BEFORE" <<'PYEOF'
+import json, sys
+for entry in json.loads(sys.argv[1]).get("channels", []):
+    if entry.get("allowed") and entry.get("basis"):
+        print(entry["channel"], entry["basis"]["consentId"])
+        break
+PYEOF
+)"
+OPEN_CHANNEL="$(cut -d' ' -f1 <<<"$READ_ALLOWED")"
+AD_CONSENT_ID="$(cut -d' ' -f2 <<<"$READ_ALLOWED")"
+if [ -n "$OPEN_CHANNEL" ]; then
+  ok "канал ${OPEN_CHANNEL} разрешён; $(sed -n 's/.*"summaryRu":"\([^"]*\)".*/\1/p' <<<"$CHANNELS_BEFORE")"
 else
-  fail "расчёт каналов не вернул сводку"
+  fail "ни один канал не разрешён — демо-данные не соответствуют сценарию §11"
 fi
 
 step "Массовая проверка канала (FR-6.4)"
@@ -222,17 +234,8 @@ else
   fail "массовая проверка канала не сработала"
 fi
 
-step "Отзыв рекламного согласия (FR-8.2, FR-8.3)"
-# Берём любое действующее непрофильное согласие: базовое отзывать нельзя без каскада по всей карточке.
-AD_CONSENT_ID="$(python3 - "$CARD" <<'PYEOF'
-import json, sys
-card = json.loads(sys.argv[1])
-for consent in card.get("consents", []):
-    if consent.get("typeCode") != "PDN_PROCESSING" and consent.get("status") in ("ACTIVE", "EXPIRING"):
-        print(consent["id"])
-        break
-PYEOF
-)"
+step "Отзыв согласия, открывающего канал (FR-8.2, FR-8.3)"
+# Отзывается именно то согласие, которым канал разрешён: только тогда следующий шаг что-то доказывает.
 if [ -n "$AD_CONSENT_ID" ]; then
   REVOKED="$(curl --fail --silent -X POST -H "$AUTH" -H 'Content-Type: application/json' \
       -d '{"reason":"демонстрация отзыва","revocationSource":"PERSONAL_ACCOUNT","caseNumber":"ДЕМО-1"}' \
@@ -248,10 +251,19 @@ fi
 
 step "Канал закрывается немедленно после отзыва (FR-8.3)"
 CHANNELS_AFTER="$(curl --fail --silent -H "$AUTH" "${BASE_URL}/api/v1/subjects/${SUBJECT_ID}/channels")"
-if grep -q '"allowed":false' <<<"$CHANNELS_AFTER"; then
-  ok "$(sed -n 's/.*"summaryRu":"\([^"]*\)".*/\1/p' <<<"$CHANNELS_AFTER")"
+CLOSED="$(python3 - "$CHANNELS_AFTER" "$OPEN_CHANNEL" <<'PYEOF'
+import json, sys
+target = sys.argv[2]
+for entry in json.loads(sys.argv[1]).get("channels", []):
+    if entry.get("channel") == target:
+        print("closed" if not entry.get("allowed") else "open", entry.get("reasonRu") or "")
+        break
+PYEOF
+)"
+if [ "${CLOSED%% *}" = "closed" ]; then
+  ok "канал ${OPEN_CHANNEL} закрыт: ${CLOSED#* }"
 else
-  fail "после отзыва канал остался разрешённым"
+  fail "после отзыва канал ${OPEN_CHANNEL} остался разрешённым"
 fi
 
 step "Событие отзыва записано в outbox (FR-9.4, §8.6)"

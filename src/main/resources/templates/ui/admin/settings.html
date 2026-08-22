@@ -24,10 +24,9 @@
                             -->
                             <input class="form-control" th:id="${setting.key}" th:name="${setting.key}"
                                    th:value="${setting.value}" th:readonly="${setting.readOnly}"
-                                   th:disabled="${setting.readOnly}">
+                                   th:disabled="${setting.readOnly}" th:title="${setting.key}">
                             <div class="form-text" th:if="${!#strings.isEmpty(setting.hint)}"
                                  th:text="${setting.hint}">Период ISO-8601</div>
-                            <div class="form-text text-muted"><code th:text="${setting.key}">operator.name</code></div>
                         </div>
                     </div>
                 </div>

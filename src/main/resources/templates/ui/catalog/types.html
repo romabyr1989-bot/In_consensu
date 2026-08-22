@@ -116,10 +116,11 @@
         </div>
         </div>
 
-        <div class="card" sec:authorize="hasAnyRole('LAWYER','DPO','ADMIN')">
-            <div class="card-header"
-                 th:text="${editing != null} ? 'Изменить тип согласия: ' + ${editing.code} : 'Новый тип согласия'">Новый тип согласия</div>
-            <div class="card-body">
+        <!-- Форма свёрнута, пока не правят тип и пока в ней нет ошибки: экран начинается со справочника. -->
+        <details class="ic-create" sec:authorize="hasAnyRole('LAWYER','DPO','ADMIN')"
+                 th:attr="open=${editing != null or fieldErrors != null} ? 'open' : null">
+            <summary th:text="${editing != null} ? 'Изменить тип согласия: ' + ${editing.code} : 'Новый тип согласия'">Новый тип согласия</summary>
+            <div class="pt-3">
                 <form th:action="@{/ui/catalog/types}" method="post" class="row g-3">
                     <!-- Код неизменяем после создания (FR-1.1), порядок сортировки переносится как есть. -->
                     <input type="hidden" name="update" th:if="${editing != null}" value="true">
@@ -188,7 +189,7 @@
                     </div>
                 </form>
             </div>
-        </div>
+        </details>
     </main>
 </div>
 <script th:src="@{/assets/js/inconsensu.js}"></script>

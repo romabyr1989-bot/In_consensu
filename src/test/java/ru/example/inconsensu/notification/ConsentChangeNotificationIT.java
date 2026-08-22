@@ -71,6 +71,9 @@ class ConsentChangeNotificationIT extends AbstractIntegrationTest {
     @Autowired
     private TestRestTemplate restTemplate;
 
+    @Autowired
+    private ru.example.inconsensu.notification.application.NotificationService notifications;
+
     @Test
     void revocation_sends_the_letter_with_the_case_number_and_the_deadline() {
         String dpoEmail = uniqueEmail("dpo-revoked");
@@ -101,21 +104,21 @@ class ConsentChangeNotificationIT extends AbstractIntegrationTest {
 
     @Test
     void rule_narrowed_to_another_consent_type_stays_silent() {
+        // Адреса не принадлежат учётным записям: правила соседних тестов рассылают по ролям, и учётная
+        // запись DPO с этим адресом получала бы их письма — проверка ловила бы чужую почту.
         String matchingEmail = uniqueEmail("dpo-match");
         String otherEmail = uniqueEmail("dpo-other");
-        accounts.create(RoleCode.DPO.name(), matchingEmail);
-        accounts.create(RoleCode.DPO.name(), otherEmail);
 
         ConsentForm form = testForms.publishTwoItemForm();
         ConsentFormItem advertising = itemOf(form, "ADVERTISING_EMAIL");
         ConsentFormItem base = itemOf(form, "PDN_PROCESSING");
 
-        createRule(
+        UUID matchingRule = createRule(
                 "Отзыв рекламы",
                 NotificationTrigger.REVOKED,
                 advertising.getConsentType().getId(),
                 matchingEmail);
-        createRule(
+        UUID otherRule = createRule(
                 "Отзыв базового",
                 NotificationTrigger.REVOKED,
                 base.getConsentType().getId(),
@@ -134,22 +137,18 @@ class ConsentChangeNotificationIT extends AbstractIntegrationTest {
                         caseNumber,
                         Map.<String, Object>of()));
 
-        dispatcher.dispatchNow();
-
-        String delivered = Mailpit.search(restTemplate, caseNumber);
-        assertThat(delivered)
-                .as("правило по тому же типу согласия обязано сработать")
-                .contains(matchingEmail);
-        assertThat(delivered)
+        // Проверяется очередь уведомлений, а не общий почтовый ящик: в него пишут и соседние тесты, и поиск
+        // по нему проверял бы стечение обстоятельств, а не поведение правила.
+        assertThat(notifications.pendingCount(matchingRule, matchingEmail))
+                .as("правило по тому же типу согласия обязано поставить письмо в очередь")
+                .isEqualTo(1);
+        assertThat(notifications.pendingCount(otherRule, otherEmail))
                 .as("правило по другому типу согласия обязано молчать")
-                .doesNotContain(otherEmail);
+                .isZero();
     }
 
-    private void createRule(String name, NotificationTrigger trigger, UUID consentTypeId, String recipient) {
-        RunAs.rolesVoid(
-                "test-admin",
-                List.of("ADMIN"),
-                () -> rules.create(new NotificationRuleService.RuleForm(
+    private UUID createRule(String name, NotificationTrigger trigger, UUID consentTypeId, String recipient) {
+        return RunAs.roles("test-admin", List.of("ADMIN"), () -> rules.create(new NotificationRuleService.RuleForm(
                         name + " " + UUID.randomUUID().toString().substring(0, 8),
                         trigger,
                         // Порогов у повода «отзыв» нет: до события не остаётся дней.
@@ -159,7 +158,8 @@ class ConsentChangeNotificationIT extends AbstractIntegrationTest {
                         Set.of(recipient),
                         Set.of(),
                         Set.of(NotificationChannel.EMAIL),
-                        true)));
+                        true))
+                .getId());
     }
 
     private static String uniqueEmail(String prefix) {

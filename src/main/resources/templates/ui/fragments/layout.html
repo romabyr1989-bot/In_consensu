@@ -52,11 +52,12 @@
             <a class="nav-link" th:href="@{/ui/subjects}" th:classappend="${active == 'subjects'} ? 'active'">
                 <i class="bi bi-people" aria-hidden="true"></i> Клиенты</a>
         </li>
-        <li class="nav-item">
+        <li class="ic-nav-group">Каталог</li>
+        <li class="nav-item ic-nav-nested">
             <a class="nav-link" th:href="@{/ui/catalog/types}" th:classappend="${active == 'types'} ? 'active'">
                 <i class="bi bi-list-check" aria-hidden="true"></i> Типы согласий</a>
         </li>
-        <li class="nav-item">
+        <li class="nav-item ic-nav-nested">
             <a class="nav-link d-flex align-items-center" th:href="@{/ui/catalog/forms}"
                th:classappend="${active == 'forms'} ? 'active'">
                 <i class="bi bi-file-text" aria-hidden="true"></i>&nbsp;Формы
@@ -65,6 +66,7 @@
                       th:aria-label="'Форм ждут вашего решения: ' + ${awaitingFormsCount}">2</span>
             </a>
         </li>
+        <li class="ic-nav-group">Работа с данными</li>
         <li class="nav-item">
             <a class="nav-link" th:href="@{/ui/third-parties}" th:classappend="${active == 'third-parties'} ? 'active'">
                 <i class="bi bi-building" aria-hidden="true"></i> Третьи лица</a>
@@ -85,11 +87,12 @@
             <a class="nav-link" th:href="@{/ui/audit}" th:classappend="${active == 'audit'} ? 'active'">
                 <i class="bi bi-shield-check" aria-hidden="true"></i> Аудит</a>
         </li>
-        <li class="nav-item" sec:authorize="hasRole('ADMIN')">
+        <li class="ic-nav-group" sec:authorize="hasAnyRole('ADMIN','DPO')">Администрирование</li>
+        <li class="nav-item ic-nav-nested" sec:authorize="hasRole('ADMIN')">
             <a class="nav-link" th:href="@{/ui/admin/users}" th:classappend="${active == 'users'} ? 'active'">
                 <i class="bi bi-person-gear" aria-hidden="true"></i> Пользователи</a>
         </li>
-        <li class="nav-item" sec:authorize="hasAnyRole('ADMIN','DPO')">
+        <li class="nav-item ic-nav-nested" sec:authorize="hasAnyRole('ADMIN','DPO')">
             <a class="nav-link" th:href="@{/ui/admin/settings}" th:classappend="${active == 'settings'} ? 'active'">
                 <i class="bi bi-sliders" aria-hidden="true"></i> Настройки оператора</a>
         </li>

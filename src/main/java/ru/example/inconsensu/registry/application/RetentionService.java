@@ -95,8 +95,8 @@ public class RetentionService {
         Instant exportsBefore = horizon(now, PARTNER_EXPORTS, Period.ofDays(30));
         Instant notificationsBefore = horizon(now, NOTIFICATIONS, Period.ofYears(1));
 
-        long consents =
-                count("select count(*) from consent where revoked_at is not null and revoked_at < ?", consentsBefore);
+        // Пробный прогон обязан обещать ровно то, что сделает боевой: условие отбора одно и то же.
+        long consents = count("select count(*) from consent c where " + ARCHIVABLE, consentsBefore, consentsBefore);
         long agedEvents = count("select count(*) from audit_event where occurred_at < ?", eventsBefore);
         long exports = count(
                 "select count(*) from partner_export_log where expires_at < ? and content is not null", exportsBefore);
@@ -134,6 +134,25 @@ public class RetentionService {
     }
 
     /**
+     * Отбор согласий, которые можно перенести в архив (NFR-5).
+     *
+     * <p>Отозвано давно — и на него не ссылается согласие, которое остаётся. Раньше ссылка предшественника
+     * просто обнулялась, чтобы не мешал внешний ключ, и это было хуже, чем кажется: выборка действующих
+     * согласий отбирает строки по `superseded_by_id is null`, поэтому заменённое согласие после ретенции
+     * снова становилось действующим, и по нему опять было «можно» писать клиенту. §8 прямо запрещает править
+     * экземпляры согласий; вся цепочка теперь уезжает в архив только целиком.
+     */
+    private static final String ARCHIVABLE =
+            """
+            c.revoked_at is not null and c.revoked_at < ?
+              and not exists (
+                  select 1 from consent p
+                  where p.superseded_by_id = c.id
+                    and not (p.revoked_at is not null and p.revoked_at < ?)
+              )
+            """;
+
+    /**
      * Перенос отозванных согласий в архивную таблицу.
      *
      * <p>Ссылки на согласие из уведомлений гасятся заранее: внешний ключ иначе не даст перенести строку, а
@@ -142,30 +161,21 @@ public class RetentionService {
     private void archiveConsents(Instant before) {
         java.sql.Timestamp threshold = java.sql.Timestamp.from(before);
         jdbc.update(
-                """
-                insert into consent_archive
-                select c.*, now() from consent c where c.revoked_at is not null and c.revoked_at < ?
-                """,
+                "insert into consent_archive select c.*, now() from consent c where " + ARCHIVABLE,
+                threshold,
                 threshold);
         jdbc.update(
-                """
-                update notification set consent_id = null
-                where consent_id in (select id from consent where revoked_at is not null and revoked_at < ?)
-                """,
+                "update notification set consent_id = null where consent_id in " + "(select c.id from consent c where "
+                        + ARCHIVABLE + ")",
+                threshold,
                 threshold);
-        // Замещённое согласие ссылается на своего преемника: если преемник уезжает в архив, ссылка
-        // должна погаснуть, иначе внешний ключ откатит весь прогон ретенции.
-        jdbc.update(
-                """
-                update consent set superseded_by_id = null
-                where superseded_by_id in (select id from consent where revoked_at is not null and revoked_at < ?)
-                """,
-                threshold);
-        jdbc.update("delete from consent where revoked_at is not null and revoked_at < ?", threshold);
+        jdbc.update("delete from consent c where " + ARCHIVABLE, threshold, threshold);
     }
 
-    private long count(String sql, Instant before) {
-        Long value = jdbc.queryForObject(sql, Long.class, java.sql.Timestamp.from(before));
+    private long count(String sql, Instant... before) {
+        Object[] arguments =
+                java.util.Arrays.stream(before).map(java.sql.Timestamp::from).toArray();
+        Long value = jdbc.queryForObject(sql, Long.class, arguments);
         return value == null ? 0 : value;
     }
 

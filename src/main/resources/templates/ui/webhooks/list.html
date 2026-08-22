@@ -82,10 +82,10 @@
                 Скопировать</button>
         </div>
 
-        <div class="card mb-4">
-            <div class="card-header" th:text="${editing == null} ? 'Новая подписка' : 'Правка подписки'">
-                Новая подписка</div>
-            <div class="card-body">
+        <!-- Форма свёрнута: экран начинается со списка подписок, а не с пустых полей. -->
+        <details class="ic-create" th:attr="open=${editing != null or fieldErrors != null} ? 'open' : null">
+            <summary th:text="${editing == null} ? 'Новая подписка' : 'Правка подписки'">Новая подписка</summary>
+            <div class="pt-3">
                 <form th:action="@{/ui/webhooks}" method="post" class="row g-3">
                     <input type="hidden" name="subscriptionId" th:if="${editing != null}" th:value="${editing.id}">
                     <div class="col-md-4">
@@ -112,7 +112,7 @@
                     </div>
                 </form>
             </div>
-        </div>
+        </details>
 
         <div class="card" th:if="${!failed.isEmpty()}">
             <div class="card-header">Недоставленные события</div>

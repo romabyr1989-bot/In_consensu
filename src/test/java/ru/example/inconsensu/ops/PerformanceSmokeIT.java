@@ -15,9 +15,14 @@ import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import ru.example.inconsensu.catalog.domain.ConsentForm;
 import ru.example.inconsensu.channels.application.ChannelService;
 import ru.example.inconsensu.common.domain.CommunicationChannel;
+import ru.example.inconsensu.common.domain.ConsentSource;
+import ru.example.inconsensu.common.domain.SignatureType;
+import ru.example.inconsensu.registry.application.ConsentRegistrationService;
 import ru.example.inconsensu.registry.application.SubjectCardService;
+import ru.example.inconsensu.registry.application.SubjectService;
 import ru.example.inconsensu.support.AbstractIntegrationTest;
 import ru.example.inconsensu.support.RunAs;
 
@@ -41,6 +46,11 @@ class PerformanceSmokeIT extends AbstractIntegrationTest {
     private static final Duration CARD_LIMIT = Duration.ofMillis(1_000);
     private static final Duration BULK_LIMIT = Duration.ofSeconds(20);
 
+    /** Регистрация согласия: цель NFR-1 — 100 мс, порог теста на порядок мягче. */
+    private static final Duration REGISTRATION_LIMIT = Duration.ofSeconds(1);
+
+    private static final int REGISTRATIONS = 50;
+
     @Autowired
     private JdbcTemplate jdbc;
 
@@ -49,6 +59,12 @@ class PerformanceSmokeIT extends AbstractIntegrationTest {
 
     @Autowired
     private SubjectCardService cards;
+
+    @Autowired
+    private ConsentRegistrationService registration;
+
+    @Autowired
+    private ru.example.inconsensu.support.TestForms testForms;
 
     @Test
     void key_operations_stay_within_the_smoke_limits() throws Exception {
@@ -72,6 +88,11 @@ class PerformanceSmokeIT extends AbstractIntegrationTest {
                 "Массовая проверка " + bulk.size() + " идентификаторов",
                 format(bulkTime) + " (цель NFR-1: 2 с на 10 000)");
 
+        // NFR-1 называет и регистрацию согласия, а её до сих пор никто не мерил: в docs/performance.md
+        // строка стояла как «не измерено», хотя это самая частая операция внешних систем.
+        Duration registrationP95 = measureRegistration();
+        report.put("Регистрация согласия, p95", format(registrationP95) + " (цель NFR-1: 100 мс)");
+
         report.put("Планы выполнения", explain(subjectIds.get(0)));
         writeReport(report);
 
@@ -81,6 +102,47 @@ class PerformanceSmokeIT extends AbstractIntegrationTest {
         assertThat(channelsP95).isLessThan(CHANNELS_LIMIT);
         assertThat(cardP95).isLessThan(CARD_LIMIT);
         assertThat(bulkTime).isLessThan(BULK_LIMIT);
+        assertThat(registrationP95).isLessThan(REGISTRATION_LIMIT);
+    }
+
+    /**
+     * p95 регистрации согласия целиком: субъект, согласия по пунктам формы, событие аудита и запись в outbox.
+     *
+     * <p>Замер идёт через сервис, а не через HTTP: цель NFR-1 назначена операции, а не сетевому кругу, и
+     * сеть в прогоне сборки добавила бы шум, которым система не управляет.
+     */
+    private Duration measureRegistration() {
+        ConsentForm form = testForms.publishTwoItemForm();
+        List<ConsentRegistrationService.ItemDecision> items = form.getItems().stream()
+                .map(item -> new ConsentRegistrationService.ItemDecision(item.getId(), true))
+                .toList();
+
+        return measure(
+                REGISTRATIONS,
+                index -> () -> registration.register(
+                        UUID.randomUUID().toString(),
+                        new ConsentRegistrationService.RegistrationRequest(
+                                null,
+                                new SubjectService.SubjectForm(
+                                        "PERF-REG-"
+                                                + UUID.randomUUID().toString().substring(0, 12),
+                                        "Тестов",
+                                        "Тест",
+                                        "Тестович",
+                                        null,
+                                        List.of()),
+                                form.getId(),
+                                items,
+                                Instant.now(),
+                                ConsentSource.WEBSITE_APPLICATION,
+                                "замер производительности",
+                                SignatureType.SIMPLE_ES_SMS,
+                                Map.of(
+                                        "phone", "+79160000051",
+                                        "otpVerifiedAt", "2026-08-18T09:00:00Z",
+                                        "otpHash", "hash",
+                                        "ip", "10.0.0.1",
+                                        "userAgent", "Mozilla"))));
     }
 
     /** Синтетические данные пишутся пакетно через JDBC: прогон через сервисы занял бы минуты (§14.6 — данные вымышленные). */

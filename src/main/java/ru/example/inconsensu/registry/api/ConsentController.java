@@ -142,7 +142,13 @@ public class ConsentController {
                 .body(body);
     }
 
-    /** §9: список согласий с фильтрами для отчётов и разбора обращений (FR-3.4, UI-4). */
+    /**
+     * §9: список согласий с фильтрами для отчётов и разбора обращений (FR-3.4, UI-4).
+     *
+     * <p>Роль проверяется явно: без этого служебный токен интеграции постранично выгружал весь реестр
+     * согласий, хотя Приложение E даёт ему только регистрацию и чтение по внешнему идентификатору.
+     */
+    @PreAuthorize(ru.example.inconsensu.common.security.Authorities.EMPLOYEE)
     @GetMapping
     public ru.example.inconsensu.common.api.PageResponse<ConsentResponse> list(
             @org.springframework.web.bind.annotation.RequestParam(required = false) UUID subjectId,
@@ -178,6 +184,8 @@ public class ConsentController {
                 page.getTotalPages());
     }
 
+    /** Чтение одного согласия — тоже по матрице: перебор внутренних идентификаторов не должен проходить. */
+    @PreAuthorize(ru.example.inconsensu.common.security.Authorities.EMPLOYEE)
     @GetMapping("/{id}")
     public ConsentResponse get(@PathVariable UUID id) {
         return assembler.toResponse(queries.get(id));
