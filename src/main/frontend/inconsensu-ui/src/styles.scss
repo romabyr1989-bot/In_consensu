@@ -1,0 +1,88 @@
+@use '@angular/material' as mat;
+
+/* Шрифт и иконки поставляются в артефакте, а не тянутся с CDN (UI-0.2, NFR-4). */
+/* Только нужные начертания и подмножества: полный набор тянул в артефакт 2,3 МБ шрифтов. */
+@import '@fontsource/roboto/cyrillic-400.css';
+@import '@fontsource/roboto/latin-400.css';
+@import '@fontsource/roboto/cyrillic-500.css';
+@import '@fontsource/roboto/latin-500.css';
+@import 'material-icons/iconfont/filled.css';
+
+/* Оформление рабочего места (§16). Тема Material собирается в артефакт: CDN запрещён (UI-0.2). */
+html, body { height: 100%; margin: 0; font-family: Roboto, "Helvetica Neue", Arial, sans-serif; }
+body { background: #f5f6f8; }
+.ic-topbar { position: sticky; top: 0; z-index: 10; }
+.ic-brand { font-weight: 600; }
+.ic-spacer { flex: 1 1 auto; }
+.ic-user { margin-right: 12px; opacity: 0.92; }
+.ic-layout { height: calc(100vh - 64px); }
+.ic-sidebar { width: 260px; border-right: 1px solid #e5e7eb; }
+.ic-content { padding: 24px; }
+/* §16.2: пункты меню сгруппированы, иначе список из одиннадцати ссылок читается как свалка. */
+.ic-nav-group {
+  padding: 14px 16px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+.ic-active { background: rgba(0, 0, 0, 0.06); border-radius: 6px; }
+.ic-title { font-size: 22px; font-weight: 600; margin: 0 0 16px; }
+.ic-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+.ic-tile { padding: 16px; cursor: pointer; }
+.ic-tile-value { font-size: 28px; font-weight: 600; }
+.ic-tile-label { color: #6b7280; }
+.ic-warn { color: #b26a00; }
+.ic-danger { color: #b3261e; }
+.ic-block { margin-top: 24px; }
+.ic-table { width: 100%; }
+.ic-filters { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.ic-empty { color: #6b7280; margin: 16px 0 0; }
+.ic-muted { color: #6b7280; margin-left: 6px; }
+/* UI-0.7: у бейджа есть подпись, а не только цвет. */
+.ic-chip { margin-left: 8px; }
+.ic-chip.bg-warning { background: #ffe6bf; }
+.ic-chip.bg-danger { background: #ffd8d5; }
+.ic-count {
+  display: inline-block;
+  min-width: 24px;
+  text-align: center;
+  border-radius: 10px;
+  padding: 1px 6px;
+  margin-right: 4px;
+  font-size: 12px;
+}
+.ic-count.ok { background: #d8f2e0; }
+.ic-count.warn { background: #ffe6bf; }
+.ic-count.danger { background: #ffd8d5; }
+
+.ic-grow { flex: 1 1 320px; }
+
+/* UI-4: карточка клиента. */
+.ic-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.ic-subtitle { color: #6b7280; margin: -8px 0 0; }
+.ic-summary { margin: 0 0 12px; }
+.ic-contacts { display: flex; flex-wrap: wrap; gap: 8px 24px; }
+.ic-contact { display: flex; align-items: center; gap: 8px; }
+.ic-contact-type { color: #6b7280; }
+.ic-tab-body { padding: 16px 0; }
+.ic-tab-body .ic-tiles { margin-top: 16px; }
+.ic-tile-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ic-tile-name { font-weight: 600; }
+.ic-tile-note { color: #6b7280; margin-top: 6px; font-size: 13px; }
+/* UI-0.7: у состояния есть подпись словом, цвет лишь дублирует её. */
+.ic-badge { display: inline-block; border-radius: 10px; padding: 2px 8px; font-size: 12px; white-space: nowrap; }
+.ic-badge.ok { background: #d8f2e0; }
+.ic-badge.warn { background: #ffe6bf; }
+.ic-badge.danger { background: #ffd8d5; }
+.ic-note { margin-top: 16px; padding: 12px 16px; border-radius: 8px; background: #eef2ff; }
+.ic-dialog { display: flex; flex-direction: column; gap: 4px; }
+.ic-full { width: 100%; }
+.ic-warn-title { font-weight: 600; }
+/* UI-4a: досье согласия. */
+.ic-facts { display: grid; grid-template-columns: max-content 1fr; gap: 6px 24px; margin: 0; }
+.ic-facts dt { color: #6b7280; }
+.ic-facts dd { margin: 0; }
+.ic-gap { margin-top: 12px; }
+.ic-form-text { white-space: pre-wrap; font-family: inherit; background: #f5f6f8; padding: 16px; border-radius: 8px; }

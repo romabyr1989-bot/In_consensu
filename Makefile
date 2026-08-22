@@ -13,7 +13,7 @@ DB_PASSWORD ?= inconsensu
 DB_URL ?= jdbc:postgresql://localhost:5432/$(DB_NAME)
 
 .DEFAULT_GOAL := help
-.PHONY: help build test verify format lint openapi run db db-reset up package psql demo deps clean
+.PHONY: help build test verify format lint openapi run db db-reset up package psql demo deps clean ui ui-dev
 
 help: ## Показать список команд
 	@grep -hE '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
@@ -26,6 +26,12 @@ test: ## Юнит-тесты (без базы данных)
 
 verify: ## Полная проверка: юнит- и интеграционные тесты, покрытие, Spotless, Checkstyle (нужна PostgreSQL)
 	$(MVN) verify
+
+ui: ## Пересобрать рабочее место на Angular в src/main/resources/static/app (нужен Node 22+)
+	cd src/main/frontend/inconsensu-ui && npm ci && npx ng build --configuration production
+
+ui-dev: ## Angular с автоперезагрузкой на :4200, запросы проксируются на :8080
+	cd src/main/frontend/inconsensu-ui && npx ng serve
 
 format: ## Отформатировать код (palantir-java-format)
 	$(MVN) spotless:apply

@@ -1,0 +1,323 @@
+import { CommonModule } from '@angular/common';
+import { Component, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatSelectModule } from '@angular/material/select';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatTableModule } from '@angular/material/table';
+import { MatTabsModule } from '@angular/material/tabs';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ApiService, DictionaryItem, HistoryFeed, SubjectCard } from '../api.service';
+import { RevokeDialogComponent } from './revoke-dialog.component';
+
+/**
+ * UI-4: карточка клиента.
+ *
+ * Четыре вкладки макета: согласия, каналы связи, передачи третьим лицам и лента событий. Контакты
+ * показываются замаскированными, раскрытие — отдельное действие с записью в журнал доступа (UI-0.10).
+ */
+@Component({
+  selector: 'ic-subject-card',
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterLink,
+    MatCardModule,
+    MatTabsModule,
+    MatTableModule,
+    MatButtonModule,
+    MatIconModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatSlideToggleModule,
+    MatProgressBarModule,
+  ],
+  template: `
+    <mat-progress-bar mode="indeterminate" *ngIf="loading()"></mat-progress-bar>
+
+    <ng-container *ngIf="card() as subject">
+      <div class="ic-card-head">
+        <div>
+          <h1 class="ic-title">{{ subject.fullName }}</h1>
+          <div class="ic-subtitle">
+            Идентификатор: {{ subject.externalId || '—' }}
+            <span *ngIf="subject.birthDate"> · дата рождения: {{ subject.birthDate }}</span>
+          </div>
+        </div>
+        <button mat-flat-button color="warn" *ngIf="subject.mayRevoke" (click)="openRevoke()">
+          Отозвать согласие
+        </button>
+      </div>
+
+      <div class="ic-note" *ngIf="message()">{{ message() }}</div>
+
+      <mat-card class="ic-block">
+        <mat-card-content>
+          <p class="ic-summary">{{ subject.summary }}</p>
+          <div class="ic-contacts">
+            <div class="ic-contact" *ngFor="let contact of subject.contacts">
+              <span class="ic-contact-type">{{ contact.typeRu }}</span>
+              <span>{{ contact.value }}</span>
+              <button
+                mat-button
+                *ngIf="contact.masked && subject.mayReveal"
+                (click)="reveal(contact.type)"
+              >
+                Показать
+              </button>
+            </div>
+            <div class="ic-empty" *ngIf="!subject.contacts.length">Контакты не указаны.</div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-tab-group class="ic-block" [(selectedIndex)]="tab">
+        <mat-tab label="Согласия">
+          <div class="ic-tab-body">
+            <mat-slide-toggle [(ngModel)]="superseded" (ngModelChange)="load()">
+              Показывать заменённые
+            </mat-slide-toggle>
+            <table mat-table [dataSource]="subject.consents" class="ic-table" *ngIf="subject.consents.length">
+              <ng-container matColumnDef="type">
+                <th mat-header-cell *matHeaderCellDef>Согласие</th>
+                <td mat-cell *matCellDef="let row">{{ row.typeName }}</td>
+              </ng-container>
+              <ng-container matColumnDef="status">
+                <th mat-header-cell *matHeaderCellDef>Статус</th>
+                <td mat-cell *matCellDef="let row">
+                  <span class="ic-badge" [class]="'ic-badge ' + badge(row.status)">{{ row.statusText }}</span>
+                </td>
+              </ng-container>
+              <ng-container matColumnDef="granted">
+                <th mat-header-cell *matHeaderCellDef>Получено</th>
+                <td mat-cell *matCellDef="let row">{{ row.grantedAt || '—' }}</td>
+              </ng-container>
+              <ng-container matColumnDef="until">
+                <th mat-header-cell *matHeaderCellDef>Действует до</th>
+                <td mat-cell *matCellDef="let row">{{ row.validUntil || 'бессрочно' }}</td>
+              </ng-container>
+              <ng-container matColumnDef="source">
+                <th mat-header-cell *matHeaderCellDef>Источник</th>
+                <td mat-cell *matCellDef="let row">{{ row.source || '—' }}</td>
+              </ng-container>
+              <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef></th>
+                <td mat-cell *matCellDef="let row">
+                  <button
+                    mat-button
+                    color="warn"
+                    *ngIf="row.revocable && subject.mayRevoke"
+                    (click)="openRevoke(row.id, row.typeName)"
+                  >
+                    Отозвать
+                  </button>
+                </td>
+              </ng-container>
+              <tr mat-header-row *matHeaderRowDef="consentColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: consentColumns"></tr>
+            </table>
+            <p class="ic-empty" *ngIf="!subject.consents.length">Согласий нет.</p>
+          </div>
+        </mat-tab>
+
+        <mat-tab label="Каналы связи">
+          <div class="ic-tab-body ic-tiles">
+            <mat-card class="ic-tile" *ngFor="let channel of subject.channels">
+              <div class="ic-tile-head">
+                <span class="ic-tile-name">{{ channel.nameRu }}</span>
+                <span class="ic-badge" [class]="channel.allowed ? 'ic-badge ok' : 'ic-badge danger'">
+                  {{ channel.allowed ? 'разрешён' : 'запрещён' }}
+                </span>
+              </div>
+              <div class="ic-tile-note" *ngIf="channel.allowed && channel.validUntil">
+                до {{ channel.validUntil }}
+              </div>
+              <div class="ic-tile-note" *ngIf="!channel.allowed">{{ channel.reason }}</div>
+            </mat-card>
+          </div>
+        </mat-tab>
+
+        <mat-tab label="Передачи третьим лицам">
+          <div class="ic-tab-body">
+            <table mat-table [dataSource]="subject.transfers" class="ic-table" *ngIf="subject.transfers.length">
+              <ng-container matColumnDef="party">
+                <th mat-header-cell *matHeaderCellDef>Третье лицо</th>
+                <td mat-cell *matCellDef="let row">{{ row.thirdPartyName }}</td>
+              </ng-container>
+              <ng-container matColumnDef="role">
+                <th mat-header-cell *matHeaderCellDef>Роль</th>
+                <td mat-cell *matCellDef="let row">{{ row.role }}</td>
+              </ng-container>
+              <ng-container matColumnDef="categories">
+                <th mat-header-cell *matHeaderCellDef>Категории данных</th>
+                <td mat-cell *matCellDef="let row">{{ row.categories }}</td>
+              </ng-container>
+              <ng-container matColumnDef="until">
+                <th mat-header-cell *matHeaderCellDef>Действует до</th>
+                <td mat-cell *matCellDef="let row">
+                  {{ row.validUntil || '—' }}
+                  <span class="ic-badge danger" *ngIf="row.contractExpired">договор истёк</span>
+                </td>
+              </ng-container>
+              <ng-container matColumnDef="basis">
+                <th mat-header-cell *matHeaderCellDef>Основание</th>
+                <td mat-cell *matCellDef="let row">
+                  <a *ngIf="row.basisConsentId" [routerLink]="['/consents', row.basisConsentId]">согласие</a>
+                  <span *ngIf="!row.basisConsentId">—</span>
+                </td>
+              </ng-container>
+              <tr mat-header-row *matHeaderRowDef="transferColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: transferColumns"></tr>
+            </table>
+            <p class="ic-empty" *ngIf="!subject.transfers.length">Передач третьим лицам нет.</p>
+          </div>
+        </mat-tab>
+
+        <mat-tab label="История">
+          <div class="ic-tab-body">
+            <div class="ic-filters">
+              <mat-form-field appearance="outline">
+                <mat-label>Тип события</mat-label>
+                <mat-select [(ngModel)]="eventType" (ngModelChange)="loadHistory()">
+                  <mat-option value="">Все</mat-option>
+                  <mat-option *ngFor="let type of eventTypes()" [value]="type.code">{{ type.nameRu }}</mat-option>
+                </mat-select>
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>С даты</mat-label>
+                <input matInput type="date" [(ngModel)]="from" (change)="loadHistory()" />
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>По дату</mat-label>
+                <input matInput type="date" [(ngModel)]="to" (change)="loadHistory()" />
+              </mat-form-field>
+              <button mat-stroked-button (click)="verify()">Проверить целостность</button>
+            </div>
+            <div class="ic-note" *ngIf="integrity()">{{ integrity() }}</div>
+            <div class="ic-note" *ngIf="feed()?.truncated">
+              Показаны первые {{ feed()?.entries?.length }} событий из {{ feed()?.total }}. Сузьте период.
+            </div>
+            <table mat-table [dataSource]="feed()?.entries ?? []" class="ic-table" *ngIf="feed()?.entries?.length">
+              <ng-container matColumnDef="occurredAt">
+                <th mat-header-cell *matHeaderCellDef>Когда</th>
+                <td mat-cell *matCellDef="let row">{{ row.occurredAt }}</td>
+              </ng-container>
+              <ng-container matColumnDef="eventType">
+                <th mat-header-cell *matHeaderCellDef>Событие</th>
+                <td mat-cell *matCellDef="let row">{{ row.eventTypeRu }}</td>
+              </ng-container>
+              <ng-container matColumnDef="description">
+                <th mat-header-cell *matHeaderCellDef>Что произошло</th>
+                <td mat-cell *matCellDef="let row">{{ row.description }}</td>
+              </ng-container>
+              <ng-container matColumnDef="actor">
+                <th mat-header-cell *matHeaderCellDef>Кто</th>
+                <td mat-cell *matCellDef="let row">{{ row.actorRu }}</td>
+              </ng-container>
+              <tr mat-header-row *matHeaderRowDef="historyColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: historyColumns"></tr>
+            </table>
+            <p class="ic-empty" *ngIf="!feed()?.entries?.length && !loading()">
+              Событий за выбранный период нет.
+            </p>
+          </div>
+        </mat-tab>
+      </mat-tab-group>
+    </ng-container>
+  `,
+})
+export class SubjectCardComponent {
+  private readonly api = inject(ApiService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly dialogs = inject(MatDialog);
+
+  readonly card = signal<SubjectCard | null>(null);
+  readonly feed = signal<HistoryFeed | null>(null);
+  readonly eventTypes = signal<DictionaryItem[]>([]);
+  readonly loading = signal(false);
+  readonly message = signal('');
+  readonly integrity = signal('');
+
+  readonly consentColumns = ['type', 'status', 'granted', 'until', 'source', 'actions'];
+  readonly transferColumns = ['party', 'role', 'categories', 'until', 'basis'];
+  readonly historyColumns = ['occurredAt', 'eventType', 'description', 'actor'];
+
+  tab = 0;
+  superseded = false;
+  eventType = '';
+  from = '';
+  to = '';
+
+  private id = '';
+
+  constructor() {
+    this.route.paramMap.subscribe((params) => {
+      this.id = params.get('id') ?? '';
+      this.load();
+      this.loadHistory();
+    });
+    this.api.dictionaries().subscribe((dictionaries) => this.eventTypes.set(dictionaries.auditEventTypes));
+  }
+
+  load(): void {
+    this.loading.set(true);
+    this.api.subjectCard(this.id, this.superseded).subscribe((card) => {
+      this.card.set(card);
+      this.loading.set(false);
+    });
+  }
+
+  loadHistory(): void {
+    this.api.history(this.id, this.eventType, this.from, this.to).subscribe((feed) => this.feed.set(feed));
+  }
+
+  /** Раскрытие подставляется в ту же строку: контакт остаётся на месте, меняется только значение. */
+  reveal(type: string): void {
+    this.api.reveal(this.id, type).subscribe((contact) => {
+      const current = this.card();
+      if (!current) {
+        return;
+      }
+      this.card.set({
+        ...current,
+        contacts: current.contacts.map((row) => (row.type === type ? contact : row)),
+      });
+    });
+  }
+
+  verify(): void {
+    this.api.verifyHistory(this.id).subscribe((report) => this.integrity.set(report.message));
+  }
+
+  openRevoke(consentId?: string, consentTitle?: string): void {
+    this.dialogs
+      .open(RevokeDialogComponent, { data: { subjectId: this.id, consentId, consentTitle }, width: '560px' })
+      .afterClosed()
+      .subscribe((result?: string) => {
+        if (result) {
+          this.message.set(result);
+          this.load();
+          this.loadHistory();
+        }
+      });
+  }
+
+  badge(status: string): string {
+    if (status === 'ACTIVE') {
+      return 'ok';
+    }
+    if (status === 'EXPIRING') {
+      return 'warn';
+    }
+    return 'danger';
+  }
+}

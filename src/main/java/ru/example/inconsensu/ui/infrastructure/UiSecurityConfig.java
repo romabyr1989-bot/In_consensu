@@ -8,6 +8,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import ru.example.inconsensu.common.domain.RoleCode;
 
@@ -57,14 +59,15 @@ public class UiSecurityConfig {
                 };
         successHandler.setDefaultTargetUrl("/ui/");
 
-        http.securityMatcher("/ui/**", "/self/ui/**", "/webjars/**", "/assets/**", "/favicon.ico")
+        // `/app/**` — одностраничное приложение (ADR-0087): та же сессия и та же матрица ролей, что у /ui.
+        http.securityMatcher("/ui/**", "/app/**", "/self/ui/**", "/webjars/**", "/assets/**", "/favicon.ico")
                 .authorizeHttpRequests(requests -> requests.requestMatchers(
                                 "/webjars/**", "/assets/**", "/favicon.ico", LOGIN_PATH, "/ui/session-expired")
                         .permitAll()
                         // UI-18: страница клиента открывается по одноразовой ссылке, а не по учётной записи.
                         .requestMatchers("/self/ui/**")
                         .permitAll()
-                        .requestMatchers("/ui/**")
+                        .requestMatchers("/ui/**", "/app/**")
                         .hasAnyRole(
                                 RoleCode.ADMIN.name(),
                                 RoleCode.DPO.name(),
@@ -87,6 +90,12 @@ public class UiSecurityConfig {
                         // UI-0.3: после входа сотрудник возвращается туда, где его застало истечение сессии.
                         // invalidSessionUrl отдаёт голый переход, поэтому адрес переносится параметром.
                         .invalidSessionStrategy(UiSecurityConfig::sessionExpired))
+                // UI-0.3, ADR-0087: токен CSRF отдаётся кукой, доступной сценарию. Иначе одностраничное
+                // приложение не может подписать запрос: токен, лежащий в сессии, оно не видит, а формы
+                // Thymeleaf работают одинаково при обоих хранилищах. Кука не заменяет сессию и не является
+                // учётными данными — сама сессия остаётся HttpOnly.
+                .csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        .csrfTokenRequestHandler(eagerCsrfToken()))
                 .exceptionHandling(handling -> handling.accessDeniedPage("/ui/forbidden"))
                 // UI-18: страница самообслуживания встраивается в личный кабинет клиента, поэтому запрет
                 // фреймов с неё снимается, а разрешённые источники задаёт оператор настройкой
@@ -130,6 +139,20 @@ public class UiSecurityConfig {
      * <p>Поэтому сессия выдаётся сразу: браузер получает новый идентификатор и следующий запрос уже не
      * считается «истёкшим». Страницы входа и объяснения возврата к себе не требуют.
      */
+    /**
+     * Токен CSRF выдаётся на каждый ответ, а не по требованию.
+     *
+     * <p>По умолчанию токен создаётся лениво: страница Thymeleaf запрашивает его сама, подставляя в форму, и
+     * кука появляется заодно. Оболочка одностраничного приложения — статический файл, она ничего не
+     * запрашивает, поэтому после входа кука оставалась удалённой (смена сессии её гасит) и первый же POST
+     * уходил без подписи. Раннее чтение возвращает куку в каждый ответ.
+     */
+    private static CsrfTokenRequestAttributeHandler eagerCsrfToken() {
+        CsrfTokenRequestAttributeHandler handler = new CsrfTokenRequestAttributeHandler();
+        handler.setCsrfRequestAttributeName(null);
+        return handler;
+    }
+
     private static void sessionExpired(
             jakarta.servlet.http.HttpServletRequest request, jakarta.servlet.http.HttpServletResponse response)
             throws java.io.IOException {

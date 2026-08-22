@@ -23,3 +23,9 @@ Thumbs.db
 logs/
 .env
 .env.local
+
+# Фронт: зависимости и промежуточные каталоги сборки Angular. Собранная статика лежит в
+# src/main/resources/static/app и попадает в JAR, поэтому она версионируется (ADR-0087).
+src/main/frontend/inconsensu-ui/node_modules/
+src/main/frontend/inconsensu-ui/.angular/
+src/main/frontend/inconsensu-ui/dist/
