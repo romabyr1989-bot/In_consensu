@@ -12,8 +12,13 @@
     <link rel="stylesheet" th:href="@{/webjars/bootstrap-icons/font/bootstrap-icons.css}">
     <link rel="stylesheet" th:href="@{/assets/css/inconsensu.css}">
     <script th:src="@{/webjars/htmx.org/dist/htmx.min.js}" defer></script>
-    <style th:inline="css">
-        :root { --ic-primary: [[${branding.color}]]; }
+    <!--
+      th:inline="css" экранирует «#» как «\#», и переменная получала недействительное значение: основной
+      цвет оператора не применялся нигде, всё рисовалось цветом по умолчанию. Значение проверено на формат
+      HEX в UiBrandingService, поэтому подставляется как есть.
+    -->
+    <style th:utext="':root { --ic-primary: ' + ${branding.color} + '; }'">
+        :root { --ic-primary: #0d6efd; }
     </style>
 </head>
 <body>

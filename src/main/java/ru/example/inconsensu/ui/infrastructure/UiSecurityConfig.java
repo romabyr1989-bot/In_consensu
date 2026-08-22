@@ -115,12 +115,36 @@ public class UiSecurityConfig {
         }
     }
 
-    /** Куда после истечения сессии: страница объяснения и адрес, на который вернуть после входа. */
+    /** Длина адреса возврата: длиннее — переход на главную, иначе Location раздувает заголовки ответа. */
+    private static final int MAX_RETURN_LENGTH = 512;
+
+    /**
+     * Куда после истечения сессии: страница объяснения и адрес, на который вернуть после входа (UI-17).
+     *
+     * <p>Браузер с мёртвым идентификатором сессии — обычное дело после перезапуска службы. Раньше на каждый
+     * такой запрос выдавался переход на `/ui/session-expired?from=<текущий адрес>`, а сам этот переход
+     * приходил с тем же мёртвым идентификатором: адрес вкладывался сам в себя и рос при каждом круге, пока
+     * заголовок `Location` не переставал помещаться в буфер. Вкладка при этом оставалась пустой, а в адресной
+     * строке висел бесконечный URL.
+     *
+     * <p>Поэтому сессия выдаётся сразу: браузер получает новый идентификатор и следующий запрос уже не
+     * считается «истёкшим». Страницы входа и объяснения возврата к себе не требуют.
+     */
     private static void sessionExpired(
             jakarta.servlet.http.HttpServletRequest request, jakarta.servlet.http.HttpServletResponse response)
             throws java.io.IOException {
-        String target =
-                request.getRequestURI() + (request.getQueryString() == null ? "" : "?" + request.getQueryString());
+        request.getSession(true);
+
+        String path = request.getRequestURI() == null ? "" : request.getRequestURI();
+        if (path.startsWith("/ui/session-expired") || path.startsWith(LOGIN_PATH)) {
+            response.sendRedirect(LOGIN_PATH);
+            return;
+        }
+
+        String target = path + (request.getQueryString() == null ? "" : "?" + request.getQueryString());
+        if (target.length() > MAX_RETURN_LENGTH) {
+            target = "/ui/";
+        }
         response.sendRedirect("/ui/session-expired?from="
                 + java.net.URLEncoder.encode(target, java.nio.charset.StandardCharsets.UTF_8));
     }

@@ -9,8 +9,9 @@
     <link rel="stylesheet" th:href="@{/webjars/bootstrap/css/bootstrap.min.css}">
     <link rel="stylesheet" th:href="@{/assets/css/inconsensu.css}">
     <script th:src="@{/webjars/htmx.org/dist/htmx.min.js}" defer></script>
-    <style th:inline="css">
-        :root { --ic-primary: [[${branding != null} ? ${branding.color} : '#0d6efd']]; }
+    <!-- Значение проверено на формат HEX в UiBrandingService: экранирование th:inline ломало переменную. -->
+    <style th:utext="':root { --ic-primary: ' + (${branding != null} ? ${branding.color} : '#0d6efd') + '; }'">
+        :root { --ic-primary: #0d6efd; }
     </style>
 </head>
 <body>

@@ -12,6 +12,10 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import ru.example.inconsensu.common.domain.RoleCode;
@@ -33,10 +37,10 @@ class UiHardeningIT extends AbstractIntegrationTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private TestAccounts accounts;
+    private org.springframework.boot.test.web.client.TestRestTemplate restTemplate;
 
     @Autowired
-    private org.springframework.boot.test.web.client.TestRestTemplate restTemplate;
+    private TestAccounts accounts;
 
     @Test
     void pdf_card_is_closed_for_the_service_role() throws Exception {
@@ -137,5 +141,43 @@ class UiHardeningIT extends AbstractIntegrationTest {
                         .andReturn()
                         .getRequest()
                         .getSession(false);
+    }
+
+    /**
+     * UI-17: мёртвый идентификатор сессии не заводит браузер в растущий переход.
+     *
+     * <p>После перезапуска службы браузер приходит со старым JSESSIONID. Раньше на каждый такой запрос
+     * выдавался переход на `/ui/session-expired?from=<текущий адрес>`, а тот приходил с тем же мёртвым
+     * идентификатором: адрес вкладывался сам в себя и рос, пока заголовок `Location` не переставал
+     * помещаться в буфер — вкладка оставалась пустой, а в адресной строке висел бесконечный URL.
+     */
+    @Test
+    void a_dead_session_cookie_does_not_start_a_growing_redirect() {
+        HttpHeaders dead = new HttpHeaders();
+        // Идентификатор заведомо не существует: сервер обязан ответить одним коротким переходом.
+        dead.add(HttpHeaders.COOKIE, "JSESSIONID=NO-SUCH-SESSION-0000");
+
+        ResponseEntity<String> first =
+                restTemplate.exchange("/ui/subjects", HttpMethod.GET, new HttpEntity<>(dead), String.class);
+        String location = first.getHeaders().getFirst(HttpHeaders.LOCATION);
+
+        assertThat(location).as("ответ на мёртвую сессию — переход").isNotNull();
+        assertThat(location).doesNotContain("session-expired%3Ffrom");
+        assertThat(location.length()).isLessThan(600);
+
+        // Второй круг с тем же мёртвым идентификатором: адрес обязан остаться прежней длины, а не расти.
+        ResponseEntity<String> second = restTemplate.exchange(
+                java.net.URI.create(location).getPath()
+                        + (java.net.URI.create(location).getQuery() == null
+                                ? ""
+                                : "?" + java.net.URI.create(location).getRawQuery()),
+                HttpMethod.GET,
+                new HttpEntity<>(dead),
+                String.class);
+        String next = second.getHeaders().getFirst(HttpHeaders.LOCATION);
+
+        assertThat(next == null || next.length() <= location.length())
+                .as("адрес возврата не должен вкладываться сам в себя")
+                .isTrue();
     }
 }
