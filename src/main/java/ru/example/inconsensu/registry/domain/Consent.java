@@ -97,7 +97,8 @@ public class Consent extends AuditableEntity {
     @Column(name = "superseded_by_id")
     private UUID supersededById;
 
-    @Column(name = "idempotency_key", nullable = false, length = 255)
+    // Ширина совпадает с квитанцией регистрации: ключ длиннее принимался квитанцией и падал здесь (FR-4.1).
+    @Column(name = "idempotency_key", nullable = false, columnDefinition = "text")
     private String idempotencyKey;
 
     protected Consent() {

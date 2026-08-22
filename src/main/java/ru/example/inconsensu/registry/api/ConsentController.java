@@ -111,6 +111,16 @@ public class ConsentController {
      */
     @PostMapping
     @PreAuthorize("hasAnyRole('INTEGRATION','ADMIN')")
+    // §9: новая регистрация — 201, повтор по тому же ключу идемпотентности — 200. Спецификация обещала
+    // только 200, и клиент, проверявший код ответа, считал успешную регистрацию неудачей.
+    @io.swagger.v3.oas.annotations.responses.ApiResponses({
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "201",
+                description = "Согласия зарегистрированы"),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                responseCode = "200",
+                description = "Повтор запроса с тем же Idempotency-Key: возвращён прежний результат (FR-4.1)")
+    })
     public ResponseEntity<RegisterConsentResponse> register(
             @RequestHeader(name = "Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody RegisterConsentRequest request) {

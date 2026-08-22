@@ -48,15 +48,20 @@ public class SubjectService {
     private final PdnAccessLogService pdnAccessLogService;
     private final ru.example.inconsensu.common.application.CryptoService crypto;
 
+    /** Часы оператора: с них проставляется начало действия контакта (§8, §8.7). */
+    private final java.time.Clock clock;
+
     public SubjectService(
             SubjectRepository repository,
             AuditService auditService,
             PdnAccessLogService pdnAccessLogService,
-            ru.example.inconsensu.common.application.CryptoService crypto) {
+            ru.example.inconsensu.common.application.CryptoService crypto,
+            java.time.Clock clock) {
         this.repository = repository;
         this.auditService = auditService;
         this.pdnAccessLogService = pdnAccessLogService;
         this.crypto = crypto;
+        this.clock = clock;
     }
 
     @Transactional(readOnly = true)
@@ -398,8 +403,8 @@ public class SubjectService {
         }
         for (ContactForm form : forms) {
             try {
-                SubjectContact contact =
-                        new SubjectContact(UUID.randomUUID(), subject, form.type(), form.value(), form.primary());
+                SubjectContact contact = new SubjectContact(
+                        UUID.randomUUID(), subject, form.type(), form.value(), form.primary(), clock.instant());
                 // NFR-3: по шифртексту точное сравнение невозможно, поэтому рядом хранится HMAC значения.
                 contact.applySearchHmac(crypto.searchHmac(ContactNormalizer.normalize(form.type(), form.value())));
                 contacts.add(contact);

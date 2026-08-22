@@ -109,8 +109,7 @@ class NotificationEmailIT extends AbstractIntegrationTest {
         NotificationJob.ScanResult scan = job.scanNow();
         assertThat(scan.expiring()).isPositive();
 
-        int dispatched = dispatcher.dispatchNow();
-        assertThat(dispatched).isPositive();
+        dispatchUntilSent(rule.getId(), dpoEmail);
 
         String mailbox = mailpitSearch(dpoEmail);
         assertThat(mailbox).contains("заканчивается срок согласия");
@@ -150,7 +149,7 @@ class NotificationEmailIT extends AbstractIntegrationTest {
             }
 
             assertThat(job.scanNow().expiring()).isGreaterThanOrEqualTo(3);
-            assertThat(dispatcher.dispatchNow()).isGreaterThanOrEqualTo(3);
+            dispatchUntilSent(rule.getId(), dpoEmail);
 
             String mailbox = mailpitSearch(dpoEmail);
             assertThat(mailbox).contains("Уведомлений за сегодня");
@@ -221,7 +220,7 @@ class NotificationEmailIT extends AbstractIntegrationTest {
                     "<html><body>отзыв</body></html>",
                     Map.of("subjectFullName", "Полевая Мария Ивановна", "subjectExternalId", "CRM-MIX-1"));
 
-            assertThat(dispatcher.dispatchNow()).isGreaterThanOrEqualTo(2);
+            dispatchUntilSent(ruleId, recipient);
 
             String mailbox = mailpitSearch(recipient);
             assertThat(mailbox).contains("Уведомлений за сегодня");
@@ -231,6 +230,19 @@ class NotificationEmailIT extends AbstractIntegrationTest {
                     "test-admin",
                     List.of("ADMIN"),
                     () -> settings.update(Map.of(NotificationDispatcher.DIGEST_THRESHOLD_SETTING, previousThreshold)));
+        }
+    }
+
+    /**
+     * Прогоняет диспетчер, пока очередь правила по этому адресату не опустеет.
+     *
+     * <p>За проход берётся ограниченная порция самых старых уведомлений, и в неё попадают письма соседних
+     * тестов: один вызов мог отправить чужое, а проверяемое оставить в очереди. Тест падал через раз и
+     * только в CI, где порядок классов другой.
+     */
+    private void dispatchUntilSent(UUID ruleId, String recipient) {
+        for (int pass = 0; pass < 20 && notifications.pendingCount(ruleId, recipient) > 0; pass++) {
+            dispatcher.dispatchNow();
         }
     }
 

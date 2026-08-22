@@ -1143,7 +1143,14 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/RegisterConsentResponse"
-          description: OK
+          description: "Повтор запроса с тем же Idempotency-Key: возвращён прежний\
+            \ результат (FR-4.1)"
+        "201":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/RegisterConsentResponse"
+          description: Согласия зарегистрированы
         "400":
           content:
             application/problem+json:

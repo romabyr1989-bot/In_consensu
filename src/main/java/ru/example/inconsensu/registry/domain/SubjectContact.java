@@ -58,13 +58,19 @@ public class SubjectContact extends AuditableEntity {
         // for JPA
     }
 
-    public SubjectContact(UUID id, Subject subject, ContactType type, String value, boolean primary) {
+    /**
+     * @param validFrom с какого момента контакт действует (§8). Колонка была объявлена и всегда оставалась
+     *     пустой: период действия контакта нечем было заполнить, и «действует с» на карточке не показать
+     */
+    public SubjectContact(
+            UUID id, Subject subject, ContactType type, String value, boolean primary, Instant validFrom) {
         this.id = id;
         this.subject = subject;
         this.type = type;
         this.value = value.trim();
         this.valueNormalized = ContactNormalizer.normalize(type, value);
         this.primary = primary;
+        this.validFrom = validFrom;
     }
 
     /** Заполняется при сохранении: домен не знает ни про ключи, ни про алгоритм (NFR-3). */
