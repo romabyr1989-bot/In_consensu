@@ -73,7 +73,6 @@ import { ApiService, BuilderOptions, FormPage } from '../api.service';
             <mat-option value="">Любой</mat-option>
             <mat-option *ngFor="let item of options()?.types" [value]="item.code">{{ item.nameRu }}</mat-option>
           </mat-select>
-          <mat-hint>Формы, где такой пункт есть хотя бы один</mat-hint>
         </mat-form-field>
         <mat-form-field appearance="outline">
           <mat-label>Третье лицо</mat-label>
@@ -81,7 +80,6 @@ import { ApiService, BuilderOptions, FormPage } from '../api.service';
             <mat-option value="">Любое</mat-option>
             <mat-option *ngFor="let item of options()?.thirdParties" [value]="item.id">{{ item.name }}</mat-option>
           </mat-select>
-          <mat-hint>Кому форма разрешает передавать данные</mat-hint>
         </mat-form-field>
         <mat-form-field appearance="outline" class="ic-grow">
           <mat-label>Поиск по коду или названию</mat-label>

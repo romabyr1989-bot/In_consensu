@@ -108,7 +108,6 @@ import { ApiService, DictionaryItem, PartyCard } from '../api.service';
                       {{ category.nameRu }}
                     </mat-option>
                   </mat-select>
-                  <mat-hint>Сейчас: {{ party.allowedCategoriesRu || 'не заданы' }}</mat-hint>
                 </mat-form-field>
               </mat-card-content>
               <mat-card-actions align="end" *ngIf="editable">

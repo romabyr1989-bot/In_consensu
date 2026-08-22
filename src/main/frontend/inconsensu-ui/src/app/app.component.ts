@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, ElementRef, inject, signal } from '@angular/core';
+import { Component, ElementRef, HostListener, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
@@ -52,6 +52,9 @@ function pageTitle(title: string | undefined): string {
   ],
   template: `
     <mat-toolbar class="ic-topbar">
+      <button mat-icon-button class="ic-menu-button" (click)="menuOpen.set(!menuOpen())" aria-label="Меню разделов">
+        <mat-icon>menu</mat-icon>
+      </button>
       <span class="ic-brand">
         <img class="ic-logo" *ngIf="user()?.logoUrl as logo" [src]="logo" alt="" />
         <span>In consensu · {{ user()?.operatorName || 'Центр управления согласиями' }}</span>
@@ -64,12 +67,19 @@ function pageTitle(title: string | undefined): string {
     </mat-toolbar>
 
     <mat-sidenav-container class="ic-layout">
-      <mat-sidenav mode="side" opened class="ic-sidebar">
+      <!-- На узком окне панель наезжает поверх содержимого и закрывается по выбору раздела: постоянные
+           260 пикселей меню на планшете сдавливали таблицы и выносили их за край окна. -->
+      <mat-sidenav
+        class="ic-sidebar"
+        [mode]="wide() ? 'side' : 'over'"
+        [opened]="wide() || menuOpen()"
+        (closedStart)="menuOpen.set(false)"
+      >
         <mat-nav-list>
           <ng-container *ngFor="let item of visibleMenu()">
             <div class="ic-nav-group" *ngIf="item.group">{{ item.group }}</div>
             <a mat-list-item [routerLink]="item.path" routerLinkActive="ic-active"
-               [routerLinkActiveOptions]="{ exact: item.path === '' }">
+               [routerLinkActiveOptions]="{ exact: item.path === '' }" (click)="closeOnNarrow()">
               <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
               <span matListItemTitle>
                 {{ item.title }}
@@ -97,6 +107,21 @@ function pageTitle(title: string | undefined): string {
   `,
 })
 export class AppComponent {
+  /** Окно шире 1024 — меню открыто постоянно; уже — открывается кнопкой поверх содержимого. */
+  readonly wide = signal(typeof window === 'undefined' || window.innerWidth >= 1024);
+  readonly menuOpen = signal(false);
+
+  @HostListener('window:resize')
+  onResize(): void {
+    this.wide.set(window.innerWidth >= 1024);
+  }
+
+  closeOnNarrow(): void {
+    if (!this.wide()) {
+      this.menuOpen.set(false);
+    }
+  }
+
   private readonly api = inject(ApiService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);

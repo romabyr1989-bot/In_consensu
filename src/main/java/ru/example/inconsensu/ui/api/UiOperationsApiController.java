@@ -52,6 +52,8 @@ public class UiOperationsApiController {
     private final ru.example.inconsensu.catalog.application.ConsentTypeService types;
     private final ru.example.inconsensu.thirdparty.application.ThirdPartyService thirdParties;
 
+    private final ru.example.inconsensu.ui.application.UiFormats formats;
+
     public UiOperationsApiController(
             ConsentImportService imports,
             UiImportViewService importView,
@@ -60,7 +62,8 @@ public class UiOperationsApiController {
             NotificationTestService testService,
             UiNotificationViewService notificationView,
             ru.example.inconsensu.catalog.application.ConsentTypeService types,
-            ru.example.inconsensu.thirdparty.application.ThirdPartyService thirdParties) {
+            ru.example.inconsensu.thirdparty.application.ThirdPartyService thirdParties,
+            ru.example.inconsensu.ui.application.UiFormats formats) {
         this.imports = imports;
         this.importView = importView;
         this.rules = rules;
@@ -69,6 +72,7 @@ public class UiOperationsApiController {
         this.notificationView = notificationView;
         this.types = types;
         this.thirdParties = thirdParties;
+        this.formats = formats;
     }
 
     // ---------- UI-12: импорт ----------
@@ -111,7 +115,7 @@ public class UiOperationsApiController {
         return new JobDetails(row(view.job(), view.percent()), view.report());
     }
 
-    private static JobRow row(ImportJob job, int percent) {
+    private JobRow row(ImportJob job, int percent) {
         return new JobRow(
                 job.getId(),
                 job.getFileName(),
@@ -124,8 +128,8 @@ public class UiOperationsApiController {
                 job.getRejected(),
                 percent,
                 job.getStartedBy(),
-                job.getStartedAt() == null ? "" : job.getStartedAt().toString(),
-                job.getFinishedAt() == null ? "" : job.getFinishedAt().toString());
+                job.getStartedAt() == null ? "" : formats.dateTime(job.getStartedAt()),
+                job.getFinishedAt() == null ? "" : formats.dateTime(job.getFinishedAt()));
     }
 
     /**

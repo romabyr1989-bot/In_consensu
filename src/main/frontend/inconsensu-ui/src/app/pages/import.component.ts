@@ -49,7 +49,6 @@ interface FormatColumn {
     <mat-card class="ic-block">
       <mat-card-content class="ic-filters">
         <input type="file" accept=".csv,.json,text/csv,application/json" (change)="pick($event)" />
-        <span class="ic-muted">Подойдёт .csv или .json</span>
         <mat-form-field appearance="outline">
           <mat-label>Источник согласий</mat-label>
           <mat-select [(ngModel)]="source">
@@ -60,13 +59,6 @@ interface FormatColumn {
         <button mat-flat-button color="primary" [disabled]="!file || uploading()" (click)="upload()">
           Загрузить
         </button>
-      </mat-card-content>
-      <mat-card-content>
-        <p class="ic-muted">
-          Таблица CSV или массив JSON в кодировке UTF-8. В CSV разделителем может быть запятая или
-          точка с запятой, порядок колонок любой, регистр заголовка не важен. Пока стоит галочка
-          «Пробный запуск», файл только проверяется и в базу ничего не уходит.
-        </p>
       </mat-card-content>
 
       <mat-expansion-panel class="ic-block">
@@ -141,9 +133,6 @@ interface FormatColumn {
     <mat-card class="ic-block" *ngIf="details() as current">
       <mat-card-header>
         <mat-card-title>{{ current.job.fileName }}</mat-card-title>
-        <mat-card-subtitle>
-          {{ current.job.dryRun ? 'пробный запуск' : 'боевой импорт' }} · {{ current.job.statusRu }}
-        </mat-card-subtitle>
       </mat-card-header>
       <mat-card-content>
         <mat-progress-bar mode="determinate" [value]="current.job.percent"></mat-progress-bar>

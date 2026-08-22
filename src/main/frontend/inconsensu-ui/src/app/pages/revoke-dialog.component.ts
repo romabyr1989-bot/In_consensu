@@ -47,7 +47,6 @@ export interface RevokeDialogData {
             {{ candidate.title }}
           </mat-option>
         </mat-select>
-        <mat-hint *ngIf="!candidates().length">Действующих согласий нет — отзывать нечего.</mat-hint>
       </mat-form-field>
 
       <mat-checkbox [(ngModel)]="allAdvertising">
@@ -72,9 +71,8 @@ export interface RevokeDialogData {
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="ic-full">
-        <mat-label>Ссылка на скан заявления</mat-label>
+        <mat-label>Ссылка на скан заявления (нужна для письменного заявления)</mat-label>
         <input matInput [(ngModel)]="documentRef" />
-        <mat-hint>Обязательна для письменного заявления.</mat-hint>
       </mat-form-field>
 
       <div class="ic-warn" *ngIf="cascade().length">

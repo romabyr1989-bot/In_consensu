@@ -42,7 +42,6 @@ import { ApiService, SettingChange, SettingGroup } from '../api.service';
         <mat-form-field appearance="outline" *ngFor="let setting of group.settings">
           <mat-label>{{ setting.label }}</mat-label>
           <input matInput [(ngModel)]="values[setting.key]" [disabled]="setting.readOnly" />
-          <mat-hint>{{ setting.hint }}</mat-hint>
         </mat-form-field>
       </mat-card-content>
     </mat-card>

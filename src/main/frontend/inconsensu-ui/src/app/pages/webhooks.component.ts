@@ -75,8 +75,7 @@ import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component'
         </mat-form-field>
         <mat-form-field appearance="outline">
           <mat-label>Адрес получателя</mat-label>
-          <input matInput [(ngModel)]="draft.url" placeholder="https://…" />
-          <mat-hint>Только https и только внешний адрес: обращения внутрь сети запрещены.</mat-hint>
+          <input matInput [(ngModel)]="draft.url" />
         </mat-form-field>
         <mat-form-field appearance="outline" class="ic-span-2">
           <mat-label>События</mat-label>
@@ -85,10 +84,6 @@ import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component'
               {{ code }}<span class="ic-muted" *ngIf="eventLabel(code)">— {{ eventLabel(code) }}</span>
             </mat-option>
           </mat-select>
-          <mat-hint>
-            Код события потребитель ставит в свой обработчик, поэтому он и остаётся на виду. Если не
-            выбрать ни одного, подписка будет получать все события.
-          </mat-hint>
         </mat-form-field>
       </mat-card-content>
       <mat-card-content *ngIf="!eventTypes().length">

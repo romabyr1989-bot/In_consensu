@@ -73,8 +73,7 @@ import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component'
               </mat-form-field>
               <mat-form-field appearance="outline">
                 <mat-label>За сколько дней предупреждать</mat-label>
-                <input matInput [(ngModel)]="draft.daysBefore" placeholder="30, 15, 7" />
-                <mat-hint>Через запятую. Пусто — для событий, у которых нет срока.</mat-hint>
+                <input matInput [(ngModel)]="draft.daysBefore" />
               </mat-form-field>
               <mat-form-field appearance="outline">
                 <mat-label>Каналы</mat-label>
@@ -91,7 +90,6 @@ import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component'
                 <mat-select [(ngModel)]="draft.recipientRoles" multiple>
                   <mat-option *ngFor="let role of options()?.roles" [value]="role.code">{{ role.nameRu }}</mat-option>
                 </mat-select>
-                <mat-hint>Письмо уйдёт всем сотрудникам с этой ролью.</mat-hint>
               </mat-form-field>
               <mat-form-field appearance="outline">
                 <mat-label>Отбор: тип согласия</mat-label>
@@ -101,7 +99,6 @@ import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component'
                     {{ item.nameRu }}
                   </mat-option>
                 </mat-select>
-                <mat-hint>Пусто — правило смотрит на все согласия.</mat-hint>
               </mat-form-field>
               <mat-form-field appearance="outline">
                 <mat-label>Отбор: третье лицо</mat-label>
@@ -111,7 +108,6 @@ import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component'
                     {{ item.nameRu }}
                   </mat-option>
                 </mat-select>
-                <mat-hint>Пусто — правило не различает, кому передаются данные.</mat-hint>
               </mat-form-field>
             </mat-card-content>
             <mat-card-actions align="end">

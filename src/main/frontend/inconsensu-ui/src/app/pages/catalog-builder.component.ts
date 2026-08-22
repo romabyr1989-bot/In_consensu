@@ -79,7 +79,6 @@ import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component'
                 </mat-select>
               </mat-form-field>
               <div class="ic-span-2 ic-placeholders">
-                <span class="ic-muted">Подстановки — встают в текст туда, где стоит курсор:</span>
                 <button
                   mat-stroked-button
                   *ngFor="let placeholder of placeholders"
@@ -107,9 +106,6 @@ import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component'
           <mat-card class="ic-block">
             <mat-card-header>
               <mat-card-title>Пункты формы</mat-card-title>
-              <mat-card-subtitle>
-                Клиент отмечает их по отдельности (FR-1.2), а видит в том порядке, в каком они стоят здесь.
-              </mat-card-subtitle>
             </mat-card-header>
             <mat-card-content>
               <mat-expansion-panel *ngFor="let item of draft.items; let index = index" class="ic-item">
@@ -128,8 +124,7 @@ import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component'
                   </mat-form-field>
                   <mat-form-field appearance="outline">
                     <mat-label>Срок действия</mat-label>
-                    <input matInput [(ngModel)]="item.validity" placeholder="P1Y" />
-                    <mat-hint>Пусто — берётся срок из типа согласия.</mat-hint>
+                    <input matInput [(ngModel)]="item.validity" />
                   </mat-form-field>
                   <mat-form-field appearance="outline" class="ic-span-2">
                     <mat-label>Формулировка пункта</mat-label>

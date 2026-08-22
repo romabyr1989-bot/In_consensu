@@ -67,7 +67,6 @@ import { ConfirmDialogComponent } from './confirm-dialog.component';
         <button mat-flat-button color="primary" (click)="startCreate()">Новый тип</button>
         <!-- Обычная ссылка, а не запрос из кода: файл забирает браузер по той же сессии (UI-0.3). -->
         <a mat-stroked-button [href]="exportUrl">Выгрузить в CSV</a>
-        <span class="ic-muted">В файл уходит весь справочник, отбор на выгрузку не влияет.</span>
       </mat-card-content>
     </mat-card>
 
@@ -82,7 +81,6 @@ import { ConfirmDialogComponent } from './confirm-dialog.component';
         <mat-form-field appearance="outline">
           <mat-label>Код</mat-label>
           <input matInput [(ngModel)]="draft.code" [disabled]="update" />
-          <mat-hint *ngIf="update">Код не меняется: по нему тип связан с формами и согласиями.</mat-hint>
         </mat-form-field>
         <mat-form-field appearance="outline">
           <mat-label>Название</mat-label>
@@ -101,9 +99,8 @@ import { ConfirmDialogComponent } from './confirm-dialog.component';
           </mat-select>
         </mat-form-field>
         <mat-form-field appearance="outline">
-          <mat-label>Срок по умолчанию</mat-label>
-          <input matInput [(ngModel)]="draft.defaultValidity" placeholder="P1Y" />
-          <mat-hint>Период ISO-8601: P1Y — год, P6M — полгода. Пусто — бессрочно.</mat-hint>
+          <mat-label>Срок по умолчанию, период вида P1Y</mat-label>
+          <input matInput [(ngModel)]="draft.defaultValidity" />
         </mat-form-field>
         <mat-form-field appearance="outline">
           <mat-label>Зависит от типа</mat-label>

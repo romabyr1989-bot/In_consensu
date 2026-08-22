@@ -47,10 +47,6 @@ import { ApiService, SubjectFilters, SubjectRow } from '../api.service';
         <mat-form-field appearance="outline" class="ic-grow">
           <mat-label>Телефон, email, ФИО или ID клиента</mat-label>
           <input matInput [(ngModel)]="query" (keyup.enter)="search()" />
-          <mat-hint>
-            Телефон — начиная с «+» или цифр; email — с «&#64;»; ФИО — не менее трёх букв; иначе ищем
-            по внешнему идентификатору
-          </mat-hint>
         </mat-form-field>
         <button mat-flat-button color="primary" (click)="search()">Найти</button>
         <button mat-button (click)="reset()">Сбросить</button>
@@ -123,9 +119,6 @@ import { ApiService, SubjectFilters, SubjectRow } from '../api.service';
     <mat-card class="ic-block" *ngIf="creating()">
       <mat-card-header>
         <mat-card-title>Клиент</mat-card-title>
-        <mat-card-subtitle>
-          Тот же внешний идентификатор правит запись, а не создаёт вторую
-        </mat-card-subtitle>
       </mat-card-header>
       <mat-card-content class="ic-form-grid">
         <mat-form-field appearance="outline">
@@ -150,7 +143,7 @@ import { ApiService, SubjectFilters, SubjectRow } from '../api.service';
         </mat-form-field>
         <mat-form-field appearance="outline">
           <mat-label>Телефон</mat-label>
-          <input matInput [(ngModel)]="draft.phone" placeholder="+7 999 000-00-00" />
+          <input matInput [(ngModel)]="draft.phone" />
         </mat-form-field>
         <mat-form-field appearance="outline">
           <mat-label>Электронная почта</mat-label>

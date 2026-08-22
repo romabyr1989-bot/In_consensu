@@ -51,6 +51,8 @@ public class UiAdminApiController {
     private final ru.example.inconsensu.audit.application.AuditService audit;
     private final ZoneId zone;
 
+    private final ru.example.inconsensu.ui.application.UiFormats formats;
+
     public UiAdminApiController(
             UiWebhookViewService webhookView,
             WebhookSubscriptionService subscriptions,
@@ -60,7 +62,8 @@ public class UiAdminApiController {
             UserService users,
             OperatorSettingsService settings,
             ru.example.inconsensu.audit.application.AuditService audit,
-            java.time.Clock clock) {
+            java.time.Clock clock,
+            ru.example.inconsensu.ui.application.UiFormats formats) {
         this.webhookView = webhookView;
         this.subscriptions = subscriptions;
         this.outbox = outbox;
@@ -70,6 +73,7 @@ public class UiAdminApiController {
         this.settings = settings;
         this.audit = audit;
         this.zone = clock.getZone();
+        this.formats = formats;
     }
 
     // ---------- UI-14: webhooks ----------
@@ -240,9 +244,7 @@ public class UiAdminApiController {
     @GetMapping("/audit/integrity")
     @PreAuthorize("hasAnyRole('AUDITOR','DPO','ADMIN')")
     public List<VerificationRow> integrity() {
-        return verifications.history().stream()
-                .map(UiAdminApiController::verificationRow)
-                .toList();
+        return verifications.history().stream().map(this::verificationRow).toList();
     }
 
     @PostMapping("/audit/integrity")
@@ -252,17 +254,13 @@ public class UiAdminApiController {
         return integrity();
     }
 
-    private static VerificationRow verificationRow(AuditVerification verification) {
+    private VerificationRow verificationRow(AuditVerification verification) {
         return new VerificationRow(
                 verification.getId(),
                 verification.getStatus().name(),
                 verification.getStartedBy(),
-                verification.getStartedAt() == null
-                        ? ""
-                        : verification.getStartedAt().toString(),
-                verification.getFinishedAt() == null
-                        ? ""
-                        : verification.getFinishedAt().toString(),
+                verification.getStartedAt() == null ? "" : formats.dateTime(verification.getStartedAt()),
+                verification.getFinishedAt() == null ? "" : formats.dateTime(verification.getFinishedAt()),
                 verification.getIntegrity(),
                 verification.getAggregatesChecked(),
                 verification.getEventsChecked(),
@@ -288,10 +286,7 @@ public class UiAdminApiController {
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "50") int size) {
         var found = users.list(PageRequest.of(Math.max(page, 0), size, Sort.by("login")));
         return Map.of(
-                "rows",
-                        found.getContent().stream()
-                                .map(UiAdminApiController::userRow)
-                                .toList(),
+                "rows", found.getContent().stream().map(this::userRow).toList(),
                 "total", found.getTotalElements(),
                 "roles",
                         java.util.Arrays.stream(RoleCode.values())
@@ -299,7 +294,7 @@ public class UiAdminApiController {
                                 .toList());
     }
 
-    private static UserRow userRow(AppUser user) {
+    private UserRow userRow(AppUser user) {
         return new UserRow(
                 user.getId(),
                 user.getLogin(),
@@ -307,7 +302,7 @@ public class UiAdminApiController {
                 user.getEmail(),
                 List.copyOf(user.getRoleCodes()),
                 user.isActive(),
-                user.getLastLoginAt() == null ? "" : user.getLastLoginAt().toString());
+                user.getLastLoginAt() == null ? "" : formats.dateTime(user.getLastLoginAt()));
     }
 
     /** @param password задаётся только при заведении; смена пароля — отдельное действие */
@@ -356,7 +351,7 @@ public class UiAdminApiController {
                         ru.example.inconsensu.iam.application.OperatorSettingsService.AGGREGATE_ID)
                 .stream()
                 .map(event -> new SettingChange(
-                        event.getOccurredAt().toString(),
+                        formats.dateTime(event.getOccurredAt()),
                         event.getActorId() == null ? "" : event.getActorId(),
                         event.getEventType().nameRu()))
                 .toList();

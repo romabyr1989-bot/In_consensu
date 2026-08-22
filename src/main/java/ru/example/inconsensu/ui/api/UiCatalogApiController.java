@@ -47,19 +47,23 @@ public class UiCatalogApiController {
     private final ru.example.inconsensu.catalog.application.CatalogExportService catalogExport;
     private final ru.example.inconsensu.catalog.application.CatalogCsvWriter csv;
 
+    private final ru.example.inconsensu.ui.application.UiFormats formats;
+
     public UiCatalogApiController(
             UiCatalogViewService view,
             ConsentTypeService types,
             ConsentFormService forms,
             FormWorkflowService workflow,
             ru.example.inconsensu.catalog.application.CatalogExportService catalogExport,
-            ru.example.inconsensu.catalog.application.CatalogCsvWriter csv) {
+            ru.example.inconsensu.catalog.application.CatalogCsvWriter csv,
+            ru.example.inconsensu.ui.application.UiFormats formats) {
         this.view = view;
         this.types = types;
         this.forms = forms;
         this.workflow = workflow;
         this.catalogExport = catalogExport;
         this.csv = csv;
+        this.formats = formats;
     }
 
     // ---------- UI-6: типы согласий ----------
@@ -188,14 +192,12 @@ public class UiCatalogApiController {
                 text,
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "updatedAt")));
         return new FormPage(
-                found.getContent().stream().map(UiCatalogApiController::formRow).toList(),
+                found.getContent().stream().map(this::formRow).toList(),
                 found.getTotalElements(),
-                view.awaitingDecision().stream()
-                        .map(UiCatalogApiController::formRow)
-                        .toList());
+                view.awaitingDecision().stream().map(this::formRow).toList());
     }
 
-    private static FormRow formRow(ConsentForm form) {
+    private FormRow formRow(ConsentForm form) {
         return new FormRow(
                 form.getId(),
                 form.getCode(),
@@ -203,7 +205,7 @@ public class UiCatalogApiController {
                 form.getVersionNumber(),
                 form.getStatus().name(),
                 form.getStatus().nameRu(),
-                form.getUpdatedAt() == null ? "" : form.getUpdatedAt().toString(),
+                form.getUpdatedAt() == null ? "" : formats.dateTime(form.getUpdatedAt()),
                 form.isEditable());
     }
 
@@ -314,7 +316,7 @@ public class UiCatalogApiController {
                 found.validation().violations(),
                 found.validation().warnings(),
                 found.validation().checklist(),
-                found.versions().stream().map(UiCatalogApiController::formRow).toList(),
+                found.versions().stream().map(this::formRow).toList(),
                 found.issuedConsents(),
                 form.isEditable(),
                 view.approvals(id),

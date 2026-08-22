@@ -82,15 +82,11 @@ import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component'
     <mat-card class="ic-block" *ngIf="resetting()">
       <mat-card-header>
         <mat-card-title>Смена пароля</mat-card-title>
-        <mat-card-subtitle>
-          Учётная запись «{{ resetting() }}»{{ resettingName ? ', ' + resettingName : '' }}
-        </mat-card-subtitle>
       </mat-card-header>
       <mat-card-content class="ic-filters">
         <mat-form-field appearance="outline" class="ic-grow">
           <mat-label>Новый пароль для {{ resetting() }}</mat-label>
           <input matInput type="password" [(ngModel)]="newPassword" />
-          <mat-hint>Запишите пароль до сохранения: показать его ещё раз система не сможет</mat-hint>
         </mat-form-field>
         <button mat-flat-button color="warn" [disabled]="!newPassword" (click)="applyReset()">Сбросить пароль</button>
         <button mat-button (click)="cancelReset()">Отмена</button>

@@ -9,35 +9,55 @@
 @import 'material-icons/iconfont/filled.css';
 
 /* Оформление рабочего места (§16). Тема Material собирается в артефакт: CDN запрещён (UI-0.2). */
+/* Шрифт крупнее в полтора раза: типографика Material задана в rem, поэтому достаточно корневого
+   размера — 16 × 1,5. Свои размеры ниже тоже в rem, иначе они остались бы мелкими на общем фоне. */
+html { font-size: 24px; }
 html, body { height: 100%; margin: 0; font-family: Roboto, "Helvetica Neue", Arial, sans-serif; }
 body { background: #f5f6f8; }
 .ic-topbar { position: sticky; top: 0; z-index: 10; }
 .ic-brand { font-weight: 600; }
 .ic-spacer { flex: 1 1 auto; }
 .ic-user { margin-right: 12px; opacity: 0.92; }
-.ic-layout { height: calc(100vh - 64px); }
-.ic-sidebar { width: 260px; border-right: 1px solid #e5e7eb; }
-.ic-content { padding: 24px; }
+.ic-layout { height: calc(100dvh - 64px); }
+/* Имя элемента в селекторе: у панели Material своя ширина, и одного класса не хватало. */
+mat-sidenav.ic-sidebar, .ic-sidebar { width: 13rem; border-right: 1px solid #e5e7eb; }
+/* Отступы сжимаются на узком окне: на телефоне 24 пикселя с каждой стороны съедают треть ширины. */
+.ic-content { padding: clamp(12px, 2vw, 24px); }
+@media (max-width: 599px) {
+  .ic-layout { height: calc(100dvh - 56px); }
+  .ic-sidebar { width: min(280px, 86vw); }
+}
 /* §16.2: пункты меню сгруппированы, иначе список из одиннадцати ссылок читается как свалка. */
 .ic-nav-group {
   padding: 14px 16px 4px;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #6b7280;
 }
 .ic-active { background: rgba(0, 0, 0, 0.06); border-radius: 6px; }
-.ic-title { font-size: 22px; font-weight: 600; margin: 0 0 16px; }
+.ic-title { font-size: 1.375rem; font-weight: 600; margin: 0 0 16px; }
 .ic-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
 .ic-tile { padding: 16px; cursor: pointer; }
-.ic-tile-value { font-size: 28px; font-weight: 600; }
+.ic-tile-value { font-size: 1.75rem; font-weight: 600; }
 .ic-tile-label { color: #6b7280; }
 .ic-warn { color: #b26a00; }
 .ic-danger { color: #b3261e; }
 .ic-block { margin-top: 24px; }
 .ic-table { width: 100%; }
-.ic-filters { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+/* Селектор с именем элемента: у карточки Material своё правило display:block той же силы, и оно
+   перебивало класс — панель фильтров переставала быть флексом, а поля разъезжались по строке. */
+.ic-filters,
+mat-card-content.ic-filters,
+mat-card.ic-filters {
+  display: flex;
+  gap: 8px 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.ic-filters > mat-form-field { flex: 1 1 14rem; min-width: 0; }
+.ic-filters > button, .ic-filters > a { margin-top: 8px; }
 .ic-empty { color: #6b7280; margin: 16px 0 0; }
 .ic-muted { color: #6b7280; margin-left: 6px; }
 /* UI-0.7: у бейджа есть подпись, а не только цвет. */
@@ -51,16 +71,25 @@ body { background: #f5f6f8; }
   border-radius: 10px;
   padding: 1px 6px;
   margin-right: 4px;
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 .ic-count.ok { background: #d8f2e0; }
 .ic-count.warn { background: #ffe6bf; }
 .ic-count.danger { background: #ffd8d5; }
 
-.ic-grow { flex: 1 1 320px; }
+.ic-grow { flex: 1 1 min(20rem, 100%); }
 
 /* UI-4: карточка клиента. */
-.ic-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+/* Шапка экрана переносится: на узком окне заголовок и кнопки налезали друг на друга. */
+.ic-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+}
+.ic-card-head > :first-child { min-width: 0; flex: 1 1 320px; }
+.ic-card-head .ic-title { overflow-wrap: anywhere; }
 .ic-subtitle { color: #6b7280; margin: -8px 0 0; }
 .ic-summary { margin: 0 0 12px; }
 .ic-contacts { display: flex; flex-wrap: wrap; gap: 8px 24px; }
@@ -70,9 +99,9 @@ body { background: #f5f6f8; }
 .ic-tab-body .ic-tiles { margin-top: 16px; }
 .ic-tile-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .ic-tile-name { font-weight: 600; }
-.ic-tile-note { color: #6b7280; margin-top: 6px; font-size: 13px; }
+.ic-tile-note { color: #6b7280; margin-top: 6px; font-size: 0.8125rem; }
 /* UI-0.7: у состояния есть подпись словом, цвет лишь дублирует её. */
-.ic-badge { display: inline-block; border-radius: 10px; padding: 2px 8px; font-size: 12px; white-space: nowrap; }
+.ic-badge { display: inline-block; border-radius: 10px; padding: 2px 8px; font-size: 0.75rem; white-space: nowrap; }
 .ic-badge.ok { background: #d8f2e0; }
 .ic-badge.warn { background: #ffe6bf; }
 .ic-badge.danger { background: #ffd8d5; }
@@ -87,8 +116,22 @@ body { background: #f5f6f8; }
 .ic-gap { margin-top: 12px; }
 .ic-form-text { white-space: pre-wrap; font-family: inherit; background: #f5f6f8; padding: 16px; border-radius: 8px; }
 /* UI-6, UI-8: формы правки в две колонки — иначе поля растягиваются на всю ширину экрана. */
-.ic-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0 16px; }
-.ic-span-2 { grid-column: span 2; }
+/* Ряды формы разделены зазором: у поля Material снизу своя строка ошибки, и без зазора соседние
+   поля наезжали друг на друга. minmax с min() не даёт колонке стать шире окна. Имя элемента в
+   селекторе обязательно: правило display:block у карточки Material той же силы и перебивает класс. */
+.ic-form-grid,
+mat-card-content.ic-form-grid,
+mat-card.ic-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+  gap: 4px 16px;
+  align-items: start;
+}
+/* Ячейка не расширяется под длинное значение: без min-width:0 сетка вылезала за карточку. */
+.ic-form-grid > * { min-width: 0; }
+.ic-form-grid > mat-form-field { width: 100%; }
+/* Во всю строку, а не «две колонки»: при одной колонке span 2 создавал вторую и выносил форму за экран. */
+.ic-span-2 { grid-column: 1 / -1; }
 .ic-checks { display: flex; flex-direction: column; gap: 8px; justify-content: center; }
 .ic-awaiting { display: flex; gap: 12px; align-items: baseline; padding: 4px 0; }
 /* UI-9: решения по маршруту и сравнение версий. */
@@ -99,7 +142,7 @@ body { background: #f5f6f8; }
 .ic-diff-removed { background: #ffd8d5; display: block; }
 .ic-diff-same { display: block; }
 /* UI-8: конструктор — поля слева, чек-лист реквизитов справа. */
-.ic-builder { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start; }
+.ic-builder { display: grid; grid-template-columns: minmax(0, 1fr) 20rem; gap: 24px; align-items: start; }
 @media (max-width: 1100px) { .ic-builder { grid-template-columns: 1fr; } }
 .ic-checklist { position: sticky; top: 88px; }
 .ic-requisite { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
@@ -123,15 +166,48 @@ body { background: #f5f6f8; }
 /* Ширина рабочей области. Экран сотрудника — это таблицы и формы, и им нужна вся ширина окна:
    поля фильтров держат собственную узкую ширину, а карточки не растягивались по контейнеру. */
 app-root { display: block; }
+/* Ширину области содержимого задаёт сам контейнер боковой панели: он уже отводит место под меню
+   отступом слева, и ширина 100% сверх него выносила содержимое за край окна. */
 .ic-layout { width: 100%; }
-.ic-content { width: 100%; box-sizing: border-box; }
 .ic-block { width: 100%; box-sizing: border-box; }
-.ic-filters > mat-form-field { flex: 1 1 240px; min-width: 200px; }
-.ic-filters > .ic-grow { flex: 2 1 360px; }
+.ic-filters > .ic-grow { flex: 3 1 min(22rem, 100%); }
 .ic-form-grid { width: 100%; }
-/* Широкая таблица прокручивается внутри карточки, а не растягивает страницу. */
-.ic-block .ic-table { display: table; width: 100%; }
-mat-card-content:has(> .ic-table) { overflow-x: auto; }
+/* Таблица укладывается в ширину карточки и переносит длинные значения; если колонок всё же слишком
+   много, карточка прокручивается по горизонтали. Правило пишется с именем элемента: у карточки Material
+   стоит overflow:hidden той же силы, и раньше оно обрезало колонки без всякой прокрутки. */
+/* Прокрутка живёт на карточке, а не на её теле: тело обрезало подписи полей, которые по задумке
+   Material выступают над рамкой, и «Наименование оператора» показывалось наполовину. */
+mat-card.ic-block { overflow-x: auto; }
+.ic-table { width: 100%; }
+/* Текст переносится по словам, а не посреди слова: заголовок «Отбор» рвался на «Отб/ор». Значения,
+   которые рвать нельзя, держатся сами: телефон приходит с неразрывными пробелами, а кнопки и даты
+   помечены неразрывными здесь. Так таблица укладывается в карточку и не уезжает за экран. */
+.ic-table th { white-space: nowrap; }
+/* Текст переносится только между словами. Отступы в ячейках уже стандартных: при крупном шрифте
+   колонок в таблице больше, чем ширины, и каждый лишний пиксель отступа уводит колонку за край. */
+.ic-table td { white-space: normal; overflow-wrap: normal; }
+.ic-table th, .ic-table td { padding-left: 10px; padding-right: 10px; }
+.ic-table th:first-of-type, .ic-table td:first-of-type { padding-left: 16px; }
+.ic-table th:last-of-type, .ic-table td:last-of-type { padding-right: 16px; }
+/* Колонки с цельными значениями не рвутся: телефон и код клиента ломались по дефису
+   («+7 (916) 000-» / «00-41»). Material даёт каждой колонке класс по её имени. */
+.ic-table .mat-column-phone,
+.ic-table .mat-column-externalId,
+.ic-table .mat-column-granted,
+.ic-table .mat-column-until,
+.ic-table .mat-column-expires,
+.ic-table .mat-column-occurredAt,
+.ic-table .mat-column-createdAt,
+.ic-table .mat-column-startedAt,
+.ic-table .mat-column-lastLogin,
+.ic-table .mat-column-at,
+.ic-table .mat-column-version,
+.ic-table .mat-column-records,
+.ic-table .mat-column-counts,
+.ic-table .mat-column-consents,
+.ic-table .mat-column-actions { white-space: nowrap; }
+.ic-table td button, .ic-table td a, .ic-table td .ic-badge, .ic-table td .ic-count { white-space: nowrap; }
+.ic-table td button, .ic-table td a { white-space: nowrap; }
 
 /* UI-8: кнопки подстановок над текстом формы. Строка переносится, а не растягивает карточку;
    на кнопках стоит сама подстановка, поэтому шрифт моноширинный — так видно фигурные скобки. */
@@ -143,7 +219,7 @@ mat-card-content:has(> .ic-table) { overflow-x: auto; }
 /* UI-12: описание формата импорта рядом с загрузкой. Имена колонок и примеры дат набраны
    моноширинным шрифтом — так видно подчёркивания и точки, которые в обычном тексте сливаются. */
 .ic-code { font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; word-break: break-all; }
-.ic-section-title { font-size: 15px; font-weight: 600; margin: 16px 0 4px; }
+.ic-section-title { font-size: 0.9375rem; font-weight: 600; margin: 16px 0 4px; }
 
 /* UI-0.12: цвет и логотип оператора. Цвет приходит переменной с корня приложения после ответа
    /ui/api/me, поэтому у переменной есть запасное значение — до ответа шапка не мигает без фона. */
@@ -166,7 +242,7 @@ mat-card-content:has(> .ic-table) { overflow-x: auto; }
   align-items: baseline;
   gap: 6px;
   margin: 0 0 12px;
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: #6b7280;
 }
 .ic-crumbs a { color: inherit; }
@@ -174,3 +250,48 @@ mat-card-content:has(> .ic-table) { overflow-x: auto; }
 
 /* UI-0.5: счётчик форм, ждущих решения, стоит вплотную к названию пункта меню. */
 .ic-menu-count { margin-left: 8px; }
+
+/* Ничто не выходит за край окна: рабочее место открывают и на ноутбуке, и на планшете. */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { max-width: 100%; overflow-x: hidden; }
+img, video, canvas { max-width: 100%; height: auto; }
+pre, .ic-form-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.ic-facts { overflow-wrap: anywhere; }
+
+/* Диалог не шире окна: на узком экране он упирался в края и обрезал кнопки. */
+.mat-mdc-dialog-panel { max-width: min(92vw, 640px) !important; }
+.ic-dialog { max-width: 100%; }
+.ic-dialog mat-form-field { width: 100%; }
+
+/* Кнопка меню видна только на узком окне: на широком боковая панель открыта постоянно. */
+.ic-menu-button { display: none; }
+@media (max-width: 1023px) {
+  .ic-menu-button { display: inline-flex; }
+  .ic-user { display: none; }
+}
+
+/* Панель конструктора уходит под форму раньше, чем начнёт сдавливать поля. */
+@media (max-width: 1279px) { .ic-builder { grid-template-columns: 1fr; } }
+.ic-checklist { position: static; }
+@media (min-width: 1280px) { .ic-checklist { position: sticky; top: 88px; } }
+
+/* Верхняя панель: длинное название оператора обрезается, а не выталкивает кнопку «Выйти». */
+.ic-topbar { gap: 8px; }
+.ic-brand { min-width: 0; overflow: hidden; }
+.ic-brand > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ic-topbar form { flex: 0 0 auto; }
+
+/* Плитки главной не уже читаемого и не шире окна. */
+.ic-tiles { grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr)); }
+
+/* Вкладки прокручиваются, а не сжимают подписи в нечитаемую кашу. */
+.mat-mdc-tab-header { --mat-tab-header-divider-color: #e5e7eb; }
+
+/* Содержимое раскрывающегося блока прокручивается внутри себя: самой панели нужен overflow:hidden для
+   анимации сворачивания, и без этого правила широкая таблица формата импорта просто обрезалась. */
+.mat-expansion-panel-body { overflow-x: auto; }
+
+/* Подпись пункта меню переносится, а не обрезается многоточием: «Настройки оператора» не помещалось
+   в одну строку при крупном шрифте, а раздел должен читаться целиком. */
+.ic-sidebar .mdc-list-item__primary-text { white-space: normal; overflow: visible; text-overflow: clip; }
+.ic-sidebar .mat-mdc-list-item { height: auto; min-height: 3rem; padding-top: 6px; padding-bottom: 6px; }

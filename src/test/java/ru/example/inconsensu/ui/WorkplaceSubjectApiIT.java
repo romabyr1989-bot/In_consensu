@@ -123,7 +123,8 @@ class WorkplaceSubjectApiIT extends AbstractIntegrationTest {
                         .content("{\"type\":\"PHONE\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.masked").value(false))
-                .andExpect(jsonPath("$.value").value("+7 (916) 000-00-45"));
+                // Пробелы в номере неразрывные: иначе в узкой колонке таблицы он разрывался на три строки.
+                .andExpect(jsonPath("$.value").value("+7\u00A0(916)\u00A0000-00-45"));
     }
 
     @Test

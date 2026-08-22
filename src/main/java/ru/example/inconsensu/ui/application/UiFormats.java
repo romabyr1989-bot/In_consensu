@@ -104,7 +104,8 @@ public final class UiFormats {
         if (digits.length() != 11 || value.contains("*")) {
             return value;
         }
-        return "+%s (%s) %s-%s-%s"
+        // Пробелы неразрывные: иначе в узкой колонке таблицы номер разрывался на три строки.
+        return "+%s\u00A0(%s)\u00A0%s-%s-%s"
                 .formatted(
                         digits.charAt(0),
                         digits.substring(1, 4),

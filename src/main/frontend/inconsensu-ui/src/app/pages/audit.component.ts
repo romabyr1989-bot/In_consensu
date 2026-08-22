@@ -73,7 +73,6 @@ const SUBJECT_ID_HELP =
                     {{ item.nameRu }}
                   </mat-option>
                 </mat-select>
-                <mat-hint>Показаны только те объекты, о которых уже есть записи</mat-hint>
               </mat-form-field>
               <mat-form-field appearance="outline">
                 <mat-label>Тип события</mat-label>
@@ -87,12 +86,10 @@ const SUBJECT_ID_HELP =
               <mat-form-field appearance="outline">
                 <mat-label>Кто действовал</mat-label>
                 <input matInput [(ngModel)]="actorId" (keyup.enter)="applyEventFilters()" />
-                <mat-hint>Логин сотрудника или имя системной задачи</mat-hint>
               </mat-form-field>
               <mat-form-field appearance="outline">
                 <mat-label>Идентификатор клиента</mat-label>
                 <input matInput [(ngModel)]="subjectId" (keyup.enter)="applyEventFilters()" />
-                <mat-hint>Длинный номер из адреса карточки клиента</mat-hint>
               </mat-form-field>
               <mat-form-field appearance="outline">
                 <mat-label>С даты</mat-label>
@@ -188,7 +185,6 @@ const SUBJECT_ID_HELP =
               <mat-form-field appearance="outline">
                 <mat-label>Идентификатор клиента</mat-label>
                 <input matInput [(ngModel)]="accessSubjectId" (keyup.enter)="applyAccessFilters()" />
-                <mat-hint>Длинный номер из адреса карточки клиента</mat-hint>
               </mat-form-field>
               <mat-form-field appearance="outline">
                 <mat-label>С даты</mat-label>

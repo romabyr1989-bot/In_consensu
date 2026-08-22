@@ -83,7 +83,6 @@ import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component'
           <mat-form-field appearance="outline" class="ic-grow">
             <mat-label>Что исправить</mat-label>
             <input matInput [(ngModel)]="comment" />
-            <mat-hint>Комментарий обязателен: по нему юрист поймёт, что переделать.</mat-hint>
           </mat-form-field>
           <button mat-flat-button color="warn" [disabled]="!comment.trim()" (click)="act('reject', comment)">
             Отклонить

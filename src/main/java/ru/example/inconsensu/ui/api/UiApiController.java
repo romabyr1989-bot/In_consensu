@@ -46,6 +46,8 @@ public class UiApiController {
     private final ru.example.inconsensu.registry.application.SubjectCardPdfService cardPdf;
     private final ru.example.inconsensu.catalog.application.ConsentTypeService consentTypes;
 
+    private final ru.example.inconsensu.ui.application.UiFormats formats;
+
     public UiApiController(
             UiDashboardService dashboard,
             UiThirdPartyViewService thirdParties,
@@ -55,7 +57,8 @@ public class UiApiController {
             ru.example.inconsensu.registry.application.ConsentEvidenceService evidence,
             com.fasterxml.jackson.databind.ObjectMapper objectMapper,
             ru.example.inconsensu.registry.application.SubjectCardPdfService cardPdf,
-            ru.example.inconsensu.catalog.application.ConsentTypeService consentTypes) {
+            ru.example.inconsensu.catalog.application.ConsentTypeService consentTypes,
+            ru.example.inconsensu.ui.application.UiFormats formats) {
         this.dashboard = dashboard;
         this.thirdParties = thirdParties;
         this.branding = branding;
@@ -65,6 +68,7 @@ public class UiApiController {
         this.objectMapper = objectMapper;
         this.cardPdf = cardPdf;
         this.consentTypes = consentTypes;
+        this.formats = formats;
     }
 
     /** Кто вошёл и как выглядит оператор: с этого приложение начинает работу (UI-0.5, UI-0.12). */
@@ -371,7 +375,7 @@ public class UiApiController {
                 card.subject().getExternalId(),
                 card.subject().getBirthDate() == null
                         ? ""
-                        : card.subject().getBirthDate().toString(),
+                        : formats.date(card.subject().getBirthDate()),
                 card.summaryRu(),
                 card.contacts().stream()
                         .map(contact -> new ContactCard(
