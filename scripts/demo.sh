@@ -7,8 +7,8 @@
 #
 # Нужен профиль demo: make up (или запуск службы с SPRING_PROFILES_ACTIVE=demo).
 #
-# Сценарий §11 меняет данные — отзывает согласия и закрывает каналы, — поэтому рассчитан на свежий
-# набор демо-данных. Перед повторным прогоном: make db-reset и перезапуск приложения.
+# Скрипт повторяем: форму, клиента и согласие он заводит сам, и отзыв делает по своему клиенту. Демо-данные
+# при этом остаются нетронутыми — по ним проверяется только соответствие карточки Приложению A.
 # Использование:  BASE_URL=http://localhost:8080 ./scripts/demo.sh
 
 set -euo pipefail
@@ -145,6 +145,119 @@ else
   fail "опубликованных форм нет"
 fi
 
+# --------------------------------------------------------------------------------------
+# Сценарий §11 целиком: форма создаётся здесь же, проходит согласование и публикацию, по ней
+# регистрируется согласие. Раньше скрипт проверял уже загруженные демо-данные — то есть
+# констатировал результат, а не проходил путь.
+# --------------------------------------------------------------------------------------
+
+login() {
+  curl --fail --silent -X POST "${BASE_URL}/api/v1/auth/login" -H 'Content-Type: application/json' \
+    -d "{\"login\":\"$1\",\"password\":\"${DEMO_PASSWORD}\"}" \
+    | sed -n 's/.*"accessToken":"\([^"]*\)".*/\1/p'
+}
+
+LAWYER_AUTH="Authorization: Bearer $(login lawyer)"
+DPO_AUTH="Authorization: Bearer $(login dpo)"
+INTEGRATION_AUTH="Authorization: Bearer $(login integration)"
+RUN_ID="$(date +%H%M%S)"
+FORM_CODE="DEMO_${RUN_ID}"
+
+step "Черновик формы согласия (FR-1.2, UI-8)"
+DRAFT="$(curl --fail --silent -X POST -H "$LAWYER_AUTH" -H 'Content-Type: application/json' \
+  -d "{\"code\":\"${FORM_CODE}\",\"form\":{
+        \"title\":\"Согласие демонстрационного сценария ${RUN_ID}\",
+        \"body\":\"Я, {{subject.fio}}, телефон {{subject.phone}}, электронная почта {{subject.email}}, даю согласие {{operator.name}} ({{operator.address}}) на обработку персональных данных.\",
+        \"processingActions\":\"сбор, запись, систематизация, хранение, использование, уничтожение\",
+        \"revocationProcedure\":\"действует до отзыва; отзыв — в личном кабинете или письменным заявлением\",
+        \"sourceChannels\":[\"WEBSITE_APPLICATION\"],
+        \"items\":[
+          {\"consentTypeCode\":\"PDN_PROCESSING\",\"text\":\"Согласие на обработку персональных данных\",\"purposes\":[\"рассмотрение заявки\"],\"pdnCategories\":[\"FIO\",\"PHONE\",\"EMAIL\"],\"mandatory\":true},
+          {\"consentTypeCode\":\"ADVERTISING_EMAIL\",\"text\":\"Согласие на рекламу по электронной почте\",\"purposes\":[\"информирование о продуктах\"],\"pdnCategories\":[\"EMAIL\"],\"mandatory\":false}
+        ]}}" \
+  "${BASE_URL}/api/v1/forms")"
+# Идентификатор берётся разбором JSON: у формы и у её пунктов поля называются одинаково, и жадный
+# sed выхватывал последний «id» — идентификатор пункта, а не формы.
+FORM_ID="$(python3 - "$DRAFT" <<'PYEOF'
+import json, sys
+print(json.loads(sys.argv[1]).get("id", ""))
+PYEOF
+)"
+if [ -n "$FORM_ID" ] && grep -q '"status":"DRAFT"' <<<"$DRAFT"; then
+  ok "черновик ${FORM_CODE} создан юристом"
+else
+  fail "черновик формы не создался"
+  exit 1
+fi
+
+step "Согласование формы двумя ролями и публикация (FR-2.1, FR-1.5)"
+curl --fail --silent -o /dev/null -X POST -H "$LAWYER_AUTH" "${BASE_URL}/api/v1/forms/${FORM_ID}/submit"
+curl --fail --silent -o /dev/null -X POST -H "$LAWYER_AUTH" -H 'Content-Type: application/json' \
+  -d '{"comment":"формулировки проверены"}' "${BASE_URL}/api/v1/forms/${FORM_ID}/approve"
+curl --fail --silent -o /dev/null -X POST -H "$DPO_AUTH" -H 'Content-Type: application/json' \
+  -d '{"comment":"реквизиты проверены"}' "${BASE_URL}/api/v1/forms/${FORM_ID}/approve"
+PUBLISHED="$(curl --fail --silent -X POST -H "$DPO_AUTH" "${BASE_URL}/api/v1/forms/${FORM_ID}/publish")"
+if grep -q '"status":"PUBLISHED"' <<<"$PUBLISHED" && grep -q '"checksum":"sha256:' <<<"$PUBLISHED"; then
+  ok "версия опубликована, контрольная сумма посчитана"
+else
+  fail "форма не опубликовалась: одобрения обеих ролей или реквизиты оператора не прошли"
+  exit 1
+fi
+
+step "Регистрация согласия по опубликованной форме (FR-4.1, FR-4.2)"
+ITEM_IDS="$(python3 - "$PUBLISHED" <<'PYEOF'
+import json, sys
+form = json.loads(sys.argv[1])
+print(" ".join(item["id"] for item in form.get("items", [])))
+PYEOF
+)"
+DECISIONS="$(python3 - "$ITEM_IDS" <<'PYEOF'
+import json, sys
+print(json.dumps([{"formItemId": i, "accepted": True} for i in sys.argv[1].split()], ensure_ascii=False))
+PYEOF
+)"
+SCENARIO_EXTERNAL_ID="CRM-ДЕМО-${RUN_ID}"
+REGISTERED="$(curl --fail --silent -X POST -H "$INTEGRATION_AUTH" -H 'Content-Type: application/json' \
+  -H "Idempotency-Key: demo-${RUN_ID}" \
+  -d "{
+        \"subject\":{\"externalId\":\"${SCENARIO_EXTERNAL_ID}\",\"lastName\":\"Демидова\",\"firstName\":\"Ольга\",\"middleName\":\"Ивановна\",
+          \"contacts\":[{\"type\":\"PHONE\",\"value\":\"+7 916 000-09-11\",\"primary\":true},
+                        {\"type\":\"EMAIL\",\"value\":\"demidova-${RUN_ID}@example.ru\",\"primary\":true}]},
+        \"formId\":\"${FORM_ID}\",
+        \"items\":${DECISIONS},
+        \"source\":\"WEBSITE_APPLICATION\",
+        \"sourceRef\":\"заявка ${RUN_ID}\",
+        \"signatureType\":\"SIMPLE_ES_SMS\",
+        \"evidence\":{\"phone\":\"+79160000911\",\"otpVerifiedAt\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"otpHash\":\"demo\",\"ip\":\"10.0.0.9\",\"userAgent\":\"demo.sh\"}
+      }" \
+  "${BASE_URL}/api/v1/consents")"
+SCENARIO_SUBJECT_ID="$(python3 - "$REGISTERED" <<'PYEOF'
+import json, sys
+data = json.loads(sys.argv[1])
+consents = data.get("consents", [])
+print(consents[0]["subjectId"] if consents else "")
+PYEOF
+)"
+if [ -n "$SCENARIO_SUBJECT_ID" ]; then
+  ok "согласия зарегистрированы, клиент ${SCENARIO_EXTERNAL_ID} заведён"
+else
+  fail "регистрация согласия не прошла"
+  exit 1
+fi
+
+step "Повтор запроса с тем же ключом идемпотентности (FR-4.1)"
+REPEAT="$(curl --fail --silent -o /dev/null -w '%{http_code}' -X POST -H "$INTEGRATION_AUTH" \
+  -H 'Content-Type: application/json' -H "Idempotency-Key: demo-${RUN_ID}" \
+  -d "{\"subjectExternalId\":\"${SCENARIO_EXTERNAL_ID}\",\"formId\":\"${FORM_ID}\",\"items\":${DECISIONS},
+       \"source\":\"WEBSITE_APPLICATION\",\"signatureType\":\"SIMPLE_ES_SMS\",
+       \"evidence\":{\"phone\":\"+79160000911\",\"otpVerifiedAt\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"otpHash\":\"demo\",\"ip\":\"10.0.0.9\",\"userAgent\":\"demo.sh\"}}" \
+  "${BASE_URL}/api/v1/consents")"
+if [ "$REPEAT" = "200" ]; then
+  ok "повтор вернул прежний результат, дубликатов не создано"
+else
+  fail "повтор по тому же ключу ответил ${REPEAT}, ожидался 200"
+fi
+
 step "Поиск клиента по фамилии (FR-5.2)"
 # Кириллица в запросе кодируется curl'ом: сырые символы в строке запроса Tomcat отклоняет как 400.
 SUBJECT_ID="$(curl --fail --silent -G -H "$AUTH" --data-urlencode "query=Травин" "${BASE_URL}/api/v1/subjects" \
@@ -206,7 +319,9 @@ else
 fi
 
 step "Разрешённые каналы коммуникации до отзыва (FR-6.1)"
-CHANNELS_BEFORE="$(curl --fail --silent -H "$AUTH" "${BASE_URL}/api/v1/subjects/${SUBJECT_ID}/channels")"
+# Проверяется клиент, заведённый этим же прогоном: сценарий §11 отзывает согласие и меняет данные, а на
+# своём клиенте скрипт можно повторять сколько угодно, не пересоздавая базу.
+CHANNELS_BEFORE="$(curl --fail --silent -H "$AUTH" "${BASE_URL}/api/v1/subjects/${SCENARIO_SUBJECT_ID}/channels")"
 # Берём конкретный разрешённый канал и согласие, которое его открывает: без этого шаг «после отзыва»
 # проходил всегда — в ответе и до отзыва есть каналы с allowed=false, и проверка ничего не доказывала.
 READ_ALLOWED="$(python3 - "$CHANNELS_BEFORE" <<'PYEOF'
@@ -222,12 +337,12 @@ AD_CONSENT_ID="$(cut -d' ' -f2 <<<"$READ_ALLOWED")"
 if [ -n "$OPEN_CHANNEL" ]; then
   ok "канал ${OPEN_CHANNEL} разрешён; $(sed -n 's/.*"summaryRu":"\([^"]*\)".*/\1/p' <<<"$CHANNELS_BEFORE")"
 else
-  fail "ни один канал не разрешён: сценарий уже отрабатывал на этой базе — выполните make db-reset и перезапустите"
+  fail "ни один канал не разрешён у только что заведённого клиента — расчёт каналов сломан (§7.6)"
 fi
 
 step "Массовая проверка канала (FR-6.4)"
 if curl --fail --silent -X POST -H "$AUTH" -H 'Content-Type: application/json' \
-     -d "{\"channel\":\"EMAIL\",\"identifiers\":[\"${SUBJECT_ID}\"],\"includeReasons\":true}" \
+     -d "{\"channel\":\"EMAIL\",\"identifiers\":[\"${SCENARIO_SUBJECT_ID}\"],\"includeReasons\":true}" \
      "${BASE_URL}/api/v1/channels/check" | contains '"requested":1'; then
   ok "пакетная проверка отвечает по каждому идентификатору"
 else
@@ -250,7 +365,7 @@ else
 fi
 
 step "Канал закрывается немедленно после отзыва (FR-8.3)"
-CHANNELS_AFTER="$(curl --fail --silent -H "$AUTH" "${BASE_URL}/api/v1/subjects/${SUBJECT_ID}/channels")"
+CHANNELS_AFTER="$(curl --fail --silent -H "$AUTH" "${BASE_URL}/api/v1/subjects/${SCENARIO_SUBJECT_ID}/channels")"
 CLOSED="$(python3 - "$CHANNELS_AFTER" "$OPEN_CHANNEL" <<'PYEOF'
 import json, sys
 target = sys.argv[2]

@@ -45,7 +45,7 @@ db: ## Создать базу и пользователя для локальн
 	psql -v ON_ERROR_STOP=1 -U postgres -c "CREATE DATABASE $(DB_NAME) OWNER $(DB_USER);" || true
 	psql -v ON_ERROR_STOP=1 -U postgres -c "CREATE DATABASE $(TEST_DB_NAME) OWNER $(DB_USER);" || true
 
-db-reset: ## Пересоздать демо-базу: сквозной сценарий §11 меняет данные и рассчитан на свежий набор
+db-reset: ## Пересоздать демо-базу (демо-скрипт этого не требует: он заводит свои данные)
 	psql -v ON_ERROR_STOP=1 -U postgres -c "DROP DATABASE IF EXISTS $(DB_NAME);"
 	psql -v ON_ERROR_STOP=1 -U postgres -c "CREATE DATABASE $(DB_NAME) OWNER $(DB_USER);"
 
