@@ -4,17 +4,21 @@ import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
 import { ApiService, DictionaryItem, UserRow } from '../api.service';
+import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component';
 
 /**
  * UI-17: учётные записи сотрудников.
  *
  * Пароль задаётся при заведении и дальше только сбрасывается: показывать сохранённый пароль негде и
- * незачем — он хранится хешем.
+ * незачем — он хранится хешем. Поэтому сброс переспрашивает и называет учётную запись поимённо:
+ * ошибиться строкой в списке легко, а вернуть прежний пароль потом нельзя.
  */
 @Component({
   selector: 'ic-admin-users',
@@ -24,11 +28,13 @@ import { ApiService, DictionaryItem, UserRow } from '../api.service';
     FormsModule,
     MatCardModule,
     MatTableModule,
+    MatPaginatorModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
     MatCheckboxModule,
     MatButtonModule,
+    MatDialogModule,
   ],
   template: `
     <h1 class="ic-title">Пользователи</h1>
@@ -74,13 +80,20 @@ import { ApiService, DictionaryItem, UserRow } from '../api.service';
     </mat-card>
 
     <mat-card class="ic-block" *ngIf="resetting()">
+      <mat-card-header>
+        <mat-card-title>Смена пароля</mat-card-title>
+        <mat-card-subtitle>
+          Учётная запись «{{ resetting() }}»{{ resettingName ? ', ' + resettingName : '' }}
+        </mat-card-subtitle>
+      </mat-card-header>
       <mat-card-content class="ic-filters">
         <mat-form-field appearance="outline" class="ic-grow">
           <mat-label>Новый пароль для {{ resetting() }}</mat-label>
           <input matInput type="password" [(ngModel)]="newPassword" />
+          <mat-hint>Запишите пароль до сохранения: показать его ещё раз система не сможет</mat-hint>
         </mat-form-field>
         <button mat-flat-button color="warn" [disabled]="!newPassword" (click)="applyReset()">Сбросить пароль</button>
-        <button mat-button (click)="resetting.set('')">Отмена</button>
+        <button mat-button (click)="cancelReset()">Отмена</button>
       </mat-card-content>
     </mat-card>
 
@@ -113,21 +126,34 @@ import { ApiService, DictionaryItem, UserRow } from '../api.service';
           <th mat-header-cell *matHeaderCellDef></th>
           <td mat-cell *matCellDef="let row">
             <button mat-button (click)="edit(row)">Править</button>
-            <button mat-button (click)="resetting.set(row.login); resettingId = row.id">Сбросить пароль</button>
+            <button mat-button (click)="startReset(row)">Сбросить пароль</button>
           </td>
         </ng-container>
         <tr mat-header-row *matHeaderRowDef="columns"></tr>
         <tr mat-row *matRowDef="let row; columns: columns"></tr>
       </table>
-      <p class="ic-empty" *ngIf="!rows().length">Учётных записей нет.</p>
+      <p class="ic-empty" *ngIf="!rows().length">
+        Учётных записей нет. Заведите первую в форме выше: логин, пароль, фамилию с именем и хотя бы одну
+        роль — без роли сотрудник войдёт, но ни одного раздела не увидит.
+      </p>
+      <!-- UI-0.8: постраничность и выбор размера страницы у каждого списка. -->
+      <mat-paginator
+        [length]="total()"
+        [pageSize]="size"
+        [pageIndex]="page"
+        [pageSizeOptions]="[20, 50, 100]"
+        (page)="turnPage($event)"
+      ></mat-paginator>
     </mat-card>
   `,
 })
 export class AdminUsersComponent {
   private readonly api = inject(ApiService);
+  private readonly dialogs = inject(MatDialog);
 
   readonly rows = signal<UserRow[]>([]);
   readonly roles = signal<DictionaryItem[]>([]);
+  readonly total = signal(0);
   readonly resetting = signal('');
   readonly message = signal('');
   readonly error = signal('');
@@ -137,15 +163,19 @@ export class AdminUsersComponent {
   draft = this.emptyDraft();
   newPassword = '';
   resettingId = '';
+  resettingName = '';
+  page = 0;
+  size = 20;
 
   constructor() {
     this.load();
   }
 
   load(): void {
-    this.api.users().subscribe((page) => {
-      this.rows.set(page.rows);
-      this.roles.set(page.roles);
+    this.api.users(this.page, this.size).subscribe((view) => {
+      this.rows.set(view.rows);
+      this.roles.set(view.roles);
+      this.total.set(view.total);
     });
   }
 
@@ -173,12 +203,44 @@ export class AdminUsersComponent {
     };
   }
 
+  startReset(row: UserRow): void {
+    this.resetting.set(row.login);
+    this.resettingId = row.id;
+    this.resettingName = row.fullName ?? '';
+    this.newPassword = '';
+    this.message.set('');
+    this.error.set('');
+  }
+
+  cancelReset(): void {
+    this.resetting.set('');
+    this.resettingId = '';
+    this.resettingName = '';
+    this.newPassword = '';
+  }
+
+  /** Переспрашиваем поимённо: строкой в списке ошибаются часто, а прежний пароль не вернуть. */
   applyReset(): void {
-    this.api.resetPassword(this.resettingId, this.newPassword).subscribe((result) => {
-      this.message.set(result.message);
-      this.newPassword = '';
-      this.resetting.set('');
-    });
+    const login = this.resetting();
+    const who = this.resettingName ? `${this.resettingName}, логин ${login}` : `логин ${login}`;
+    const data: ConfirmData = {
+      title: `Сбросить пароль учётной записи «${login}»?`,
+      consequences:
+        `Пароль меняется у одной учётной записи: ${who}. Прежний пароль перестанет подходить сразу, и ` +
+        'войти по нему сотрудник больше не сможет — до тех пор, пока вы не передадите ему новый. ' +
+        'Показать этот пароль ещё раз система не умеет: он хранится хешем, и при потере остаётся только ' +
+        'сбросить его заново.',
+      confirmLabel: 'Сбросить пароль',
+      danger: true,
+    };
+    this.dialogs
+      .open(ConfirmDialogComponent, { data, width: '520px' })
+      .afterClosed()
+      .subscribe((confirmed?: boolean) => {
+        if (confirmed) {
+          this.submitReset(login);
+        }
+      });
   }
 
   rolesRu(codes: string[]): string {
@@ -188,6 +250,23 @@ export class AdminUsersComponent {
 
   resetDraft(): void {
     this.draft = this.emptyDraft();
+  }
+
+  turnPage(event: PageEvent): void {
+    this.page = event.pageIndex;
+    this.size = event.pageSize;
+    this.load();
+  }
+
+  private submitReset(login: string): void {
+    this.error.set('');
+    this.api.resetPassword(this.resettingId, this.newPassword).subscribe({
+      next: (result) => {
+        this.message.set(`${result.message}: учётная запись «${login}». Передайте новый пароль сотруднику лично.`);
+        this.cancelReset();
+      },
+      error: (failure) => this.error.set(failure?.error?.detail ?? 'Пароль не сброшен: попробуйте ещё раз.'),
+    });
   }
 
   private emptyDraft() {

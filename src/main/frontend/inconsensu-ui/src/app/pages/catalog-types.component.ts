@@ -1,21 +1,27 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
 import { ApiService, BuilderOptions, TypeRow } from '../api.service';
+import { ConfirmDialogComponent } from './confirm-dialog.component';
 
 /**
  * UI-6: справочник типов согласий.
  *
  * Правка идёт на месте: панель раскрывается под таблицей и заполняется выбранной строкой. Код при
  * правке не меняется — по нему тип связан с формами и выданными согласиями (FR-1.1).
+ *
+ * Сервер отдаёт справочник целиком, без страниц, поэтому страницы нарезаются здесь же по массиву:
+ * показываем ровно выбранный кусок, а не весь список под видом страницы (UI-0.8).
  */
 @Component({
   selector: 'ic-catalog-types',
@@ -25,11 +31,13 @@ import { ApiService, BuilderOptions, TypeRow } from '../api.service';
     FormsModule,
     MatCardModule,
     MatTableModule,
+    MatPaginatorModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
     MatCheckboxModule,
     MatButtonModule,
+    MatDialogModule,
     MatProgressBarModule,
   ],
   template: `
@@ -57,6 +65,9 @@ import { ApiService, BuilderOptions, TypeRow } from '../api.service';
           <input matInput [(ngModel)]="text" (keyup.enter)="load()" />
         </mat-form-field>
         <button mat-flat-button color="primary" (click)="startCreate()">Новый тип</button>
+        <!-- Обычная ссылка, а не запрос из кода: файл забирает браузер по той же сессии (UI-0.3). -->
+        <a mat-stroked-button [href]="exportUrl">Выгрузить в CSV</a>
+        <span class="ic-muted">В файл уходит весь справочник, отбор на выгрузку не влияет.</span>
       </mat-card-content>
     </mat-card>
 
@@ -123,7 +134,7 @@ import { ApiService, BuilderOptions, TypeRow } from '../api.service';
     <mat-progress-bar mode="indeterminate" *ngIf="loading()"></mat-progress-bar>
 
     <mat-card class="ic-block">
-      <table mat-table [dataSource]="rows()" class="ic-table" *ngIf="rows().length">
+      <table mat-table [dataSource]="pageRows()" class="ic-table" *ngIf="rows().length">
         <ng-container matColumnDef="code">
           <th mat-header-cell *matHeaderCellDef>Код</th>
           <td mat-cell *matCellDef="let row">{{ row.code }}</td>
@@ -167,12 +178,28 @@ import { ApiService, BuilderOptions, TypeRow } from '../api.service';
         <tr mat-header-row *matHeaderRowDef="columns"></tr>
         <tr mat-row *matRowDef="let row; columns: columns"></tr>
       </table>
-      <p class="ic-empty" *ngIf="!rows().length && !loading()">Типов, подходящих под фильтр, нет.</p>
+
+      <div class="ic-empty" *ngIf="!rows().length && !loading()">
+        {{ emptyHint() }}
+        <div class="ic-actions ic-gap" *ngIf="filtersApplied()">
+          <button mat-stroked-button (click)="reset()">Показать все типы</button>
+        </div>
+      </div>
+
+      <mat-paginator
+        *ngIf="rows().length"
+        [length]="rows().length"
+        [pageSize]="size()"
+        [pageIndex]="page()"
+        [pageSizeOptions]="[20, 50, 100]"
+        (page)="turnPage($event)"
+      ></mat-paginator>
     </mat-card>
   `,
 })
 export class CatalogTypesComponent {
   private readonly api = inject(ApiService);
+  private readonly dialogs = inject(MatDialog);
 
   readonly rows = signal<TypeRow[]>([]);
   readonly options = signal<BuilderOptions | null>(null);
@@ -181,7 +208,16 @@ export class CatalogTypesComponent {
   readonly message = signal('');
   readonly error = signal('');
 
+  readonly page = signal(0);
+  readonly size = signal(20);
+  /** Строки выбранной страницы: показываем ровно их, а не весь список (UI-0.8). */
+  readonly pageRows = computed(() => {
+    const from = this.page() * this.size();
+    return this.rows().slice(from, from + this.size());
+  });
+
   readonly columns = ['code', 'name', 'category', 'validity', 'consents', 'actions'];
+  readonly exportUrl = '/ui/api/catalog/export?part=TYPES';
 
   category = '';
   active = '';
@@ -194,8 +230,12 @@ export class CatalogTypesComponent {
     this.load();
   }
 
-  load(): void {
+  /** @param resetPage при смене отбора список другой, и оставаться на прежней странице бессмысленно */
+  load(resetPage = true): void {
     this.loading.set(true);
+    if (resetPage) {
+      this.page.set(0);
+    }
     const filters: Record<string, string> = {};
     if (this.category) {
       filters['category'] = this.category;
@@ -208,8 +248,35 @@ export class CatalogTypesComponent {
     }
     this.api.types(filters).subscribe((rows) => {
       this.rows.set(rows);
+      const lastPage = Math.max(0, Math.ceil(rows.length / this.size()) - 1);
+      if (this.page() > lastPage) {
+        this.page.set(lastPage);
+      }
       this.loading.set(false);
     });
+  }
+
+  turnPage(event: PageEvent): void {
+    this.page.set(event.pageIndex);
+    this.size.set(event.pageSize);
+  }
+
+  filtersApplied(): boolean {
+    return !!(this.category || this.active || this.text.trim());
+  }
+
+  /** Пустая таблица объясняет, что делать дальше, а не просто сообщает о пустоте (UI-0.6). */
+  emptyHint(): string {
+    return this.filtersApplied()
+      ? 'Под выбранный отбор не подошёл ни один тип. Снимите фильтры или измените запрос.'
+      : 'Справочник пока пуст. Заведите первый тип кнопкой «Новый тип»: по типам собираются формы и выдаются согласия.';
+  }
+
+  reset(): void {
+    this.category = '';
+    this.active = '';
+    this.text = '';
+    this.load();
   }
 
   startCreate(): void {
@@ -249,13 +316,64 @@ export class CatalogTypesComponent {
   }
 
   deactivate(row: TypeRow): void {
-    this.api.deactivateType(row.code).subscribe({
-      next: (result) => {
-        this.message.set(result.message);
-        this.load();
-      },
-      error: (failure) => this.error.set(failure?.error?.detail ?? 'Не удалось деактивировать тип.'),
-    });
+    this.dialogs
+      .open(ConfirmDialogComponent, {
+        data: {
+          title: `Деактивировать тип «${row.nameRu}»?`,
+          consequences: this.consequences(row),
+          confirmLabel: 'Деактивировать',
+          danger: true,
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed?: boolean) => {
+        if (!confirmed) {
+          return;
+        }
+        this.error.set('');
+        this.api.deactivateType(row.code).subscribe({
+          next: (result) => {
+            this.message.set(result.message);
+            // Страница остаётся прежней: строка не исчезает, у неё лишь появляется отметка.
+            this.load(false);
+          },
+          error: (failure) => this.error.set(failure?.error?.detail ?? 'Не удалось деактивировать тип.'),
+        });
+      });
+  }
+
+  /** Последствия названы числом: без него сотрудник соглашается не глядя (UI-0.6). */
+  private consequences(row: TypeRow): string {
+    const issued =
+      row.consentsActive > 0
+        ? `Сейчас по типу «${row.nameRu}» действует ${row.consentsActive} ` +
+          `${this.plural(row.consentsActive, 'согласие', 'согласия', 'согласий')}. ` +
+          'Выданные согласия останутся в силе до своего срока — деактивация их не гасит.'
+        : `Действующих согласий по типу «${row.nameRu}» сейчас нет.`;
+    const expiring =
+      row.consentsExpiring > 0
+        ? ` Скоро истекающих среди них — ${row.consentsExpiring}.`
+        : '';
+    return (
+      `${issued}${expiring} Новые согласия по этому типу выдавать перестанут: он пропадёт из конструктора ` +
+      'форм и из выбора при выдаче. Включить тип обратно интерфейс не умеет.'
+    );
+  }
+
+  /** Русское число словами: 1 согласие, 2 согласия, 5 согласий. */
+  private plural(count: number, one: string, few: string, many: string): string {
+    const tens = count % 100;
+    const units = count % 10;
+    if (tens >= 11 && tens <= 14) {
+      return many;
+    }
+    if (units === 1) {
+      return one;
+    }
+    if (units >= 2 && units <= 4) {
+      return few;
+    }
+    return many;
   }
 
   private emptyDraft() {

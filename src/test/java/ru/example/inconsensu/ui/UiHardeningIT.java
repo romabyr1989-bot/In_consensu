@@ -51,29 +51,6 @@ class UiHardeningIT extends AbstractIntegrationTest {
     }
 
     @Test
-    void revocation_dialog_is_closed_for_roles_that_cannot_revoke() throws Exception {
-        mockMvc.perform(get("/ui/consents/" + UUID.randomUUID() + "/revocation-dialog")
-                        .session(loginAs(RoleCode.MARKETING.name())))
-                .andExpect(status().isForbidden());
-
-        mockMvc.perform(get("/ui/subjects/" + UUID.randomUUID() + "/revocation-dialog")
-                        .session(loginAs(RoleCode.LAWYER.name())))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void interface_shows_a_page_on_access_denial_not_json() throws Exception {
-        // UI-0.6: сотрудник видит страницу «Недостаточно прав», а не тело ProblemDetail в браузере.
-        String body = mockMvc.perform(get("/ui/webhooks").session(loginAs(RoleCode.MANAGER.name())))
-                .andExpect(status().isForbidden())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
-
-        assertThat(body).contains("<html").doesNotContain("\"type\":\"urn:inconsensu:error");
-    }
-
-    @Test
     void self_service_page_may_be_embedded_while_employee_screens_may_not() throws Exception {
         // UI-18: страница клиента встраивается в личный кабинет, экраны сотрудника — нет.
         String selfFrames =

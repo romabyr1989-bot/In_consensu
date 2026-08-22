@@ -17,10 +17,15 @@ import ru.example.inconsensu.common.web.RequestIdFilter;
  *
  * <p>Общий обработчик объявлен как {@code @RestControllerAdvice} и до сих пор перехватывал отказы и в
  * модуле ui: сотрудник вместо страницы «Недостаточно прав» получал в браузере тело ProblemDetail. Этот
- * обработчик ограничен пакетом экранов и объявлен с наивысшим приоритетом, поэтому срабатывает первым;
- * машинная цепочка §12 по-прежнему отвечает ProblemDetail.
+ * обработчик объявлен с наивысшим приоритетом, поэтому срабатывает первым; машинная цепочка §12
+ * по-прежнему отвечает ProblemDetail.
+ *
+ * <p>Страниц осталось две: вход с ошибками и самообслуживание клиента (ADR-0089). Контроллеры перечислены
+ * поимённо, а не пакетом: рядом, в том же пакете, лежит слой данных одностраничного приложения, и ему
+ * нужен как раз ProblemDetail с перечнем отклонённых полей — иначе приложение получало бы вместо ошибки
+ * кусок вёрстки (UI-0.9).
  */
-@ControllerAdvice(basePackages = "ru.example.inconsensu.ui.api")
+@ControllerAdvice(assignableTypes = {UiHomeController.class, SelfUiController.class})
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class UiExceptionHandler {
 

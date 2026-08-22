@@ -5,6 +5,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
@@ -16,6 +17,10 @@ import { ApiService, BuilderOptions, FormPage } from '../api.service';
  *
  * Сверху — то, что ждёт решения текущего сотрудника: иначе согласование приходится искать в общем
  * списке, а срок ответа ограничен (FR-1.4).
+ *
+ * Отбор и страницы считает сервер: форм с пунктами и версиями бывает много, и нарезать их в браузере
+ * значило бы возить весь каталог на каждый чих. Тип согласия и третье лицо ищутся по пунктам форм,
+ * поэтому этих фильтров нет в самой таблице — они уходят запросом (UI-0.8).
  */
 @Component({
   selector: 'ic-catalog-forms',
@@ -26,6 +31,7 @@ import { ApiService, BuilderOptions, FormPage } from '../api.service';
     RouterLink,
     MatCardModule,
     MatTableModule,
+    MatPaginatorModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
@@ -61,11 +67,36 @@ import { ApiService, BuilderOptions, FormPage } from '../api.service';
             <mat-option *ngFor="let item of options()?.sources" [value]="item.code">{{ item.nameRu }}</mat-option>
           </mat-select>
         </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Тип согласия</mat-label>
+          <mat-select [(ngModel)]="typeCode" (ngModelChange)="load()">
+            <mat-option value="">Любой</mat-option>
+            <mat-option *ngFor="let item of options()?.types" [value]="item.code">{{ item.nameRu }}</mat-option>
+          </mat-select>
+          <mat-hint>Формы, где такой пункт есть хотя бы один</mat-hint>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Третье лицо</mat-label>
+          <mat-select [(ngModel)]="thirdPartyId" (ngModelChange)="load()">
+            <mat-option value="">Любое</mat-option>
+            <mat-option *ngFor="let item of options()?.thirdParties" [value]="item.id">{{ item.name }}</mat-option>
+          </mat-select>
+          <mat-hint>Кому форма разрешает передавать данные</mat-hint>
+        </mat-form-field>
         <mat-form-field appearance="outline" class="ic-grow">
           <mat-label>Поиск по коду или названию</mat-label>
           <input matInput [(ngModel)]="text" (keyup.enter)="load()" />
         </mat-form-field>
         <button mat-flat-button color="primary" (click)="creating.set(true)">Новая форма</button>
+        <button mat-button *ngIf="filtersApplied()" (click)="reset()">Сбросить отбор</button>
+      </mat-card-content>
+
+      <mat-card-content class="ic-filters">
+        <span class="ic-muted">Выгрузка:</span>
+        <!-- Обычные ссылки, а не запрос из кода: файл забирает браузер по той же сессии (UI-0.3). -->
+        <a mat-stroked-button [href]="formsExportUrl">Формы в CSV</a>
+        <a mat-stroked-button [href]="itemsExportUrl">Пункты форм в CSV</a>
+        <span class="ic-muted">В файл уходит весь каталог целиком, отбор на выгрузку не влияет.</span>
       </mat-card-content>
     </mat-card>
 
@@ -110,6 +141,10 @@ import { ApiService, BuilderOptions, FormPage } from '../api.service';
             <span class="ic-badge" [class]="'ic-badge ' + badge(row.status)">{{ row.statusRu }}</span>
           </td>
         </ng-container>
+        <ng-container matColumnDef="updated">
+          <th mat-header-cell *matHeaderCellDef>Обновлено</th>
+          <td mat-cell *matCellDef="let row">{{ (row.updatedAt | date: 'dd.MM.yyyy HH:mm') || '—' }}</td>
+        </ng-container>
         <ng-container matColumnDef="actions">
           <th mat-header-cell *matHeaderCellDef></th>
           <td mat-cell *matCellDef="let row">
@@ -119,7 +154,23 @@ import { ApiService, BuilderOptions, FormPage } from '../api.service';
         <tr mat-header-row *matHeaderRowDef="columns"></tr>
         <tr mat-row *matRowDef="let row; columns: columns"></tr>
       </table>
-      <p class="ic-empty" *ngIf="!page()?.rows?.length && !loading()">Форм, подходящих под фильтр, нет.</p>
+
+      <div class="ic-empty" *ngIf="!page()?.rows?.length && !loading()">
+        {{ emptyHint() }}
+        <div class="ic-actions ic-gap" *ngIf="filtersApplied()">
+          <button mat-stroked-button (click)="reset()">Показать все формы</button>
+        </div>
+      </div>
+
+      <!-- UI-0.8: постраничность и выбор размера страницы у каждого списка. -->
+      <mat-paginator
+        *ngIf="page()?.rows?.length"
+        [length]="page()?.total ?? 0"
+        [pageSize]="pageSize"
+        [pageIndex]="pageIndex"
+        [pageSizeOptions]="[20, 50, 100]"
+        (page)="turnPage($event)"
+      ></mat-paginator>
     </mat-card>
   `,
 })
@@ -133,11 +184,17 @@ export class CatalogFormsComponent {
   readonly creating = signal(false);
   readonly error = signal('');
 
-  readonly columns = ['code', 'title', 'version', 'status', 'actions'];
+  readonly columns = ['code', 'title', 'version', 'status', 'updated', 'actions'];
+  readonly formsExportUrl = '/ui/api/catalog/export?part=FORMS';
+  readonly itemsExportUrl = '/ui/api/catalog/export?part=ITEMS';
 
   status = '';
   source = '';
+  typeCode = '';
+  thirdPartyId = '';
   text = '';
+  pageIndex = 0;
+  pageSize = 20;
   newCode = '';
   newTitle = '';
 
@@ -146,8 +203,12 @@ export class CatalogFormsComponent {
     this.load();
   }
 
-  load(): void {
+  /** @param resetPage при смене отбора список другой, и оставаться на прежней странице бессмысленно */
+  load(resetPage = true): void {
     this.loading.set(true);
+    if (resetPage) {
+      this.pageIndex = 0;
+    }
     const filters: Record<string, string> = {};
     if (this.status) {
       filters['status'] = this.status;
@@ -155,13 +216,64 @@ export class CatalogFormsComponent {
     if (this.source) {
       filters['source'] = this.source;
     }
+    if (this.typeCode) {
+      filters['typeCode'] = this.typeCode;
+    }
+    if (this.thirdPartyId) {
+      filters['thirdPartyId'] = this.thirdPartyId;
+    }
     if (this.text.trim()) {
       filters['text'] = this.text.trim();
     }
-    this.api.forms(filters).subscribe((page) => {
-      this.page.set(page);
-      this.loading.set(false);
+    filters['page'] = String(this.pageIndex);
+    filters['size'] = String(this.pageSize);
+    this.api.forms(filters).subscribe({
+      next: (found) => {
+        // Форм стало меньше, чем было страниц: возвращаемся на последнюю, а не показываем пустоту.
+        const lastPage = Math.max(0, Math.ceil(found.total / this.pageSize) - 1);
+        if (this.pageIndex > lastPage) {
+          this.pageIndex = lastPage;
+          this.load(false);
+          return;
+        }
+        this.page.set(found);
+        this.loading.set(false);
+        // Список пришёл — прежняя жалоба на сервер больше не про этот экран.
+        this.error.set('');
+      },
+      error: () => {
+        this.loading.set(false);
+        this.error.set('Список форм не загрузился. Обновите страницу или повторите отбор.');
+      },
     });
+  }
+
+  turnPage(event: PageEvent): void {
+    this.pageIndex = event.pageIndex;
+    this.pageSize = event.pageSize;
+    this.load(false);
+  }
+
+  filtersApplied(): boolean {
+    return !!(this.status || this.source || this.typeCode || this.thirdPartyId || this.text.trim());
+  }
+
+  /** Пустая таблица объясняет, что делать дальше, а не просто сообщает о пустоте (UI-0.6). */
+  emptyHint(): string {
+    return this.filtersApplied()
+      ? 'Под выбранный отбор не подошла ни одна форма. Снимите фильтры или измените запрос.'
+      : 'Форм пока нет. Заведите первую кнопкой «Новая форма»: черновик откроется в конструкторе, ' +
+          'а после согласования по нему начнут выдавать согласия.';
+  }
+
+  reset(): void {
+    this.status = '';
+    this.source = '';
+    this.typeCode = '';
+    this.thirdPartyId = '';
+    this.text = '';
+    this.error.set('');
+    this.load();
   }
 
   create(): void {

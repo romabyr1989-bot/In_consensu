@@ -107,3 +107,70 @@ body { background: #f5f6f8; }
 .ic-requisite .ic-missing { color: #9aa0a6; }
 .ic-finding { padding: 2px 0; }
 .ic-item { margin-bottom: 8px; }
+/* Выбранный готовый отбор виден словом и фоном, а не только цветом (UI-0.7). */
+.ic-active-chip { background: #e8eefc; font-weight: 600; }
+/* UI-10: контрольную сумму переносят в письмо и в досье, поэтому кнопка копирования стоит рядом с ней. */
+.ic-checksum {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  color: #6b7280;
+  word-break: break-all;
+}
+
+/* Ширина рабочей области. Экран сотрудника — это таблицы и формы, и им нужна вся ширина окна:
+   поля фильтров держат собственную узкую ширину, а карточки не растягивались по контейнеру. */
+app-root { display: block; }
+.ic-layout { width: 100%; }
+.ic-content { width: 100%; box-sizing: border-box; }
+.ic-block { width: 100%; box-sizing: border-box; }
+.ic-filters > mat-form-field { flex: 1 1 240px; min-width: 200px; }
+.ic-filters > .ic-grow { flex: 2 1 360px; }
+.ic-form-grid { width: 100%; }
+/* Широкая таблица прокручивается внутри карточки, а не растягивает страницу. */
+.ic-block .ic-table { display: table; width: 100%; }
+mat-card-content:has(> .ic-table) { overflow-x: auto; }
+
+/* UI-8: кнопки подстановок над текстом формы. Строка переносится, а не растягивает карточку;
+   на кнопках стоит сама подстановка, поэтому шрифт моноширинный — так видно фигурные скобки. */
+.ic-placeholders { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+.ic-placeholders button { font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; }
+/* Отметка о несохранённом стоит в одном ряду с кнопками и не растягивается по их высоте. */
+.ic-actions .ic-badge { align-self: center; }
+
+/* UI-12: описание формата импорта рядом с загрузкой. Имена колонок и примеры дат набраны
+   моноширинным шрифтом — так видно подчёркивания и точки, которые в обычном тексте сливаются. */
+.ic-code { font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; word-break: break-all; }
+.ic-section-title { font-size: 15px; font-weight: 600; margin: 16px 0 4px; }
+
+/* UI-0.12: цвет и логотип оператора. Цвет приходит переменной с корня приложения после ответа
+   /ui/api/me, поэтому у переменной есть запасное значение — до ответа шапка не мигает без фона. */
+.ic-topbar {
+  /* Material читает свои переменные с самого элемента, поэтому цвет задаётся ими, а не только фоном:
+     иначе правило темы, попадающее в страницу позже, перекрывало бы цвет оператора. */
+  --mat-toolbar-container-background-color: var(--ic-primary, #0d6efd);
+  --mat-toolbar-container-text-color: #fff;
+  --mdc-text-button-label-text-color: #fff;
+  background: var(--ic-primary, #0d6efd);
+  color: #fff;
+}
+.ic-brand { display: inline-flex; align-items: center; gap: 8px; }
+.ic-logo { height: 24px; width: auto; }
+
+/* UI-0.5: крошки над содержимым — из них видно, из какого раздела открыта карточка. */
+.ic-crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: #6b7280;
+}
+.ic-crumbs a { color: inherit; }
+.ic-crumb-sep { color: #9aa0a6; }
+
+/* UI-0.5: счётчик форм, ждущих решения, стоит вплотную к названию пункта меню. */
+.ic-menu-count { margin-left: 8px; }

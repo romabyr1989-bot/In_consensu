@@ -3,20 +3,25 @@ import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import { MatExpansionModule } from '@angular/material/expansion';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
 import { MatTabsModule } from '@angular/material/tabs';
 import { ApiService, Journal, MessageView, NotificationOptions, RuleRow } from '../api.service';
+import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component';
 
 /**
  * UI-13: правила уведомлений и журнал отправок.
  *
  * Две вкладки одного раздела: правило описывает, кого и когда предупредить, журнал показывает, что из
  * этого вышло. Повторная отправка предлагается только для неудавшихся — повторять доставленное незачем.
+ *
+ * Форма правки заполняется правилом с сервера, а не подписями из таблицы: по строке «Ответственный за
+ * ПДн, dpo@example.ru» не восстановить ни роли, ни каналы, ни отбор, и сохранение стёрло бы их молча.
  */
 @Component({
   selector: 'ic-notifications',
@@ -27,11 +32,12 @@ import { ApiService, Journal, MessageView, NotificationOptions, RuleRow } from '
     MatCardModule,
     MatTabsModule,
     MatTableModule,
+    MatPaginatorModule,
     MatFormFieldModule,
     MatInputModule,
     MatSelectModule,
     MatButtonModule,
-    MatExpansionModule,
+    MatDialogModule,
     MatProgressBarModule,
   ],
   template: `
@@ -39,6 +45,7 @@ import { ApiService, Journal, MessageView, NotificationOptions, RuleRow } from '
 
     <div class="ic-note" *ngIf="message()">{{ message() }}</div>
     <div class="ic-danger ic-gap" *ngIf="error()">{{ error() }}</div>
+    <mat-progress-bar mode="indeterminate" *ngIf="loading()"></mat-progress-bar>
 
     <mat-tab-group class="ic-block">
       <mat-tab label="Правила">
@@ -46,8 +53,14 @@ import { ApiService, Journal, MessageView, NotificationOptions, RuleRow } from '
           <mat-card class="ic-block">
             <mat-card-header>
               <mat-card-title>{{ draft.ruleId ? 'Правка правила' : 'Новое правило' }}</mat-card-title>
+              <mat-card-subtitle *ngIf="draft.ruleId">
+                Правило открыто целиком: меняйте что нужно, остальное сохранится как было
+              </mat-card-subtitle>
             </mat-card-header>
             <mat-card-content class="ic-form-grid">
+              <p class="ic-note ic-span-2" *ngIf="editingDisabled()">
+                Это правило сейчас выключено. Если сохранить его, оно снова начнёт слать уведомления.
+              </p>
               <mat-form-field appearance="outline">
                 <mat-label>Название</mat-label>
                 <input matInput [(ngModel)]="draft.name" />
@@ -76,8 +89,29 @@ import { ApiService, Journal, MessageView, NotificationOptions, RuleRow } from '
               <mat-form-field appearance="outline">
                 <mat-label>Получатели — роли</mat-label>
                 <mat-select [(ngModel)]="draft.recipientRoles" multiple>
-                  <mat-option *ngFor="let role of roles" [value]="role.code">{{ role.nameRu }}</mat-option>
+                  <mat-option *ngFor="let role of options()?.roles" [value]="role.code">{{ role.nameRu }}</mat-option>
                 </mat-select>
+                <mat-hint>Письмо уйдёт всем сотрудникам с этой ролью.</mat-hint>
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Отбор: тип согласия</mat-label>
+                <mat-select [(ngModel)]="draft.consentTypeId">
+                  <mat-option [value]="null">Любой тип</mat-option>
+                  <mat-option *ngFor="let item of options()?.consentTypes" [value]="item.code">
+                    {{ item.nameRu }}
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Пусто — правило смотрит на все согласия.</mat-hint>
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Отбор: третье лицо</mat-label>
+                <mat-select [(ngModel)]="draft.thirdPartyId">
+                  <mat-option [value]="null">Любое</mat-option>
+                  <mat-option *ngFor="let item of options()?.thirdParties" [value]="item.code">
+                    {{ item.nameRu }}
+                  </mat-option>
+                </mat-select>
+                <mat-hint>Пусто — правило не различает, кому передаются данные.</mat-hint>
               </mat-form-field>
             </mat-card-content>
             <mat-card-actions align="end">
@@ -124,7 +158,10 @@ import { ApiService, Journal, MessageView, NotificationOptions, RuleRow } from '
               <tr mat-header-row *matHeaderRowDef="ruleColumns"></tr>
               <tr mat-row *matRowDef="let row; columns: ruleColumns"></tr>
             </table>
-            <p class="ic-empty" *ngIf="!rules().length">Правил пока нет.</p>
+            <p class="ic-empty" *ngIf="!rules().length">
+              Правил пока нет, и напоминания никому не уходят. Заполните форму выше: название, событие,
+              за сколько дней предупреждать и кому — и правило заработает.
+            </p>
           </mat-card>
 
           <mat-card class="ic-block">
@@ -147,26 +184,34 @@ import { ApiService, Journal, MessageView, NotificationOptions, RuleRow } from '
             <mat-card-content class="ic-filters">
               <mat-form-field appearance="outline">
                 <mat-label>Статус</mat-label>
-                <mat-select [(ngModel)]="status" (ngModelChange)="loadJournal()">
+                <mat-select [(ngModel)]="status" (ngModelChange)="applyJournalFilters()">
                   <mat-option value="">Все</mat-option>
                   <mat-option *ngFor="let item of options()?.statuses" [value]="item.code">{{ item.nameRu }}</mat-option>
                 </mat-select>
               </mat-form-field>
               <mat-form-field appearance="outline">
                 <mat-label>Канал</mat-label>
-                <mat-select [(ngModel)]="channel" (ngModelChange)="loadJournal()">
+                <mat-select [(ngModel)]="channel" (ngModelChange)="applyJournalFilters()">
                   <mat-option value="">Все</mat-option>
                   <mat-option *ngFor="let item of options()?.channels" [value]="item.code">{{ item.nameRu }}</mat-option>
                 </mat-select>
               </mat-form-field>
               <mat-form-field appearance="outline">
+                <mat-label>Правило</mat-label>
+                <mat-select [(ngModel)]="ruleId" (ngModelChange)="applyJournalFilters()">
+                  <mat-option value="">Все правила</mat-option>
+                  <mat-option *ngFor="let item of options()?.rules" [value]="item.code">{{ item.nameRu }}</mat-option>
+                </mat-select>
+              </mat-form-field>
+              <mat-form-field appearance="outline">
                 <mat-label>С даты</mat-label>
-                <input matInput type="date" [(ngModel)]="from" (change)="loadJournal()" />
+                <input matInput type="date" [(ngModel)]="from" (change)="applyJournalFilters()" />
               </mat-form-field>
               <mat-form-field appearance="outline">
                 <mat-label>По дату</mat-label>
-                <input matInput type="date" [(ngModel)]="to" (change)="loadJournal()" />
+                <input matInput type="date" [(ngModel)]="to" (change)="applyJournalFilters()" />
               </mat-form-field>
+              <button mat-button *ngIf="journalFiltered()" (click)="resetJournalFilters()">Сбросить отбор</button>
             </mat-card-content>
           </mat-card>
 
@@ -224,7 +269,22 @@ import { ApiService, Journal, MessageView, NotificationOptions, RuleRow } from '
               <tr mat-header-row *matHeaderRowDef="journalColumns"></tr>
               <tr mat-row *matRowDef="let row; columns: journalColumns"></tr>
             </table>
-            <p class="ic-empty" *ngIf="!journal()?.rows?.length">Отправок, подходящих под фильтр, нет.</p>
+            <p class="ic-empty" *ngIf="!journal()?.rows?.length && journalFiltered()">
+              Под этот отбор отправок нет. Снимите фильтры или расширьте период — например, поставьте
+              дату «с» на месяц раньше.
+            </p>
+            <p class="ic-empty" *ngIf="!journal()?.rows?.length && !journalFiltered()">
+              Отправок ещё не было. Они появятся, когда сработает правило; чтобы проверить почту прямо
+              сейчас, отправьте тестовое письмо на вкладке «Правила».
+            </p>
+            <!-- UI-0.8: постраничность и выбор размера страницы у каждого списка. -->
+            <mat-paginator
+              [length]="journal()?.total ?? 0"
+              [pageSize]="size"
+              [pageIndex]="page"
+              [pageSizeOptions]="[20, 50, 100]"
+              (page)="turnPage($event)"
+            ></mat-paginator>
           </mat-card>
         </div>
       </mat-tab>
@@ -233,6 +293,7 @@ import { ApiService, Journal, MessageView, NotificationOptions, RuleRow } from '
 })
 export class NotificationsComponent {
   private readonly api = inject(ApiService);
+  private readonly dialogs = inject(MatDialog);
 
   readonly rules = signal<RuleRow[]>([]);
   readonly journal = signal<Journal | null>(null);
@@ -240,28 +301,25 @@ export class NotificationsComponent {
   readonly opened = signal<MessageView | null>(null);
   readonly message = signal('');
   readonly error = signal('');
+  readonly loading = signal(false);
+  /** Правят выключенное правило: сохранение вернёт его в работу, и об этом надо предупредить заранее. */
+  readonly editingDisabled = signal(false);
 
   readonly ruleColumns = ['name', 'trigger', 'filters', 'recipients', 'channels', 'actions'];
   readonly journalColumns = ['createdAt', 'recipient', 'subject', 'rule', 'status', 'actions'];
-
-  /** Роли — те же, что в матрице прав §16.2; получателем правила бывает роль, а не только адрес. */
-  readonly roles = [
-    { code: 'DPO', nameRu: 'Специалист по защите данных' },
-    { code: 'LAWYER', nameRu: 'Юрист' },
-    { code: 'MANAGER', nameRu: 'Менеджер' },
-    { code: 'AUDITOR', nameRu: 'Аудитор' },
-    { code: 'ADMIN', nameRu: 'Администратор' },
-  ];
 
   draft = this.emptyDraft();
   testAddress = '';
   status = '';
   channel = '';
+  ruleId = '';
   from = '';
   to = '';
+  page = 0;
+  size = 20;
 
   constructor() {
-    this.api.notificationOptions().subscribe((options) => this.options.set(options));
+    this.loadOptions();
     this.api.rules().subscribe((rules) => this.rules.set(rules));
     this.loadJournal();
   }
@@ -274,46 +332,124 @@ export class NotificationsComponent {
     if (this.channel) {
       filters['channel'] = this.channel;
     }
+    if (this.ruleId) {
+      filters['ruleId'] = this.ruleId;
+    }
     if (this.from) {
       filters['from'] = this.from;
     }
     if (this.to) {
       filters['to'] = this.to;
     }
-    this.api.journal(filters).subscribe((journal) => this.journal.set(journal));
+    filters['page'] = String(this.page);
+    filters['size'] = String(this.size);
+    this.loading.set(true);
+    this.api.journal(filters).subscribe({
+      next: (journal) => {
+        this.journal.set(journal);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.loading.set(false);
+        this.error.set('Журнал не загрузился. Обновите страницу и попробуйте снова.');
+      },
+    });
+  }
+
+  journalFiltered(): boolean {
+    return !!(this.status || this.channel || this.ruleId || this.from || this.to);
+  }
+
+  /** Новый отбор — всегда с первой страницы: иначе список открывается пустым посреди результатов. */
+  applyJournalFilters(): void {
+    this.page = 0;
+    this.loadJournal();
+  }
+
+  resetJournalFilters(): void {
+    this.status = '';
+    this.channel = '';
+    this.ruleId = '';
+    this.from = '';
+    this.to = '';
+    this.applyJournalFilters();
+  }
+
+  turnPage(event: PageEvent): void {
+    this.page = event.pageIndex;
+    this.size = event.pageSize;
+    this.loadJournal();
   }
 
   saveRule(): void {
     this.error.set('');
+    const editing = !!this.draft.ruleId;
     this.api.saveRule(this.draft).subscribe({
       next: (rules) => {
         this.rules.set(rules);
-        this.message.set(this.draft.ruleId ? 'Правило изменено' : 'Правило создано');
+        this.message.set(editing ? 'Правило изменено' : 'Правило создано');
         this.resetDraft();
+        // Новое правило должно появиться в отборе журнала — справочники перечитываем целиком.
+        this.loadOptions();
       },
       error: (failure) => this.error.set(failure?.error?.detail ?? 'Правило не сохранено: проверьте поля.'),
     });
   }
 
+  /**
+   * Форму заполняет правило с сервера, а не строка таблицы: в подписях нет ни каналов, ни ролей, ни
+   * отбора, и собранная из них правка стирала бы их при сохранении.
+   */
   editRule(row: RuleRow): void {
-    this.draft = {
-      ruleId: row.id,
-      name: row.name,
-      triggerType: this.draft.triggerType,
-      daysBefore: row.thresholds ?? '',
-      recipientEmails: row.recipients ? row.recipients.split(/,\s*/).filter((value) => value.includes('@')) : [],
-      recipientRoles: [],
-      channels: [],
-      consentTypeId: null,
-      thirdPartyId: null,
-    };
+    this.error.set('');
+    this.message.set('');
+    this.loading.set(true);
+    this.api.rule(row.id).subscribe({
+      next: (details) => {
+        this.loading.set(false);
+        this.editingDisabled.set(!details.active);
+        this.draft = {
+          ruleId: details.id,
+          name: details.name,
+          triggerType: details.triggerType ?? '',
+          daysBefore: details.daysBefore ?? '',
+          recipientEmails: details.recipientEmails ?? [],
+          recipientRoles: details.recipientRoles ?? [],
+          channels: details.channels ?? [],
+          consentTypeId: details.consentTypeId,
+          thirdPartyId: details.thirdPartyId,
+        };
+      },
+      error: (failure) => {
+        this.loading.set(false);
+        this.error.set(failure?.error?.detail ?? 'Правило не открылось. Обновите страницу и попробуйте снова.');
+      },
+    });
   }
 
   deactivate(row: RuleRow): void {
-    this.api.deactivateRule(row.id).subscribe((rules) => {
-      this.rules.set(rules);
-      this.message.set('Правило выключено');
-    });
+    const data: ConfirmData = {
+      title: `Выключить правило «${row.name}»?`,
+      consequences: this.consequences(row),
+      confirmLabel: 'Выключить',
+      danger: true,
+    };
+    this.dialogs
+      .open(ConfirmDialogComponent, { data, width: '520px' })
+      .afterClosed()
+      .subscribe((confirmed?: boolean) => {
+        if (!confirmed) {
+          return;
+        }
+        this.error.set('');
+        this.api.deactivateRule(row.id).subscribe({
+          next: (rules) => {
+            this.rules.set(rules);
+            this.message.set(`Правило «${row.name}» выключено`);
+          },
+          error: (failure) => this.error.set(failure?.error?.detail ?? 'Правило не удалось выключить.'),
+        });
+      });
   }
 
   openMessage(id: string): void {
@@ -321,9 +457,13 @@ export class NotificationsComponent {
   }
 
   retry(id: string): void {
-    this.api.retryNotification(id).subscribe((result) => {
-      this.message.set(result.message);
-      this.loadJournal();
+    this.api.retryNotification(id).subscribe({
+      next: (result) => {
+        this.message.set(result.message);
+        this.loadJournal();
+      },
+      error: (failure) =>
+        this.error.set(failure?.error?.detail ?? 'Не удалось отправить повторно. Попробуйте ещё раз.'),
     });
   }
 
@@ -343,6 +483,24 @@ export class NotificationsComponent {
 
   resetDraft(): void {
     this.draft = this.emptyDraft();
+    this.editingDisabled.set(false);
+  }
+
+  private loadOptions(): void {
+    this.api.notificationOptions().subscribe((options) => this.options.set(options));
+  }
+
+  /** Последствия названы поимённо: без них сотрудник соглашается не глядя (UI-0.6). */
+  private consequences(row: RuleRow): string {
+    const recipients = row.recipients ? row.recipients.trim() : '';
+    const audience = recipients ? `получателям: ${recipients}` : 'никому: получатели у правила не заданы';
+    const channels = row.channelsRu.length ? ` по каналам ${row.channelsRu.join(', ')}` : '';
+    const scope = row.filtersRu ? ` Отбор «${row.filtersRu}» больше ни на что не влияет.` : '';
+    return (
+      `Напоминания по событию «${row.triggerRu}» больше не создаются: письма${channels} перестанут ` +
+      `приходить ${audience}.${scope} Уже отправленное останется в журнале. Правило можно вернуть ` +
+      `в работу: откройте его кнопкой «Править» и сохраните.`
+    );
   }
 
   private emptyDraft() {

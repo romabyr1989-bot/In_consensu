@@ -4,15 +4,11 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -58,7 +54,7 @@ class UiAccessIT extends AbstractIntegrationTest {
     }
 
     @Test
-    void employee_of_every_role_can_sign_in_and_see_the_dashboard() throws Exception {
+    void employee_of_every_role_signs_in_and_lands_in_the_workplace() throws Exception {
         for (RoleCode role : List.of(
                 RoleCode.ADMIN,
                 RoleCode.DPO,
@@ -66,57 +62,10 @@ class UiAccessIT extends AbstractIntegrationTest {
                 RoleCode.MANAGER,
                 RoleCode.MARKETING,
                 RoleCode.AUDITOR)) {
+            // Прежние экраны удалены (ADR-0089): сохранённая ссылка на /ui/ уводит в рабочее место.
             mockMvc.perform(get("/ui/").session(loginAs(role.name())))
-                    .andExpect(status().isOk())
-                    .andExpect(content().string(org.hamcrest.Matchers.containsString("Действующих согласий")));
-        }
-    }
-
-    @Test
-    void service_role_has_no_workplace() throws Exception {
-        // §16.2: у роли INTEGRATION есть токен, но нет рабочего места — интерфейс для неё закрыт.
-        mockMvc.perform(get("/ui/").session(loginAs(RoleCode.INTEGRATION.name())))
-                .andExpect(status().isForbidden());
-    }
-
-    /**
-     * Таблица §16.2 целиком: раздел меню -> роли, которым он открыт. Всем прочим ролям положен 403.
-     *
-     * <p>Список — вся таблица, а не выборка: §16.5 требует подтверждать доступ «тестами на 403 для каждой
-     * роли», и выборочные пары пропускали бы как раз ту роль, для которой правило написали неверно.
-     */
-    private static final Map<String, Set<RoleCode>> MENU = menuOfSection162();
-
-    private static Map<String, Set<RoleCode>> menuOfSection162() {
-        Set<RoleCode> everyEmployee = Set.of(
-                RoleCode.ADMIN, RoleCode.DPO, RoleCode.LAWYER, RoleCode.MANAGER, RoleCode.MARKETING, RoleCode.AUDITOR);
-        Map<String, Set<RoleCode>> menu = new LinkedHashMap<>();
-        menu.put("/ui/", everyEmployee);
-        menu.put("/ui/subjects", everyEmployee);
-        menu.put("/ui/catalog/types", everyEmployee);
-        menu.put("/ui/catalog/forms", everyEmployee);
-        menu.put("/ui/third-parties", everyEmployee);
-        menu.put("/ui/import", Set.of(RoleCode.DPO, RoleCode.ADMIN));
-        menu.put("/ui/notifications", Set.of(RoleCode.DPO, RoleCode.ADMIN));
-        menu.put("/ui/webhooks", Set.of(RoleCode.ADMIN));
-        menu.put("/ui/audit", Set.of(RoleCode.AUDITOR, RoleCode.DPO, RoleCode.ADMIN));
-        menu.put("/ui/admin/users", Set.of(RoleCode.ADMIN));
-        menu.put("/ui/admin/settings", Set.of(RoleCode.ADMIN, RoleCode.DPO));
-        return menu;
-    }
-
-    @Test
-    void every_role_sees_exactly_the_sections_of_section_16_2() throws Exception {
-        for (RoleCode role : RoleCode.values()) {
-            MockHttpSession session = loginAs(role.name());
-            for (Map.Entry<String, Set<RoleCode>> section : MENU.entrySet()) {
-                // INTEGRATION — служебная роль без рабочего места, для неё закрыт весь интерфейс.
-                boolean allowed =
-                        role != RoleCode.INTEGRATION && section.getValue().contains(role);
-                org.assertj.core.api.Assertions.assertThat(statusOf(section.getKey(), session))
-                        .as("%s для роли %s", section.getKey(), role)
-                        .isEqualTo(allowed ? 200 : 403);
-            }
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl("/app/"));
         }
     }
 

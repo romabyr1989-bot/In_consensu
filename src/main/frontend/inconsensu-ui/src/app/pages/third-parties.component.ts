@@ -8,6 +8,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
+import { RouterLink } from '@angular/router';
 import { ApiService, PartyRow } from '../api.service';
 
 /** UI-11: справочник третьих лиц — реквизиты, договор с бейджем срока, категории и счётчики согласий. */
@@ -15,6 +16,7 @@ import { ApiService, PartyRow } from '../api.service';
   selector: 'ic-third-parties',
   standalone: true,
   imports: [
+    RouterLink,
     CommonModule,
     FormsModule,
     MatCardModule,
@@ -47,7 +49,9 @@ import { ApiService, PartyRow } from '../api.service';
       <table mat-table [dataSource]="rows()" class="ic-table">
         <ng-container matColumnDef="name">
           <th mat-header-cell *matHeaderCellDef>Наименование</th>
-          <td mat-cell *matCellDef="let row">{{ row.name }}</td>
+          <td mat-cell *matCellDef="let row">
+            <a [routerLink]="['/third-parties', row.id]">{{ row.name }}</a>
+          </td>
         </ng-container>
         <ng-container matColumnDef="inn">
           <th mat-header-cell *matHeaderCellDef>ИНН</th>

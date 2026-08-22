@@ -49,6 +49,8 @@ public class UiOperationsApiController {
     private final NotificationService notifications;
     private final NotificationTestService testService;
     private final UiNotificationViewService notificationView;
+    private final ru.example.inconsensu.catalog.application.ConsentTypeService types;
+    private final ru.example.inconsensu.thirdparty.application.ThirdPartyService thirdParties;
 
     public UiOperationsApiController(
             ConsentImportService imports,
@@ -56,13 +58,17 @@ public class UiOperationsApiController {
             NotificationRuleService rules,
             NotificationService notifications,
             NotificationTestService testService,
-            UiNotificationViewService notificationView) {
+            UiNotificationViewService notificationView,
+            ru.example.inconsensu.catalog.application.ConsentTypeService types,
+            ru.example.inconsensu.thirdparty.application.ThirdPartyService thirdParties) {
         this.imports = imports;
         this.importView = importView;
         this.rules = rules;
         this.notifications = notifications;
         this.testService = testService;
         this.notificationView = notificationView;
+        this.types = types;
+        this.thirdParties = thirdParties;
     }
 
     // ---------- UI-12: импорт ----------
@@ -158,6 +164,41 @@ public class UiOperationsApiController {
     @GetMapping("/notifications/rules")
     public List<UiNotificationViewService.RuleRow> rules() {
         return notificationView.rules();
+    }
+
+    /**
+     * Правило целиком, полями (UI-13).
+     *
+     * <p>Список правил отдаёт готовые подписи для таблицы, и по ним форму правки не собрать: из строки
+     * «Ответственный за ПДн, dpo@example.ru» не восстановить ни роли, ни каналы, ни отбор. Правка,
+     * собранная из подписей, молча теряла бы всё, о чём таблица не рассказывает.
+     */
+    public record RuleDetails(
+            UUID id,
+            String name,
+            String triggerType,
+            String daysBefore,
+            List<String> recipientEmails,
+            List<String> recipientRoles,
+            List<String> channels,
+            UUID consentTypeId,
+            UUID thirdPartyId,
+            boolean active) {}
+
+    @GetMapping("/notifications/rules/{id}")
+    public RuleDetails rule(@PathVariable UUID id) {
+        var rule = rules.get(id);
+        return new RuleDetails(
+                rule.getId(),
+                rule.getName(),
+                rule.getTriggerType().name(),
+                rule.getDaysBefore().stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(", ")),
+                List.copyOf(rule.getRecipientEmails()),
+                List.copyOf(rule.getRecipientRoles()),
+                rule.getChannels().stream().map(NotificationChannel::name).toList(),
+                rule.getConsentTypeId(),
+                rule.getThirdPartyId(),
+                rule.isActive());
     }
 
     /** @param daysBefore пороги строкой «30, 15, 7»: так их проще править, чем набором полей */
@@ -257,6 +298,24 @@ public class UiOperationsApiController {
                 "statuses",
                         java.util.Arrays.stream(NotificationStatus.values())
                                 .map(status -> Map.of("code", status.name(), "nameRu", status.nameRu()))
+                                .toList(),
+                // Отбор правила: по типу согласия и по партнёру (FR-9.2) — без справочников их не выбрать.
+                "consentTypes",
+                        types.activeTypes().stream()
+                                .map(type -> Map.of("code", type.getId().toString(), "nameRu", type.getNameRu()))
+                                .toList(),
+                "thirdParties",
+                        thirdParties.list(org.springframework.data.domain.Pageable.unpaged()).getContent().stream()
+                                .map(party -> Map.of("code", party.getId().toString(), "nameRu", party.getName()))
+                                .toList(),
+                // Журнал фильтруется по правилу: список нужен экрану, а не только таблице.
+                "rules",
+                        rules.list().stream()
+                                .map(rule -> Map.of("code", rule.getId().toString(), "nameRu", rule.getName()))
+                                .toList(),
+                "roles",
+                        java.util.Arrays.stream(ru.example.inconsensu.common.domain.RoleCode.values())
+                                .map(role -> Map.of("code", role.name(), "nameRu", role.nameRu()))
                                 .toList());
     }
 

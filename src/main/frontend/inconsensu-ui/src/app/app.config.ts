@@ -1,9 +1,11 @@
 import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
 import { provideHttpClient, withXsrfConfiguration } from '@angular/common/http';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+import { MatPaginatorIntl } from '@angular/material/paginator';
 import { provideRouter, withHashLocation } from '@angular/router';
 
 import { routes } from './app.routes';
+import { russianPaginatorIntl } from './paginator-intl';
 
 /**
  * Настройка приложения.
@@ -19,5 +21,6 @@ export const appConfig: ApplicationConfig = {
       withXsrfConfiguration({ cookieName: 'XSRF-TOKEN', headerName: 'X-XSRF-TOKEN' }),
     ),
     provideAnimationsAsync(),
+    { provide: MatPaginatorIntl, useFactory: russianPaginatorIntl },
   ],
 };

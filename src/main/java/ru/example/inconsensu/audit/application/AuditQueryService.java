@@ -54,6 +54,12 @@ public class AuditQueryService {
         this.accessLog = accessLog;
     }
 
+    /** Типы объектов журнала — для фильтра экрана аудита (UI-15). */
+    @Transactional(readOnly = true)
+    public List<String> aggregateTypes() {
+        return events.findDistinctAggregateTypes();
+    }
+
     @Transactional(readOnly = true)
     public Page<AuditEvent> events(EventFilter filter, Pageable pageable) {
         Specification<AuditEvent> specification = (root, query, builder) -> {

@@ -48,6 +48,7 @@ public class UiAdminApiController {
     private final AuditVerificationService verifications;
     private final UserService users;
     private final OperatorSettingsService settings;
+    private final ru.example.inconsensu.audit.application.AuditService audit;
     private final ZoneId zone;
 
     public UiAdminApiController(
@@ -58,6 +59,7 @@ public class UiAdminApiController {
             AuditVerificationService verifications,
             UserService users,
             OperatorSettingsService settings,
+            ru.example.inconsensu.audit.application.AuditService audit,
             java.time.Clock clock) {
         this.webhookView = webhookView;
         this.subscriptions = subscriptions;
@@ -66,6 +68,7 @@ public class UiAdminApiController {
         this.verifications = verifications;
         this.users = users;
         this.settings = settings;
+        this.audit = audit;
         this.zone = clock.getZone();
     }
 
@@ -101,6 +104,42 @@ public class UiAdminApiController {
         }
         var created = subscriptions.create(form);
         return new SubscriptionSaved(webhookView.subscriptions(), created.secret());
+    }
+
+    /** UI-14: подписку выключают, а не удаляют — история доставок остаётся доказательством. */
+    @PostMapping("/webhooks/{id}/deactivate")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<UiWebhookViewService.SubscriptionRow> deactivateWebhook(@PathVariable UUID id) {
+        subscriptions.deactivate(id);
+        return webhookView.subscriptions();
+    }
+
+    /**
+     * UI-14: замена секрета подписи.
+     *
+     * <p>Новый секрет показывается один раз — как и при создании: хранить его в интерфейсе негде, он
+     * нужен только для настройки потребителя.
+     */
+    @PostMapping("/webhooks/{id}/rotate-secret")
+    @PreAuthorize("hasRole('ADMIN')")
+    public SubscriptionSaved rotateSecret(@PathVariable UUID id) {
+        var created = subscriptions.rotateSecret(id);
+        return new SubscriptionSaved(webhookView.subscriptions(), created.secret());
+    }
+
+    /** Типы событий, на которые можно подписаться (§10): список задаёт сервер, а не экран. */
+    @GetMapping("/webhooks/event-types")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<String> eventTypes() {
+        return List.of(
+                ru.example.inconsensu.common.domain.EventTypes.CONSENT_GRANTED,
+                ru.example.inconsensu.common.domain.EventTypes.CONSENT_REVOKED,
+                ru.example.inconsensu.common.domain.EventTypes.CONSENT_SUPERSEDED,
+                ru.example.inconsensu.common.domain.EventTypes.CONSENT_EXPIRING,
+                ru.example.inconsensu.common.domain.EventTypes.CONSENT_EXPIRED,
+                ru.example.inconsensu.common.domain.EventTypes.FORM_PUBLISHED,
+                ru.example.inconsensu.common.domain.EventTypes.THIRD_PARTY_CONTRACT_EXPIRING,
+                ru.example.inconsensu.common.domain.EventTypes.IMPORT_FINISHED);
     }
 
     @GetMapping("/webhooks/{id}/deliveries")
@@ -162,6 +201,26 @@ public class UiAdminApiController {
         var found = auditView.accessLog(
                 filter, PageRequest.of(Math.max(page, 0), size, Sort.by(Sort.Direction.DESC, "id")));
         return Map.of("rows", found.getContent(), "total", found.getTotalElements());
+    }
+
+    /**
+     * Справочники экрана аудита: типы объектов и типы событий.
+     *
+     * <p>Типы объектов перечисляет сервер: это имена агрегатов, которыми он же подписывает события, и
+     * держать их копию во фронте значило бы догадываться о внутренних именах.
+     */
+    @GetMapping("/audit/options")
+    @PreAuthorize("hasAnyRole('AUDITOR','DPO','ADMIN')")
+    public Map<String, Object> auditOptions() {
+        return Map.of(
+                "aggregateTypes",
+                        auditView.aggregateTypes().stream()
+                                .map(type -> Map.of("code", type, "nameRu", type))
+                                .toList(),
+                "eventTypes",
+                        java.util.Arrays.stream(AuditEventType.values())
+                                .map(type -> Map.of("code", type.name(), "nameRu", type.nameRu()))
+                                .toList());
     }
 
     /** Прогон проверки цепочки: он идёт в фоне, поэтому список показывает и выполняющиеся (FR-10.3). */
@@ -277,15 +336,36 @@ public class UiAdminApiController {
         return Map.of("message", "Пароль сброшен");
     }
 
+    /**
+     * UI-16: настройки группами и с историей изменений.
+     *
+     * <p>История — часть экрана, а не журнала аудита: оператор должен видеть, кто и когда менял реквизиты,
+     * не уходя в другой раздел.
+     */
+    public record SettingsView(List<UiSettingsCatalog.SettingGroup> groups, List<SettingChange> history) {}
+
+    /** @param at момент изменения; @param actor кто менял */
+    public record SettingChange(String at, String actor, String description) {}
+
     @GetMapping("/admin/settings")
     @PreAuthorize("hasAnyRole('ADMIN','DPO')")
-    public List<UiSettingsCatalog.SettingGroup> settings() {
-        return UiSettingsCatalog.groups(settings.all());
+    public SettingsView settings() {
+        var history = audit
+                .historyOf(
+                        ru.example.inconsensu.iam.application.OperatorSettingsService.AGGREGATE_TYPE,
+                        ru.example.inconsensu.iam.application.OperatorSettingsService.AGGREGATE_ID)
+                .stream()
+                .map(event -> new SettingChange(
+                        event.getOccurredAt().toString(),
+                        event.getActorId() == null ? "" : event.getActorId(),
+                        event.getEventType().nameRu()))
+                .toList();
+        return new SettingsView(UiSettingsCatalog.groups(settings.all()), history);
     }
 
     @PostMapping("/admin/settings")
     @PreAuthorize("hasAnyRole('ADMIN','DPO')")
-    public List<UiSettingsCatalog.SettingGroup> updateSettings(@RequestBody Map<String, String> changes) {
+    public SettingsView updateSettings(@RequestBody Map<String, String> changes) {
         settings.update(changes);
         return settings();
     }

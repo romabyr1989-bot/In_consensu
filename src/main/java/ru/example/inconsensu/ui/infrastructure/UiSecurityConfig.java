@@ -1,5 +1,8 @@
 package ru.example.inconsensu.ui.infrastructure;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import org.springframework.boot.web.servlet.server.CookieSameSiteSupplier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -45,19 +48,22 @@ public class UiSecurityConfig {
         SavedRequestAwareAuthenticationSuccessHandler successHandler =
                 new SavedRequestAwareAuthenticationSuccessHandler() {
                     @Override
-                    protected String determineTargetUrl(
-                            jakarta.servlet.http.HttpServletRequest request,
-                            jakarta.servlet.http.HttpServletResponse response) {
+                    protected String determineTargetUrl(HttpServletRequest request, HttpServletResponse response) {
                         // Адрес возврата приходит из формы: сохранённого запроса после истечения сессии нет.
                         // Проверка обязательна — «//evil.example» увела бы сотрудника на чужой сайт.
                         String requested = request.getParameter(RETURN_PARAMETER);
-                        if (requested != null && requested.startsWith("/ui/") && !requested.startsWith("//")) {
+                        if (requested != null
+                                && (requested.startsWith("/ui/") || requested.startsWith("/app/"))
+                                && !requested.startsWith("//")) {
                             return requested;
                         }
                         return super.determineTargetUrl(request, response);
                     }
                 };
-        successHandler.setDefaultTargetUrl("/ui/");
+        // Рабочее место сотрудника — одностраничное приложение (ADR-0087). Прежние страницы остаются
+        // только до удаления, и приводить сотрудника после входа именно на них — значит показывать ему
+        // старый интерфейс вместо нового.
+        successHandler.setDefaultTargetUrl("/app/");
 
         // `/app/**` — одностраничное приложение (ADR-0087): та же сессия и та же матрица ролей, что у /ui.
         http.securityMatcher("/ui/**", "/app/**", "/self/ui/**", "/webjars/**", "/assets/**", "/favicon.ico")
@@ -96,7 +102,11 @@ public class UiSecurityConfig {
                 // учётными данными — сама сессия остаётся HttpOnly.
                 .csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .csrfTokenRequestHandler(eagerCsrfToken()))
-                .exceptionHandling(handling -> handling.accessDeniedPage("/ui/forbidden"))
+                // Отказ по адресу данных не должен приходить страницей: приложение ждёт JSON, а получало
+                // перенаправление на HTML и показало бы вместо ошибки кусок вёрстки (UI-0.9). Экраны
+                // Thymeleaf по-прежнему получают страницу «Доступ закрыт».
+                .exceptionHandling(
+                        handling -> handling.accessDeniedHandler(accessDenied()).authenticationEntryPoint(entryPoint()))
                 // UI-18: страница самообслуживания встраивается в личный кабинет клиента, поэтому запрет
                 // фреймов с неё снимается, а разрешённые источники задаёт оператор настройкой
                 // INCONSENSU_SELFSERVICE_FRAME_ANCESTORS. Экраны сотрудника остаются закрытыми от фреймов.
@@ -113,8 +123,7 @@ public class UiSecurityConfig {
      * источнику, а личный кабинет клиента добавляется явно — иначе страницу с согласиями можно было бы
      * открыть во фрейме на чужом сайте.
      */
-    private void frameAncestors(
-            jakarta.servlet.http.HttpServletRequest request, jakarta.servlet.http.HttpServletResponse response) {
+    private void frameAncestors(HttpServletRequest request, HttpServletResponse response) {
         String path = request.getRequestURI();
         if (path != null && path.startsWith("/self/ui")) {
             response.setHeader("Content-Security-Policy", "frame-ancestors " + frameAncestors);
@@ -140,6 +149,83 @@ public class UiSecurityConfig {
      * считается «истёкшим». Страницы входа и объяснения возврата к себе не требуют.
      */
     /**
+     * Отказ в правах: JSON для адресов данных, страница — для экранов.
+     *
+     * <p>Разветвление собирается вручную: `accessDeniedPage` задаёт обработчик целиком и отменяет
+     * сопоставление по адресу, поэтому отказ на `/ui/api` уходил перенаправлением.
+     */
+    private static org.springframework.security.web.access.AccessDeniedHandler accessDenied() {
+        var page = new org.springframework.security.web.access.AccessDeniedHandlerImpl();
+        page.setErrorPage("/ui/forbidden");
+        return new org.springframework.security.web.access.RequestMatcherDelegatingAccessDeniedHandler(
+                new java.util.LinkedHashMap<>(java.util.Map.of(
+                        (org.springframework.security.web.util.matcher.RequestMatcher) UiSecurityConfig::isDataRequest,
+                        (org.springframework.security.web.access.AccessDeniedHandler) UiSecurityConfig::denyAsJson)),
+                page);
+    }
+
+    /**
+     * Вход без сессии: JSON для адресов данных, переход на страницу входа — для экранов.
+     *
+     * <p>Разветвление собирается вручную по той же причине, что и отказ в правах: одиночное сопоставление
+     * Spring применяет ко всем запросам, и переход на страницу входа заменялся бы ответом 401.
+     */
+    private static org.springframework.security.web.AuthenticationEntryPoint entryPoint() {
+        var delegating = new org.springframework.security.web.authentication.DelegatingAuthenticationEntryPoint(
+                new java.util.LinkedHashMap<>(java.util.Map.of(
+                        (org.springframework.security.web.util.matcher.RequestMatcher) UiSecurityConfig::isDataRequest,
+                        (org.springframework.security.web.AuthenticationEntryPoint)
+                                UiSecurityConfig::unauthorizedAsJson)));
+        delegating.setDefaultEntryPoint(
+                new org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint(LOGIN_PATH));
+        return delegating;
+    }
+
+    /** Адрес данных рабочего места: с него приложение ждёт JSON, а не страницу. */
+    private static boolean isDataRequest(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return path != null && path.startsWith(API_PREFIX);
+    }
+
+    private static final String API_PREFIX = "/ui/api/";
+
+    /**
+     * Отказ по правам — 403 с телом RFC 9457.
+     *
+     * <p>Причина не уточняется: сообщать, чего именно не хватает, значит рассказывать о правах чужой роли.
+     */
+    private static void denyAsJson(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            org.springframework.security.access.AccessDeniedException failure)
+            throws IOException {
+        problem(
+                response,
+                ru.example.inconsensu.common.error.ErrorCode.ACCESS_DENIED,
+                "У вашей роли нет прав на операцию");
+    }
+
+    /** Сессия кончилась или её не было: приложение само отправит сотрудника на страницу входа. */
+    private static void unauthorizedAsJson(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            org.springframework.security.core.AuthenticationException failure)
+            throws IOException {
+        problem(response, ru.example.inconsensu.common.error.ErrorCode.UNAUTHORIZED, "Сессия истекла, войдите заново");
+    }
+
+    /** Код отказа берётся из общего перечня: иначе на одно и то же отказывающее правило было бы два кода. */
+    private static void problem(
+            HttpServletResponse response, ru.example.inconsensu.common.error.ErrorCode code, String title)
+            throws IOException {
+        int status = code.status().value();
+        response.setStatus(status);
+        response.setContentType("application/problem+json;charset=UTF-8");
+        response.getWriter()
+                .write("{\"type\":\"%s\",\"title\":\"%s\",\"status\":%d}".formatted(code.type(), title, status));
+    }
+
+    /**
      * Токен CSRF выдаётся на каждый ответ, а не по требованию.
      *
      * <p>По умолчанию токен создаётся лениво: страница Thymeleaf запрашивает его сама, подставляя в форму, и
@@ -153,9 +239,18 @@ public class UiSecurityConfig {
         return handler;
     }
 
-    private static void sessionExpired(
-            jakarta.servlet.http.HttpServletRequest request, jakarta.servlet.http.HttpServletResponse response)
+    private static void sessionExpired(HttpServletRequest request, HttpServletResponse response)
             throws java.io.IOException {
+        // Приложение ждёт код, а не переход: страница входа в ответе на запрос данных выглядела бы как
+        // успешный ответ с чужой вёрсткой. Тем же путём сюда попадает запрос без токена CSRF — Spring
+        // считает его признаком истёкшей сессии.
+        if (isDataRequest(request)) {
+            problem(
+                    response,
+                    ru.example.inconsensu.common.error.ErrorCode.UNAUTHORIZED,
+                    "Сессия истекла, войдите заново");
+            return;
+        }
         request.getSession(true);
 
         String path = request.getRequestURI() == null ? "" : request.getRequestURI();
@@ -166,7 +261,7 @@ public class UiSecurityConfig {
 
         String target = path + (request.getQueryString() == null ? "" : "?" + request.getQueryString());
         if (target.length() > MAX_RETURN_LENGTH) {
-            target = "/ui/";
+            target = "/app/";
         }
         response.sendRedirect("/ui/session-expired?from="
                 + java.net.URLEncoder.encode(target, java.nio.charset.StandardCharsets.UTF_8));

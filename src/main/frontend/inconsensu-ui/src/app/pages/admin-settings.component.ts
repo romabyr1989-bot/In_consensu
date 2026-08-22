@@ -5,7 +5,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { ApiService, SettingGroup } from '../api.service';
+import { MatTableModule } from '@angular/material/table';
+import { ApiService, SettingChange, SettingGroup } from '../api.service';
 
 /**
  * UI-16: настройки оператора.
@@ -13,11 +14,22 @@ import { ApiService, SettingGroup } from '../api.service';
  * Значения показываются группами и с русскими подписями, а не списком технических ключей. Часть
  * настроек задаётся при установке и правке не подлежит — такие поля закрыты, но видны: сотруднику
  * нужно знать, с чем работает система.
+ *
+ * История правок стоит на том же экране: чтобы увидеть, кто и когда менял реквизиты оператора, не
+ * нужно уходить в журнал аудита.
  */
 @Component({
   selector: 'ic-admin-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatCardModule, MatFormFieldModule, MatInputModule, MatButtonModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatCardModule,
+    MatTableModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatButtonModule,
+  ],
   template: `
     <h1 class="ic-title">Настройки оператора</h1>
 
@@ -38,14 +50,46 @@ import { ApiService, SettingGroup } from '../api.service';
     <div class="ic-actions ic-gap">
       <button mat-flat-button color="primary" (click)="save()">Сохранить настройки</button>
     </div>
+
+    <mat-card class="ic-block">
+      <mat-card-header>
+        <mat-card-title>Кто и когда менял настройки</mat-card-title>
+        <mat-card-subtitle>Список ведётся сам: править и удалять записи нельзя</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <table mat-table [dataSource]="history()" class="ic-table" *ngIf="history().length">
+          <ng-container matColumnDef="at">
+            <th mat-header-cell *matHeaderCellDef>Когда</th>
+            <td mat-cell *matCellDef="let row">{{ row.at }}</td>
+          </ng-container>
+          <ng-container matColumnDef="actor">
+            <th mat-header-cell *matHeaderCellDef>Кто</th>
+            <td mat-cell *matCellDef="let row">{{ row.actor || 'сама система' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="description">
+            <th mat-header-cell *matHeaderCellDef>Что</th>
+            <td mat-cell *matCellDef="let row">{{ row.description }}</td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="historyColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: historyColumns"></tr>
+        </table>
+        <p class="ic-empty" *ngIf="!history().length">
+          Настройки пока ни разу не меняли. Поправьте значение в блоках выше и нажмите «Сохранить
+          настройки» — строка появится здесь сама: когда это было, кто сохранял и что именно поменялось.
+        </p>
+      </mat-card-content>
+    </mat-card>
   `,
 })
 export class AdminSettingsComponent {
   private readonly api = inject(ApiService);
 
   readonly groups = signal<SettingGroup[]>([]);
+  readonly history = signal<SettingChange[]>([]);
   readonly message = signal('');
   readonly error = signal('');
+
+  readonly historyColumns = ['at', 'actor', 'description'];
 
   values: Record<string, string> = {};
 
@@ -54,8 +98,10 @@ export class AdminSettingsComponent {
   }
 
   load(): void {
-    this.api.settings().subscribe((groups) => {
+    this.api.settings().subscribe((view) => {
+      const groups = view.groups;
       this.groups.set(groups);
+      this.history.set(view.history);
       this.values = {};
       groups.forEach((group) => group.settings.forEach((setting) => (this.values[setting.key] = setting.value)));
     });
@@ -71,8 +117,9 @@ export class AdminSettingsComponent {
         .forEach((setting) => (changes[setting.key] = this.values[setting.key] ?? '')),
     );
     this.api.updateSettings(changes).subscribe({
-      next: (groups) => {
-        this.groups.set(groups);
+      next: (view) => {
+        this.groups.set(view.groups);
+        this.history.set(view.history);
         this.message.set('Настройки сохранены');
       },
       error: (failure) => this.error.set(failure?.error?.detail ?? 'Настройки не сохранены: проверьте значения.'),

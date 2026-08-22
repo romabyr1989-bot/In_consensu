@@ -21,6 +21,10 @@ public interface AuditEventRepository extends JpaRepository<AuditEvent, Long>, J
     @Query("select e from AuditEvent e where e.occurredAt >= :from and e.occurredAt < :to order by e.id")
     List<AuditEvent> findDay(@Param("from") Instant from, @Param("to") Instant to);
 
+    /** Типы объектов, встречающиеся в журнале: список фильтра экрана аудита (UI-15). */
+    @Query("select distinct e.aggregateType from AuditEvent e order by e.aggregateType")
+    List<String> findDistinctAggregateTypes();
+
     @Query("select distinct e.aggregateType, e.aggregateId from AuditEvent e")
     List<Object[]> findDistinctAggregates();
 

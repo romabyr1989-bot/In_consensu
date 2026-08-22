@@ -3,6 +3,7 @@ package ru.example.inconsensu.ui.api;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -42,6 +43,8 @@ public class UiApiController {
     private final ru.example.inconsensu.registry.application.RevocationService revocation;
     private final ru.example.inconsensu.registry.application.ConsentEvidenceService evidence;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+    private final ru.example.inconsensu.registry.application.SubjectCardPdfService cardPdf;
+    private final ru.example.inconsensu.catalog.application.ConsentTypeService consentTypes;
 
     public UiApiController(
             UiDashboardService dashboard,
@@ -50,7 +53,9 @@ public class UiApiController {
             UiSubjectViewService subjectView,
             ru.example.inconsensu.registry.application.RevocationService revocation,
             ru.example.inconsensu.registry.application.ConsentEvidenceService evidence,
-            com.fasterxml.jackson.databind.ObjectMapper objectMapper) {
+            com.fasterxml.jackson.databind.ObjectMapper objectMapper,
+            ru.example.inconsensu.registry.application.SubjectCardPdfService cardPdf,
+            ru.example.inconsensu.catalog.application.ConsentTypeService consentTypes) {
         this.dashboard = dashboard;
         this.thirdParties = thirdParties;
         this.branding = branding;
@@ -58,6 +63,8 @@ public class UiApiController {
         this.revocation = revocation;
         this.evidence = evidence;
         this.objectMapper = objectMapper;
+        this.cardPdf = cardPdf;
+        this.consentTypes = consentTypes;
     }
 
     /** Кто вошёл и как выглядит оператор: с этого приложение начинает работу (UI-0.5, UI-0.12). */
@@ -114,17 +121,25 @@ public class UiApiController {
     public List<SubjectSearchRow> searchSubjects(
             @org.springframework.web.bind.annotation.RequestBody Map<String, String> body) {
         String query = body.getOrDefault("query", "");
-        return subjectView.search(query, org.springframework.data.domain.PageRequest.of(0, 50)).getContent().stream()
-                .map(row -> new SubjectSearchRow(
-                        row.subject().getId(),
-                        row.subject().getFullName(),
-                        row.subject().getExternalId(),
-                        contact(row, ru.example.inconsensu.common.domain.ContactType.PHONE),
-                        contact(row, ru.example.inconsensu.common.domain.ContactType.EMAIL),
-                        row.active(),
-                        row.expiring(),
-                        row.revoked()))
+        return subjectView.search(query, PageRequest.of(0, 50)).getContent().stream()
+                .map(this::searchRow)
                 .toList();
+    }
+
+    private SubjectSearchRow searchRow(UiSubjectViewService.SubjectRow row) {
+        return new SubjectSearchRow(
+                row.subject().getId(),
+                row.subject().getFullName(),
+                row.subject().getExternalId(),
+                contact(row, ru.example.inconsensu.common.domain.ContactType.PHONE),
+                contact(row, ru.example.inconsensu.common.domain.ContactType.EMAIL),
+                row.active(),
+                row.expiring(),
+                row.revoked());
+    }
+
+    private static String text(String value) {
+        return value == null ? "" : value;
     }
 
     /** Значение контакта нужного типа — уже в том виде, в каком его вправе видеть эта роль. */
@@ -157,6 +172,147 @@ public class UiApiController {
                         java.util.Arrays.stream(AuditEventType.values())
                                 .map(type -> new DictionaryItem(type.name(), type.nameRu()))
                                 .toList());
+    }
+
+    /**
+     * UI-2, UI-3: список клиентов по фильтрам, без поискового запроса.
+     *
+     * <p>Плитка главной открывает именно такой список — «все, у кого согласие заканчивается», — и
+     * поискового запроса у сотрудника при этом нет. Отбор идёт GET-ом: в нём нет персональных данных,
+     * только коды справочников, и такую ссылку можно положить в закладки (UI-0.8).
+     */
+    @GetMapping("/subjects")
+    public Map<String, Object> listSubjects(
+            @RequestParam(required = false) ru.example.inconsensu.common.domain.ConsentStatus status,
+            @RequestParam(required = false) UUID consentTypeId,
+            @RequestParam(required = false) UUID thirdPartyId,
+            @RequestParam(required = false) ru.example.inconsensu.common.domain.ConsentSource source,
+            @RequestParam(required = false) String expiringBefore,
+            @RequestParam(defaultValue = "false") boolean revokedOnly,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String direction) {
+        var filter = new ru.example.inconsensu.registry.application.SubjectService.SubjectFilter(
+                status,
+                consentTypeId,
+                thirdPartyId,
+                source,
+                expiringBefore == null || expiringBefore.isBlank()
+                        ? null
+                        : subjectView.startOfNextDay(java.time.LocalDate.parse(expiringBefore)),
+                revokedOnly);
+        if (filter.isEmpty()) {
+            return Map.of("rows", List.of(), "total", 0L, "hint", "Выберите хотя бы один отбор или введите запрос.");
+        }
+        var found = subjectView.search(null, filter, PageRequest.of(Math.max(page, 0), size, order(sort, direction)));
+        return Map.of(
+                "rows", found.getContent().stream().map(this::searchRow).toList(),
+                "total", found.getTotalElements());
+    }
+
+    /** UI-0.8: сортировка разрешена только по колонкам списка — иначе имя поля уходит прямо в запрос. */
+    private static org.springframework.data.domain.Sort order(String sort, String direction) {
+        String property =
+                switch (sort == null ? "" : sort) {
+                    case "fullName" -> "lastName";
+                    case "externalId" -> "externalId";
+                    case "birthDate" -> "birthDate";
+                    default -> null;
+                };
+        if (property == null) {
+            // Без явной сортировки работает нативный запрос под индексом префикса ФИО: порядок задаёт он.
+            return org.springframework.data.domain.Sort.unsorted();
+        }
+        return org.springframework.data.domain.Sort.by(
+                "desc".equalsIgnoreCase(direction)
+                        ? org.springframework.data.domain.Sort.Direction.DESC
+                        : org.springframework.data.domain.Sort.Direction.ASC,
+                property);
+    }
+
+    /** Справочники панели отбора (UI-3): статусы, источники, типы согласий и партнёры. */
+    @GetMapping("/subjects/filters")
+    public Map<String, Object> subjectFilters() {
+        return Map.of(
+                "statuses",
+                        java.util.Arrays.stream(ru.example.inconsensu.common.domain.ConsentStatus.values())
+                                .map(status -> Map.of("code", status.name(), "nameRu", status.nameRu()))
+                                .toList(),
+                "sources",
+                        java.util.Arrays.stream(ru.example.inconsensu.common.domain.ConsentSource.values())
+                                .map(source -> Map.of("code", source.name(), "nameRu", source.nameRu()))
+                                .toList(),
+                "consentTypes",
+                        consentTypes.activeTypes().stream()
+                                .map(type -> Map.of("code", type.getId().toString(), "nameRu", type.getNameRu()))
+                                .toList(),
+                "thirdParties",
+                        thirdParties.rows().stream()
+                                .map(party -> Map.of("code", party.id().toString(), "nameRu", party.name()))
+                                .toList());
+    }
+
+    /**
+     * UI-0.1: заведение и правка клиента (§9 `POST /subjects` — upsert по внешнему идентификатору).
+     *
+     * <p>Ключ — внешний идентификатор: повторная отправка того же значения правит запись, а не создаёт
+     * вторую (FR-4.4).
+     */
+    public record SubjectRequest(
+            String externalId,
+            String lastName,
+            String firstName,
+            String middleName,
+            String birthDate,
+            String phone,
+            String email) {}
+
+    @org.springframework.web.bind.annotation.PostMapping("/subjects")
+    @PreAuthorize("hasAnyRole('MANAGER','DPO','ADMIN')")
+    public Map<String, String> saveSubject(
+            @org.springframework.web.bind.annotation.RequestBody SubjectRequest request) {
+        List<ru.example.inconsensu.registry.application.SubjectService.ContactForm> contacts =
+                new java.util.ArrayList<>();
+        if (request.phone() != null && !request.phone().isBlank()) {
+            contacts.add(new ru.example.inconsensu.registry.application.SubjectService.ContactForm(
+                    ru.example.inconsensu.common.domain.ContactType.PHONE,
+                    request.phone().trim(),
+                    true));
+        }
+        if (request.email() != null && !request.email().isBlank()) {
+            contacts.add(new ru.example.inconsensu.registry.application.SubjectService.ContactForm(
+                    ru.example.inconsensu.common.domain.ContactType.EMAIL,
+                    request.email().trim(),
+                    true));
+        }
+        var saved = subjectView.saveSubject(new ru.example.inconsensu.registry.application.SubjectService.SubjectForm(
+                request.externalId().trim(),
+                request.lastName().trim(),
+                request.firstName().trim(),
+                request.middleName() == null || request.middleName().isBlank()
+                        ? null
+                        : request.middleName().trim(),
+                request.birthDate() == null || request.birthDate().isBlank()
+                        ? null
+                        : java.time.LocalDate.parse(request.birthDate()),
+                contacts));
+        return Map.of("id", saved.getId().toString(), "message", "Клиент сохранён");
+    }
+
+    /**
+     * UI-4: карточка согласий одним файлом.
+     *
+     * <p>В имени файла только идентификатор: ФИО не попадает ни в адрес, ни в имя файла (UI-0.10).
+     */
+    @GetMapping(value = "/subjects/{id}/card.pdf", produces = org.springframework.http.MediaType.APPLICATION_PDF_VALUE)
+    public org.springframework.http.ResponseEntity<byte[]> cardPdf(
+            @org.springframework.web.bind.annotation.PathVariable UUID id) {
+        return org.springframework.http.ResponseEntity.ok()
+                .header(
+                        org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"consent-card-" + id + ".pdf\"")
+                .body(cardPdf.render(id));
     }
 
     /** Согласие в карточке и в истории: даты и подписи уже подготовлены сервисом представления. */
@@ -226,8 +382,10 @@ public class UiApiController {
                                 tile.channel().name(),
                                 tile.nameRu(),
                                 tile.allowed(),
-                                tile.validUntil(),
-                                tile.reasonRu()))
+                                text(tile.validUntil()),
+                                // У открытого канала причины нет: пустая строка, а не null — иначе экран
+                                // печатает «null» там, где не должно быть ничего.
+                                text(tile.reasonRu())))
                         .toList(),
                 card.consents().stream().map(UiApiController::consentCard).toList(),
                 card.transfers().stream()
@@ -316,6 +474,7 @@ public class UiApiController {
 
     /** UI-4: чем можно наполнить диалог отзыва — список действующих согласий клиента. */
     @GetMapping("/subjects/{id}/revocable")
+    @PreAuthorize("hasAnyRole('MANAGER','DPO','ADMIN')")
     public List<UiSubjectViewService.RevocableConsent> revocable(
             @org.springframework.web.bind.annotation.PathVariable UUID id) {
         return subjectView.revocableConsents(id);
@@ -323,6 +482,7 @@ public class UiApiController {
 
     /** UI-5: что погаснет вместе с этим согласием — показывается до подтверждения отзыва. */
     @GetMapping("/consents/{id}/cascade")
+    @PreAuthorize("hasAnyRole('MANAGER','DPO','ADMIN')")
     public List<ConsentCard> cascade(@org.springframework.web.bind.annotation.PathVariable UUID id) {
         return subjectView.previewCascade(id).stream()
                 .map(UiApiController::consentCard)
@@ -417,21 +577,5 @@ public class UiApiController {
                 subjectView.historyFeed(summary.subjectId(), null, null, null).entries().stream()
                         .filter(entry -> id.equals(entry.consentId()))
                         .toList());
-    }
-
-    /** UI-11: справочник третьих лиц. */
-    @GetMapping("/third-parties")
-    public List<UiThirdPartyViewService.PartyRow> thirdParties(
-            @RequestParam(required = false) String contract,
-            @RequestParam(required = false) String sort,
-            @RequestParam(required = false) String direction) {
-        return thirdParties.rows("EXPIRING".equals(contract), sort, "desc".equalsIgnoreCase(direction));
-    }
-
-    /** UI-11: выгрузки партнёру — вкладка карточки третьего лица. */
-    @GetMapping("/third-parties/{id}/exports")
-    public List<UiThirdPartyViewService.ExportRow> exports(
-            @org.springframework.web.bind.annotation.PathVariable UUID id) {
-        return thirdParties.exports(id);
     }
 }

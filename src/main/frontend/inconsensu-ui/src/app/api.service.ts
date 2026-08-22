@@ -416,6 +416,10 @@ export interface NotificationOptions {
   triggers: DictionaryItem[];
   channels: DictionaryItem[];
   statuses: DictionaryItem[];
+  consentTypes: DictionaryItem[];
+  thirdParties: DictionaryItem[];
+  rules: DictionaryItem[];
+  roles: DictionaryItem[];
 }
 
 /** Подписка на webhooks (UI-14). */
@@ -514,6 +518,101 @@ export interface SettingGroup {
 export interface Paged<T> {
   rows: T[];
   total: number;
+}
+
+/** Карточка третьего лица (UI-11). */
+export interface PartyCard {
+  id: string;
+  name: string;
+  shortName: string;
+  inn: string;
+  ogrn: string;
+  address: string;
+  role: string;
+  roleRu: string;
+  contractNumber: string;
+  contractDate: string;
+  contractValidUntil: string;
+  contractExpired: boolean;
+  allowedPdnCategories: string[];
+  allowedCategoriesRu: string;
+  contactEmail: string;
+  active: boolean;
+  exports: ExportRow[];
+  exportRecords: number;
+  exportCategories: string[];
+  exportAllowed: boolean;
+}
+
+/** downloadable — ссылка «Скачать» живёт, пока не истёк срок хранения выгрузки. */
+export interface ExportRow {
+  id: string;
+  requestedAt: string;
+  requestedBy: string;
+  formatRu: string;
+  recordsCount: number;
+  expiresAt: string;
+  downloadable: boolean;
+}
+
+export interface PartyRequest {
+  id: string | null;
+  inn: string;
+  name: string;
+  shortName: string;
+  ogrn: string;
+  address: string;
+  role: string;
+  contractNumber: string;
+  contractDate: string;
+  contractValidUntil: string;
+  allowedPdnCategories: string[];
+  contactEmail: string;
+}
+
+/** Что можно завести или поправить у клиента (UI-0.1). */
+export interface SubjectRequest {
+  externalId: string;
+  lastName: string;
+  firstName: string;
+  middleName: string;
+  birthDate: string;
+  phone: string;
+  email: string;
+}
+
+/** Справочники панели отбора клиентов (UI-3). */
+export interface SubjectFilters {
+  statuses: DictionaryItem[];
+  sources: DictionaryItem[];
+  consentTypes: DictionaryItem[];
+  thirdParties: DictionaryItem[];
+}
+
+/** Правило уведомлений полями — то, что правит форма (UI-13). */
+export interface RuleDetails {
+  id: string;
+  name: string;
+  triggerType: string;
+  daysBefore: string;
+  recipientEmails: string[];
+  recipientRoles: string[];
+  channels: string[];
+  consentTypeId: string | null;
+  thirdPartyId: string | null;
+  active: boolean;
+}
+
+/** Изменение настроек оператора: кто и когда (UI-16). */
+export interface SettingChange {
+  at: string;
+  actor: string;
+  description: string;
+}
+
+export interface SettingsView {
+  groups: SettingGroup[];
+  history: SettingChange[];
 }
 
 /**
@@ -747,8 +846,10 @@ export class ApiService {
     return this.http.post<VerificationRow[]>('/ui/api/audit/integrity', {});
   }
 
-  users(): Observable<Paged<UserRow> & { roles: DictionaryItem[] }> {
-    return this.http.get<Paged<UserRow> & { roles: DictionaryItem[] }>('/ui/api/admin/users');
+  users(page = 0, size = 50): Observable<Paged<UserRow> & { roles: DictionaryItem[] }> {
+    return this.http.get<Paged<UserRow> & { roles: DictionaryItem[] }>(
+      `/ui/api/admin/users?page=${page}&size=${size}`,
+    );
   }
 
   saveUser(request: UserRequest): Observable<UserRow> {
@@ -759,12 +860,73 @@ export class ApiService {
     return this.http.post<{ message: string }>(`/ui/api/admin/users/${id}/reset-password`, { password });
   }
 
-  settings(): Observable<SettingGroup[]> {
-    return this.http.get<SettingGroup[]>('/ui/api/admin/settings');
+/** Список по отбору, без поискового запроса: так открывается плитка главной (UI-2). */
+  listSubjects(filters: Record<string, string>): Observable<{ rows: SubjectRow[]; total: number; hint?: string }> {
+    const query = new URLSearchParams(filters).toString();
+    return this.http.get<{ rows: SubjectRow[]; total: number; hint?: string }>(
+      `/ui/api/subjects${query ? '?' + query : ''}`,
+    );
   }
 
-  updateSettings(changes: Record<string, string>): Observable<SettingGroup[]> {
-    return this.http.post<SettingGroup[]>('/ui/api/admin/settings', changes);
+  subjectFilters(): Observable<SubjectFilters> {
+    return this.http.get<SubjectFilters>('/ui/api/subjects/filters');
+  }
+
+  saveSubject(request: SubjectRequest): Observable<{ id: string; message: string }> {
+    return this.http.post<{ id: string; message: string }>('/ui/api/subjects', request);
+  }
+
+  partyCard(id: string): Observable<PartyCard> {
+    return this.http.get<PartyCard>(`/ui/api/third-parties/${id}`);
+  }
+
+  saveParty(request: PartyRequest): Observable<PartyCard> {
+    return this.http.post<PartyCard>('/ui/api/third-parties', request);
+  }
+
+  deactivateParty(id: string): Observable<PartyCard> {
+    return this.http.post<PartyCard>(`/ui/api/third-parties/${id}/deactivate`, {});
+  }
+
+  createExport(id: string, format: string): Observable<{ message: string; exports: ExportRow[] }> {
+    return this.http.post<{ message: string; exports: ExportRow[] }>(
+      `/ui/api/third-parties/${id}/exports?format=${format}`,
+      {},
+    );
+  }
+
+rule(id: string): Observable<RuleDetails> {
+    return this.http.get<RuleDetails>(`/ui/api/notifications/rules/${id}`);
+  }
+
+  deactivateWebhook(id: string): Observable<SubscriptionRow[]> {
+    return this.http.post<SubscriptionRow[]>(`/ui/api/webhooks/${id}/deactivate`, {});
+  }
+
+  rotateSecret(id: string): Observable<SubscriptionSaved> {
+    return this.http.post<SubscriptionSaved>(`/ui/api/webhooks/${id}/rotate-secret`, {});
+  }
+
+  webhookEventTypes(): Observable<string[]> {
+    return this.http.get<string[]>('/ui/api/webhooks/event-types');
+  }
+
+  auditOptions(): Observable<{ aggregateTypes: DictionaryItem[]; eventTypes: DictionaryItem[] }> {
+    return this.http.get<{ aggregateTypes: DictionaryItem[]; eventTypes: DictionaryItem[] }>('/ui/api/audit/options');
+  }
+
+  partyOptions(): Observable<{ roles: DictionaryItem[]; pdnCategories: DictionaryItem[] }> {
+    return this.http.get<{ roles: DictionaryItem[]; pdnCategories: DictionaryItem[] }>(
+      '/ui/api/third-parties/options',
+    );
+  }
+
+  settings(): Observable<SettingsView> {
+    return this.http.get<SettingsView>('/ui/api/admin/settings');
+  }
+
+  updateSettings(changes: Record<string, string>): Observable<SettingsView> {
+    return this.http.post<SettingsView>('/ui/api/admin/settings', changes);
   }
 }
 

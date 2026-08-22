@@ -1,5 +1,6 @@
 package ru.example.inconsensu.ui.application;
 
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -48,6 +49,17 @@ public class UiAuditViewService {
                         entry.getEndpoint(),
                         entry.getSubjectId() == null ? "" : entry.getSubjectId().toString(),
                         entry.getRequestId()));
+    }
+
+    /**
+     * Типы объектов, встречающиеся в журнале (UI-15).
+     *
+     * <p>Берутся из самого журнала, а не из перечисления: событие может прийти от модуля, о котором экран
+     * не знает, и такой фильтр не должен исчезать из списка.
+     */
+    @Transactional(readOnly = true)
+    public List<String> aggregateTypes() {
+        return queries.aggregateTypes();
     }
 
     @Transactional(readOnly = true)

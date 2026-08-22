@@ -6,7 +6,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
-import ru.example.inconsensu.catalog.application.CatalogStatsService;
 import ru.example.inconsensu.ui.application.UiDashboardService;
 
 /** UI-1, UI-2, UI-17: вход, дашборд и служебные страницы. */
@@ -54,15 +53,16 @@ public class UiHomeController {
         return "ui/login";
     }
 
+    /**
+     * Корень прежнего интерфейса уводит в новое приложение (ADR-0087, ADR-0089).
+     *
+     * <p>Сохранённые ссылки и закладки на `/ui/` продолжают работать, но открывают рабочее место, а не
+     * прежнюю страницу: два интерфейса рядом сотрудник видеть не должен.
+     */
     @GetMapping({"/ui", "/ui/"})
     @PreAuthorize("isAuthenticated()")
-    public String home(Model model) {
-        CatalogStatsService.CatalogStats stats = dashboard.stats();
-        model.addAttribute("stats", stats);
-        model.addAttribute("recentNotifications", dashboard.recentNotifications());
-        model.addAttribute("failedDeliveries", dashboard.failedDeliveries());
-        model.addAttribute("failedImports", dashboard.failedImports());
-        return "ui/dashboard";
+    public String home() {
+        return "redirect:/app/";
     }
 
     /** UI-17: страница «недостаточно прав» обязана отвечать 403, а не показывать 200 с текстом отказа. */

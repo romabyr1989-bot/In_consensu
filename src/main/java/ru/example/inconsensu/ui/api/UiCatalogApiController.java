@@ -44,16 +44,22 @@ public class UiCatalogApiController {
     private final ConsentTypeService types;
     private final ConsentFormService forms;
     private final FormWorkflowService workflow;
+    private final ru.example.inconsensu.catalog.application.CatalogExportService catalogExport;
+    private final ru.example.inconsensu.catalog.application.CatalogCsvWriter csv;
 
     public UiCatalogApiController(
             UiCatalogViewService view,
             ConsentTypeService types,
             ConsentFormService forms,
-            FormWorkflowService workflow) {
+            FormWorkflowService workflow,
+            ru.example.inconsensu.catalog.application.CatalogExportService catalogExport,
+            ru.example.inconsensu.catalog.application.CatalogCsvWriter csv) {
         this.view = view;
         this.types = types;
         this.forms = forms;
         this.workflow = workflow;
+        this.catalogExport = catalogExport;
+        this.csv = csv;
     }
 
     // ---------- UI-6: типы согласий ----------
@@ -381,15 +387,16 @@ public class UiCatalogApiController {
         return form(id);
     }
 
+    /** Публикация — не юристу: он готовит текст, а выпускает версию ответственный за ПДн (Приложение E). */
     @PostMapping("/forms/{id}/publish")
-    @PreAuthorize("hasAnyRole('LAWYER','DPO','ADMIN')")
+    @PreAuthorize("hasAnyRole('DPO','ADMIN')")
     public FormDetails publish(@PathVariable UUID id) {
         workflow.publish(id);
         return form(id);
     }
 
     @PostMapping("/forms/{id}/archive")
-    @PreAuthorize("hasAnyRole('LAWYER','DPO','ADMIN')")
+    @PreAuthorize("hasAnyRole('DPO','ADMIN')")
     public FormDetails archive(@PathVariable UUID id) {
         workflow.archive(id);
         return form(id);
@@ -408,6 +415,26 @@ public class UiCatalogApiController {
         return view.previousVersion(id)
                 .map(previous -> view.diff(previous.getId(), id))
                 .orElse(List.of());
+    }
+
+    /**
+     * UI-6, FR-3.1: выгрузка каталога файлом.
+     *
+     * <p>Разделитель — точка с запятой, как в файлах импорта: Excel в русской локали открывает такой файл
+     * сразу, а не одной колонкой.
+     */
+    @GetMapping("/export")
+    public org.springframework.http.ResponseEntity<String> export(
+            @RequestParam(defaultValue = "TYPES")
+                    ru.example.inconsensu.catalog.application.CatalogExportService.Part part) {
+        String filename = "catalog-" + part.name().toLowerCase(java.util.Locale.ROOT) + ".csv";
+        return org.springframework.http.ResponseEntity.ok()
+                .contentType(
+                        new org.springframework.http.MediaType("text", "csv", java.nio.charset.StandardCharsets.UTF_8))
+                .header(
+                        org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + filename + "\"")
+                .body(csv.write(part, catalogExport.snapshot()));
     }
 
     /** Справочники конструктора: активные типы, категории ПДн, третьи лица и источники (UI-8). */

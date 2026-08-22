@@ -4,17 +4,28 @@ import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MatExpansionModule } from '@angular/material/expansion';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
-import { ApiService, ImportPage, JobDetails } from '../api.service';
+import { ApiService, ImportPage, JobDetails, JobRow } from '../api.service';
+import { ConfirmDialogComponent } from './confirm-dialog.component';
+
+/** Колонка файла импорта: состав тот же, что принимает загрузка (FR-4.5). */
+interface FormatColumn {
+  name: string;
+  required: string;
+  description: string;
+}
 
 /**
  * UI-12: импорт базы клиентов.
  *
  * Пробный запуск включён по умолчанию: он проверяет файл целиком и ничего не пишет, а боевой импорт
- * запускается кнопкой по тому же файлу — повторно загружать его не нужно (FR-4.5).
+ * запускается кнопкой по тому же файлу — повторно загружать его не нужно (FR-4.5). Описание формата
+ * лежит рядом с загрузкой, а не на отдельной странице: сотрудник смотрит его, не теряя выбранный файл.
  */
 @Component({
   selector: 'ic-import',
@@ -28,6 +39,8 @@ import { ApiService, ImportPage, JobDetails } from '../api.service';
     MatSelectModule,
     MatCheckboxModule,
     MatButtonModule,
+    MatDialogModule,
+    MatExpansionModule,
     MatProgressBarModule,
   ],
   template: `
@@ -35,7 +48,8 @@ import { ApiService, ImportPage, JobDetails } from '../api.service';
 
     <mat-card class="ic-block">
       <mat-card-content class="ic-filters">
-        <input type="file" accept=".csv,text/csv" (change)="pick($event)" />
+        <input type="file" accept=".csv,.json,text/csv,application/json" (change)="pick($event)" />
+        <span class="ic-muted">Подойдёт .csv или .json</span>
         <mat-form-field appearance="outline">
           <mat-label>Источник согласий</mat-label>
           <mat-select [(ngModel)]="source">
@@ -49,10 +63,77 @@ import { ApiService, ImportPage, JobDetails } from '../api.service';
       </mat-card-content>
       <mat-card-content>
         <p class="ic-muted">
-          Файл CSV с разделителем «;» в кодировке UTF-8. Обязательные колонки: внешний идентификатор,
-          фамилия, имя, телефон или email, код типа согласия, дата получения. Дата — в формате ДД.ММ.ГГГГ.
+          Таблица CSV или массив JSON в кодировке UTF-8. В CSV разделителем может быть запятая или
+          точка с запятой, порядок колонок любой, регистр заголовка не важен. Пока стоит галочка
+          «Пробный запуск», файл только проверяется и в базу ничего не уходит.
         </p>
       </mat-card-content>
+
+      <mat-expansion-panel class="ic-block">
+        <mat-expansion-panel-header>
+          <mat-panel-title>Каким должен быть файл</mat-panel-title>
+          <mat-panel-description>колонки, даты, коды источников и пример</mat-panel-description>
+        </mat-expansion-panel-header>
+
+        <div class="ic-actions">
+          <a mat-stroked-button href="/assets/sample-import.csv" download>Скачать пример файла</a>
+        </div>
+        <p class="ic-gap">
+          В JSON тот же состав полей: массив объектов, где ключи — имена колонок из таблицы ниже.
+          Незнакомые колонки сервер пропускает.
+        </p>
+
+        <table mat-table [dataSource]="formatColumns" class="ic-table ic-gap">
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef>Колонка</th>
+            <td mat-cell *matCellDef="let column"><span class="ic-code">{{ column.name }}</span></td>
+          </ng-container>
+          <ng-container matColumnDef="required">
+            <th mat-header-cell *matHeaderCellDef>Нужна ли</th>
+            <td mat-cell *matCellDef="let column">{{ column.required }}</td>
+          </ng-container>
+          <ng-container matColumnDef="description">
+            <th mat-header-cell *matHeaderCellDef>Что писать</th>
+            <td mat-cell *matCellDef="let column">{{ column.description }}</td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="formatColumnNames"></tr>
+          <tr mat-row *matRowDef="let column; columns: formatColumnNames"></tr>
+        </table>
+
+        <p class="ic-muted ic-gap">
+          Заполните <span class="ic-code">document_ref</span> или <span class="ic-code">note</span>:
+          без основания импортированное согласие нечем подтвердить (FR-4.2).
+        </p>
+
+        <h3 class="ic-section-title">Даты</h3>
+        <p>
+          В колонках <span class="ic-code">granted_at</span> и <span class="ic-code">valid_until</span>
+          принимается любая из трёх записей:
+        </p>
+        <ul>
+          <li><span class="ic-code">2025-03-12T09:41:00+03:00</span> — момент с указанием часового пояса;</li>
+          <li><span class="ic-code">2025-03-12</span> — дата ISO;</li>
+          <li><span class="ic-code">12.03.2025</span> — дата в привычном виде.</li>
+        </ul>
+        <p class="ic-muted">
+          Дата без времени читается как начало дня в часовом поясе оператора, иначе согласие сдвинулось
+          бы на сутки.
+        </p>
+
+        <h3 class="ic-section-title">Коды источников</h3>
+        <p>
+          Значение колонки <span class="ic-code">source</span> — его ждут в каждой строке. Выбор
+          «Источник согласий» над загрузкой помечает только саму задачу и строки не подменяет.
+        </p>
+        <ul>
+          <li *ngFor="let item of page()?.sources">
+            <span class="ic-code">{{ item.code }}</span> — {{ item.nameRu }}
+          </li>
+        </ul>
+        <p class="ic-empty" *ngIf="!page()?.sources?.length">
+          Список источников не загрузился. Обновите страницу.
+        </p>
+      </mat-expansion-panel>
     </mat-card>
 
     <div class="ic-danger ic-gap" *ngIf="error()">{{ error() }}</div>
@@ -65,10 +146,7 @@ import { ApiService, ImportPage, JobDetails } from '../api.service';
         </mat-card-subtitle>
       </mat-card-header>
       <mat-card-content>
-        <mat-progress-bar
-          [mode]="current.job.status === 'RUNNING' ? 'determinate' : 'determinate'"
-          [value]="current.job.percent"
-        ></mat-progress-bar>
+        <mat-progress-bar mode="determinate" [value]="current.job.percent"></mat-progress-bar>
         <p>
           Всего строк: {{ current.job.total }} · принято: {{ current.job.imported }} ·
           отклонено: {{ current.job.rejected }}
@@ -78,7 +156,7 @@ import { ApiService, ImportPage, JobDetails } from '../api.service';
             mat-flat-button
             color="primary"
             *ngIf="current.job.dryRun && current.job.status === 'COMPLETED' && !current.job.rejected"
-            (click)="runForReal(current.job.id)"
+            (click)="runForReal(current.job)"
           >
             Запустить боевой импорт
           </button>
@@ -86,6 +164,10 @@ import { ApiService, ImportPage, JobDetails } from '../api.service';
             Скачать отчёт по строкам
           </a>
         </div>
+        <p class="ic-muted" *ngIf="current.job.dryRun && current.job.status === 'COMPLETED' && current.job.rejected">
+          Боевой импорт по этому файлу не запустить, пока есть отклонённые строки: поправьте их и
+          загрузите файл заново.
+        </p>
 
         <table mat-table [dataSource]="current.report" class="ic-table ic-gap" *ngIf="current.report.length">
           <ng-container matColumnDef="line">
@@ -140,12 +222,16 @@ import { ApiService, ImportPage, JobDetails } from '../api.service';
         <tr mat-header-row *matHeaderRowDef="columns"></tr>
         <tr mat-row *matRowDef="let row; columns: columns"></tr>
       </table>
-      <p class="ic-empty" *ngIf="!page()?.rows?.length">Загрузок ещё не было.</p>
+      <p class="ic-empty" *ngIf="!page()?.rows?.length">
+        Загрузок ещё не было. Выберите файл наверху страницы и начните с пробного запуска — он покажет
+        ошибки, ничего не записывая.
+      </p>
     </mat-card>
   `,
 })
 export class ImportComponent {
   private readonly api = inject(ApiService);
+  private readonly dialogs = inject(MatDialog);
 
   readonly page = signal<ImportPage | null>(null);
   readonly details = signal<JobDetails | null>(null);
@@ -154,6 +240,55 @@ export class ImportComponent {
 
   readonly columns = ['fileName', 'mode', 'status', 'counts', 'startedBy'];
   readonly reportColumns = ['line', 'field', 'reason'];
+  readonly formatColumnNames = ['name', 'required', 'description'];
+
+  readonly formatColumns: FormatColumn[] = [
+    {
+      name: 'external_id',
+      required: 'обязательна',
+      description: 'Идентификатор клиента в мастер-системе: по нему клиент создаётся или обновляется',
+    },
+    { name: 'last_name', required: 'обязательна', description: 'Фамилия' },
+    { name: 'first_name', required: 'обязательна', description: 'Имя' },
+    { name: 'middle_name', required: 'по желанию', description: 'Отчество' },
+    {
+      name: 'phone',
+      required: 'по желанию',
+      description: 'Телефон в любом виде: +7 916 000-00-41, 8 (916) 000-00-41',
+    },
+    { name: 'email', required: 'по желанию', description: 'Адрес электронной почты' },
+    {
+      name: 'consent_type_code',
+      required: 'обязательна',
+      description: 'Код типа согласия из справочника, например PDN_PROCESSING',
+    },
+    { name: 'form_code', required: 'по желанию', description: 'Код формы, по которой получено согласие' },
+    {
+      name: 'form_version',
+      required: 'по желанию',
+      description: 'Номер версии формы; без него берётся опубликованная',
+    },
+    { name: 'granted_at', required: 'обязательна', description: 'Дата или момент выражения согласия' },
+    { name: 'valid_until', required: 'по желанию', description: 'Срок действия; пусто — бессрочно или до отзыва' },
+    { name: 'source', required: 'обязательна', description: 'Код источника согласия из списка ниже' },
+    {
+      name: 'source_ref',
+      required: 'по желанию',
+      description: 'Ссылка на документ: номер договора, номер обращения',
+    },
+    {
+      name: 'third_party_inn',
+      required: 'по желанию',
+      description: 'ИНН третьего лица; обязателен для типов, которым третье лицо нужно',
+    },
+    {
+      name: 'pdn_categories',
+      required: 'по желанию',
+      description: 'Категории ПДн через запятую, точку с запятой или «|»; пусто — берутся из пункта формы',
+    },
+    { name: 'document_ref', required: 'одна из двух', description: 'Ссылка на скан документа в хранилище' },
+    { name: 'note', required: 'одна из двух', description: 'Текстовое основание, если скана нет' },
+  ];
 
   file: File | null = null;
   dryRun = true;
@@ -169,12 +304,50 @@ export class ImportComponent {
     this.api.jobs().subscribe((page) => this.page.set(page));
   }
 
+  /** Расширение проверяется до отправки: иначе о неподходящем файле сотрудник узнаёт только с сервера. */
   pick(event: Event): void {
     const input = event.target as HTMLInputElement;
-    this.file = input.files?.length ? input.files[0] : null;
+    const chosen = input.files?.length ? input.files[0] : null;
+    if (chosen && !/\.(csv|json)$/i.test(chosen.name)) {
+      this.file = null;
+      input.value = '';
+      this.error.set('Такой файл не подойдёт. Нужна таблица .csv или массив .json.');
+      return;
+    }
+    this.file = chosen;
+    this.error.set('');
   }
 
   upload(): void {
+    if (!this.file) {
+      return;
+    }
+    if (this.dryRun) {
+      this.send();
+      return;
+    }
+    this.dialogs
+      .open(ConfirmDialogComponent, {
+        data: {
+          title: 'Загрузить файл сразу в базу?',
+          consequences:
+            'Галочка «Пробный запуск» снята: строки уйдут в реестр согласий, как только сервер разберёт ' +
+            'файл. Клиенты будут созданы или обновлены, согласия записаны как полученные, а сколько ' +
+            'строк оказалось в файле, станет видно уже после записи. Надёжнее сначала проверить файл ' +
+            'пробным запуском: он покажет ошибки и ничего не изменит.',
+          confirmLabel: 'Загрузить в базу',
+          danger: true,
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed?: boolean) => {
+        if (confirmed) {
+          this.send();
+        }
+      });
+  }
+
+  private send(): void {
     if (!this.file) {
       return;
     }
@@ -209,11 +382,30 @@ export class ImportComponent {
     });
   }
 
-  runForReal(id: string): void {
-    this.api.runForReal(id).subscribe({
-      next: (job) => this.open(job.id),
-      error: (failure) => this.error.set(failure?.error?.detail ?? 'Боевой импорт не запущен.'),
-    });
+  runForReal(job: JobRow): void {
+    this.dialogs
+      .open(ConfirmDialogComponent, {
+        data: {
+          title: 'Запустить боевой импорт?',
+          consequences:
+            `В реестр согласий уйдёт строк: ${job.total}. По файлу «${job.fileName}» клиенты будут ` +
+            'созданы или обновлены, а согласия записаны как полученные. Отменить импорт одной кнопкой ' +
+            'нельзя: лишние согласия придётся отзывать по одному.',
+          confirmLabel: 'Запустить импорт',
+          danger: true,
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed?: boolean) => {
+        if (!confirmed) {
+          return;
+        }
+        this.error.set('');
+        this.api.runForReal(job.id).subscribe({
+          next: (started) => this.open(started.id),
+          error: (failure) => this.error.set(failure?.error?.detail ?? 'Боевой импорт не запущен.'),
+        });
+      });
   }
 
   badge(row: { status: string; rejected: number }): string {

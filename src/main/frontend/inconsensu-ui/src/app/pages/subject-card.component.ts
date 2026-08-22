@@ -3,7 +3,7 @@ import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import { MatDialog, MatDialogModule } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
@@ -13,14 +13,82 @@ import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatTableModule } from '@angular/material/table';
 import { MatTabsModule } from '@angular/material/tabs';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { ApiService, DictionaryItem, HistoryFeed, SubjectCard } from '../api.service';
+import { ApiService, ConsentDossier, DictionaryItem, HistoryFeed, SubjectCard } from '../api.service';
 import { RevokeDialogComponent } from './revoke-dialog.component';
+
+/** Что диалог получает при открытии: согласие и его название для подзаголовка. */
+export interface ConsentTextData {
+  consentId: string;
+  consentTitle: string;
+}
+
+/**
+ * UI-4: текст, по которому дано согласие.
+ *
+ * Открывается прямо из строки согласия: на звонке нужен сам текст, а не переход в досье и обратно.
+ * Рядом с текстом стоят версия формы и контрольная сумма — по ним сверяют, ту ли редакцию подписал
+ * клиент.
+ */
+@Component({
+  selector: 'ic-consent-text-dialog',
+  standalone: true,
+  imports: [CommonModule, RouterLink, MatDialogModule, MatButtonModule, MatProgressBarModule],
+  template: `
+    <h2 mat-dialog-title>Текст согласия</h2>
+    <mat-dialog-content class="ic-dialog">
+      <mat-progress-bar mode="indeterminate" *ngIf="loading()"></mat-progress-bar>
+      <p *ngIf="data.consentTitle"><b>{{ data.consentTitle }}</b></p>
+
+      <ng-container *ngIf="dossier() as row">
+        <div class="ic-subtitle">
+          {{ row.formTitle || 'Форма не указана' }}
+          <span *ngIf="row.formVersion"> · версия {{ row.formVersion }}</span>
+        </div>
+        <pre class="ic-form-text ic-gap" *ngIf="row.formText">{{ row.formText }}</pre>
+        <p class="ic-empty" *ngIf="!row.formText">
+          Текст не сохранён: согласие получено до перехода на печатные формы. Сверить редакцию можно
+          по контрольной сумме, подробности — в досье согласия.
+        </p>
+        <div class="ic-checksum">Контрольная сумма: {{ row.storedChecksum || 'не сохранена' }}</div>
+      </ng-container>
+
+      <p class="ic-danger" *ngIf="error()">{{ error() }}</p>
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <a mat-button [routerLink]="['/consents', data.consentId]" mat-dialog-close>Открыть досье</a>
+      <button mat-flat-button color="primary" mat-dialog-close>Закрыть</button>
+    </mat-dialog-actions>
+  `,
+})
+export class ConsentTextDialogComponent {
+  private readonly api = inject(ApiService);
+  readonly data = inject<ConsentTextData>(MAT_DIALOG_DATA);
+
+  readonly dossier = signal<ConsentDossier | null>(null);
+  readonly loading = signal(true);
+  readonly error = signal('');
+
+  constructor() {
+    this.api.dossier(this.data.consentId).subscribe({
+      next: (row) => {
+        this.dossier.set(row);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.loading.set(false);
+        // UI-0.9: называем, что именно не вышло, а не «что-то пошло не так».
+        this.error.set('Текст согласия получить не удалось. Он остаётся доступен в досье согласия.');
+      },
+    });
+  }
+}
 
 /**
  * UI-4: карточка клиента.
  *
  * Четыре вкладки макета: согласия, каналы связи, передачи третьим лицам и лента событий. Контакты
  * показываются замаскированными, раскрытие — отдельное действие с записью в журнал доступа (UI-0.10).
+ * Карточку целиком собирает в PDF сервер, из строки согласия открывается текст, по которому оно дано.
  */
 @Component({
   selector: 'ic-subject-card',
@@ -53,9 +121,13 @@ import { RevokeDialogComponent } from './revoke-dialog.component';
             <span *ngIf="subject.birthDate"> · дата рождения: {{ subject.birthDate }}</span>
           </div>
         </div>
-        <button mat-flat-button color="warn" *ngIf="subject.mayRevoke" (click)="openRevoke()">
-          Отозвать согласие
-        </button>
+        <div class="ic-actions">
+          <!-- Имя файла задаёт сервер: ФИО не попадает ни в адрес, ни в имя файла (UI-0.10). -->
+          <a mat-stroked-button [href]="pdfUrl()">Скачать карточку в PDF</a>
+          <button mat-flat-button color="warn" *ngIf="subject.mayRevoke" (click)="openRevoke()">
+            Отозвать согласие
+          </button>
+        </div>
       </div>
 
       <div class="ic-note" *ngIf="message()">{{ message() }}</div>
@@ -112,6 +184,7 @@ import { RevokeDialogComponent } from './revoke-dialog.component';
               <ng-container matColumnDef="actions">
                 <th mat-header-cell *matHeaderCellDef></th>
                 <td mat-cell *matCellDef="let row">
+                  <button mat-button (click)="openText(row.id, row.typeName)">Посмотреть текст</button>
                   <button
                     mat-button
                     color="warn"
@@ -125,7 +198,11 @@ import { RevokeDialogComponent } from './revoke-dialog.component';
               <tr mat-header-row *matHeaderRowDef="consentColumns"></tr>
               <tr mat-row *matRowDef="let row; columns: consentColumns"></tr>
             </table>
-            <p class="ic-empty" *ngIf="!subject.consents.length">Согласий нет.</p>
+            <p class="ic-empty" *ngIf="!subject.consents.length">
+              Согласий нет. Они появляются здесь после регистрации из внешней системы или загрузки
+              файла на экране «Импорт». Если согласия были и заменены новыми, включите «Показывать
+              заменённые».
+            </p>
           </div>
         </mat-tab>
 
@@ -246,6 +323,8 @@ export class SubjectCardComponent {
   readonly loading = signal(false);
   readonly message = signal('');
   readonly integrity = signal('');
+  /** Файл забирается по той же сессии, что и остальной экран: отдельного токена в браузере нет. */
+  readonly pdfUrl = signal('');
 
   readonly consentColumns = ['type', 'status', 'granted', 'until', 'source', 'actions'];
   readonly transferColumns = ['party', 'role', 'categories', 'until', 'basis'];
@@ -262,6 +341,7 @@ export class SubjectCardComponent {
   constructor() {
     this.route.paramMap.subscribe((params) => {
       this.id = params.get('id') ?? '';
+      this.pdfUrl.set(`/ui/api/subjects/${this.id}/card.pdf`);
       this.load();
       this.loadHistory();
     });
@@ -296,6 +376,14 @@ export class SubjectCardComponent {
 
   verify(): void {
     this.api.verifyHistory(this.id).subscribe((report) => this.integrity.set(report.message));
+  }
+
+  /** Текст показываем диалогом, а не переходом: карточка клиента остаётся перед глазами. */
+  openText(consentId: string, consentTitle: string): void {
+    this.dialogs.open(ConsentTextDialogComponent, {
+      data: { consentId, consentTitle },
+      width: '720px',
+    });
   }
 
   openRevoke(consentId?: string, consentTitle?: string): void {

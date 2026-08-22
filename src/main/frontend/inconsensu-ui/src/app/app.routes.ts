@@ -63,6 +63,11 @@ export const routes: Routes = [
     title: 'Третьи лица · In consensu',
   },
   {
+    path: 'third-parties/:id',
+    loadComponent: () => import('./pages/third-party-card.component').then((m) => m.ThirdPartyCardComponent),
+    title: 'Третье лицо · In consensu',
+  },
+  {
     path: 'webhooks',
     loadComponent: () => import('./pages/webhooks.component').then((m) => m.WebhooksComponent),
     title: 'Webhooks · In consensu',
