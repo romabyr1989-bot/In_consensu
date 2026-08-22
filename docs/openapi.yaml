@@ -81,6 +81,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/PageResponsePdnAccessLogResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - audit-controller
   /api/v1/audit/events:
@@ -178,6 +203,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/PageResponseAuditEventResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - audit-controller
   /api/v1/audit/verify:
@@ -192,6 +242,31 @@ paths:
                 items:
                   $ref: "#/components/schemas/VerificationResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - audit-controller
     post:
@@ -203,6 +278,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/VerificationResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - audit-controller
   /api/v1/audit/verify/{jobId}:
@@ -222,6 +322,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/VerificationResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - audit-controller
   /api/v1/auth/login:
@@ -240,6 +371,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/TokenResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - auth-controller
   /api/v1/auth/refresh:
@@ -258,6 +414,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/TokenResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - auth-controller
   /api/v1/catalog/export:
@@ -284,6 +465,31 @@ paths:
               schema:
                 type: object
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       summary: Экспорт каталога
       tags:
       - catalog-controller
@@ -299,6 +505,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/CatalogStats"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       summary: Статистика каталога
       tags:
       - catalog-controller
@@ -318,6 +549,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/BulkCheckResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - channel-controller
   /api/v1/channels/check-async:
@@ -336,6 +592,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/BulkJobResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - channel-controller
   /api/v1/channels/check-async/{jobId}:
@@ -355,6 +636,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/BulkJobResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - channel-controller
   /api/v1/channels/check-async/{jobId}/download:
@@ -374,6 +686,37 @@ paths:
               schema:
                 type: string
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - channel-controller
   /api/v1/consent-types:
@@ -440,6 +783,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/PageResponseConsentTypeResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - consent-type-controller
     post:
@@ -457,6 +825,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/ConsentTypeResponse"
           description: Created
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - consent-type-controller
   /api/v1/consent-types/{code}:
@@ -475,6 +868,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/ConsentTypeResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - consent-type-controller
     put:
@@ -498,6 +922,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/ConsentTypeResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - consent-type-controller
   /api/v1/consent-types/{code}/deactivate:
@@ -516,6 +971,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/ConsentTypeResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - consent-type-controller
   /api/v1/consents:
@@ -610,6 +1096,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/PageResponseConsentResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - consent-controller
     post:
@@ -633,6 +1144,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/RegisterConsentResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - consent-controller
   /api/v1/consents/{id}:
@@ -652,6 +1188,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/ConsentResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - consent-controller
   /api/v1/consents/{id}/evidence:
@@ -671,6 +1238,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/ConsentEvidenceResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - consent-controller
   /api/v1/consents/{id}/revocation-preview:
@@ -692,6 +1290,37 @@ paths:
                 items:
                   $ref: "#/components/schemas/ConsentResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - consent-controller
   /api/v1/consents/{id}/revoke:
@@ -717,6 +1346,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/RevocationResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - consent-controller
   /api/v1/dictionaries:
@@ -733,6 +1393,31 @@ paths:
                   items:
                     $ref: "#/components/schemas/DictionaryEntry"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - dictionary-controller
   /api/v1/dictionaries/{name}:
@@ -753,6 +1438,37 @@ paths:
                 items:
                   $ref: "#/components/schemas/DictionaryEntry"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - dictionary-controller
   /api/v1/exports/{id}/download:
@@ -772,6 +1488,37 @@ paths:
               schema:
                 type: string
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - partner-export-controller
   /api/v1/forms:
@@ -855,6 +1602,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/PageResponseConsentFormResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - consent-form-controller
     post:
@@ -872,6 +1644,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/ConsentFormResponse"
           description: Created
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - consent-form-controller
   /api/v1/forms/awaiting-decision:
@@ -886,6 +1683,31 @@ paths:
                 items:
                   $ref: "#/components/schemas/ConsentFormResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - consent-form-controller
   /api/v1/forms/{id}:
@@ -901,6 +1723,37 @@ paths:
       responses:
         "204":
           description: No Content
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - consent-form-controller
     get:
@@ -919,6 +1772,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/ConsentFormResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - consent-form-controller
     put:
@@ -943,6 +1827,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/ConsentFormResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - consent-form-controller
   /api/v1/forms/{id}/approve:
@@ -967,6 +1882,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/ConsentFormResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - consent-form-controller
   /api/v1/forms/{id}/archive:
@@ -986,6 +1932,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/ConsentFormResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - consent-form-controller
   /api/v1/forms/{id}/diff:
@@ -1011,6 +1988,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/DiffResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - consent-form-controller
   /api/v1/forms/{id}/history:
@@ -1032,6 +2040,37 @@ paths:
                 items:
                   $ref: "#/components/schemas/HistoryResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - consent-form-controller
   /api/v1/forms/{id}/new-version:
@@ -1051,6 +2090,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/ConsentFormResponse"
           description: Created
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - consent-form-controller
   /api/v1/forms/{id}/preview:
@@ -1072,6 +2142,37 @@ paths:
                 additionalProperties:
                   type: string
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - consent-form-controller
   /api/v1/forms/{id}/publish:
@@ -1091,6 +2192,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/ConsentFormResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - consent-form-controller
   /api/v1/forms/{id}/reject:
@@ -1116,6 +2248,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/ConsentFormResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - consent-form-controller
   /api/v1/forms/{id}/submit:
@@ -1135,6 +2298,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/ConsentFormResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - consent-form-controller
   /api/v1/forms/{id}/text:
@@ -1156,6 +2350,37 @@ paths:
                 additionalProperties:
                   type: string
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - consent-form-controller
   /api/v1/forms/{id}/validate:
@@ -1175,6 +2400,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/FormValidationResult"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - consent-form-controller
   /api/v1/import/consents:
@@ -1200,6 +2456,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/ImportJobResponse"
           description: Accepted
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - import-controller
   /api/v1/import/jobs:
@@ -1238,6 +2519,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/PageResponseImportJobResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - import-controller
   /api/v1/import/jobs/{id}:
@@ -1257,6 +2563,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/ImportJobResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - import-controller
   /api/v1/import/jobs/{id}/report:
@@ -1276,6 +2613,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/JsonNode"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - import-controller
   /api/v1/maintenance/contacts/reencrypt:
@@ -1290,6 +2658,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/ReencryptResult"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       summary: Перешифровать контакты
       tags:
       - maintenance-controller
@@ -1312,6 +2705,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/RetentionResult"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       summary: Прогон политики хранения
       tags:
       - maintenance-controller
@@ -1327,6 +2745,31 @@ paths:
                 items:
                   $ref: "#/components/schemas/NotificationRuleResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - notification-rule-controller
     post:
@@ -1345,6 +2788,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/NotificationRuleResponse"
           description: Created
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       summary: Создать правило уведомления
       tags:
       - notification-rule-controller
@@ -1365,6 +2833,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/NotificationRuleResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - notification-rule-controller
     put:
@@ -1389,6 +2888,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/NotificationRuleResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - notification-rule-controller
   /api/v1/notification-rules/{id}/deactivate:
@@ -1408,6 +2938,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/NotificationRuleResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - notification-rule-controller
   /api/v1/notifications:
@@ -1446,6 +3007,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/PageResponseNotificationResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - notification-controller
   /api/v1/notifications/run:
@@ -1460,6 +3046,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/RunResult"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       summary: Внеочередной запуск задачи уведомлений
       tags:
       - notification-controller
@@ -1480,6 +3091,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/TestEmailResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       summary: Тестовое письмо (FR-9.5)
       tags:
       - notification-controller
@@ -1501,6 +3137,31 @@ paths:
                 items:
                   $ref: "#/components/schemas/SelfConsentResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - self-service-controller
   /api/v1/self/consents/revoke-all-advertising:
@@ -1519,6 +3180,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/RevocationReceipt"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - self-service-controller
   /api/v1/self/consents/{id}/revoke:
@@ -1543,6 +3229,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/RevocationReceipt"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - self-service-controller
   /api/v1/self/consents/{id}/text:
@@ -1569,6 +3286,37 @@ paths:
                 additionalProperties:
                   type: string
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - self-service-controller
   /api/v1/self/ui-sessions:
@@ -1586,6 +3334,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/UiSessionResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - self-service-controller
   /api/v1/settings:
@@ -1600,6 +3373,31 @@ paths:
                 additionalProperties:
                   type: string
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - settings-controller
     put:
@@ -1619,6 +3417,31 @@ paths:
                 additionalProperties:
                   type: string
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - settings-controller
   /api/v1/subjects:
@@ -1677,6 +3500,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/PageResponseSubjectResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - subject-controller
     post:
@@ -1694,6 +3542,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/SubjectResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - subject-controller
   /api/v1/subjects/by-external-id/{externalId}:
@@ -1712,6 +3585,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/SubjectResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - subject-controller
   /api/v1/subjects/by-external-id/{externalId}/card:
@@ -1730,6 +3634,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/SubjectCardResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - subject-controller
   /api/v1/subjects/{id}:
@@ -1749,6 +3684,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/SubjectResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - subject-controller
   /api/v1/subjects/{id}/card:
@@ -1768,6 +3734,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/SubjectCardResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - subject-controller
   /api/v1/subjects/{id}/card.pdf:
@@ -1788,6 +3785,37 @@ paths:
                 type: string
                 format: byte
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - subject-controller
   /api/v1/subjects/{id}/channels:
@@ -1807,6 +3835,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/SubjectChannelsResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - channel-controller
   /api/v1/subjects/{id}/history:
@@ -1828,6 +3887,37 @@ paths:
                 items:
                   $ref: "#/components/schemas/ConsentResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - subject-controller
   /api/v1/subjects/{id}/transfers:
@@ -1849,6 +3939,37 @@ paths:
                 items:
                   $ref: "#/components/schemas/TransferView"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - transfer-controller
   /api/v1/third-parties:
@@ -1889,6 +4010,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/PageResponseThirdPartyResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - third-party-controller
     post:
@@ -1906,6 +4052,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/ThirdPartyResponse"
           description: Created
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - third-party-controller
   /api/v1/third-parties/{id}:
@@ -1925,6 +4096,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/ThirdPartyResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - third-party-controller
     put:
@@ -1949,6 +4151,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/ThirdPartyResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - third-party-controller
   /api/v1/third-parties/{id}/deactivate:
@@ -1968,6 +4201,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/ThirdPartyResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - third-party-controller
   /api/v1/third-parties/{id}/exports:
@@ -1989,6 +4253,37 @@ paths:
                 items:
                   $ref: "#/components/schemas/ExportResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - partner-export-controller
     post:
@@ -2013,6 +4308,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/ExportResponse"
           description: Created
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - partner-export-controller
   /api/v1/transfers/check:
@@ -2031,6 +4357,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/TransferCheckResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - transfer-controller
   /api/v1/users:
@@ -2071,6 +4422,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/PageResponseUserResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - user-controller
     post:
@@ -2088,6 +4464,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/UserResponse"
           description: Created
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - user-controller
   /api/v1/users/{id}:
@@ -2107,6 +4508,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/UserResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - user-controller
     put:
@@ -2131,6 +4563,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/UserResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - user-controller
   /api/v1/users/{id}/reset-password:
@@ -2152,6 +4615,37 @@ paths:
       responses:
         "204":
           description: No Content
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - user-controller
   /api/v1/webhooks:
@@ -2166,6 +4660,31 @@ paths:
                 items:
                   $ref: "#/components/schemas/WebhookSubscriptionResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - webhook-controller
     post:
@@ -2184,6 +4703,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/CreatedSubscriptionResponse"
           description: Created
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       summary: Создать подписку
       tags:
       - webhook-controller
@@ -2204,6 +4748,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/WebhookSubscriptionResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - webhook-controller
     put:
@@ -2228,6 +4803,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/WebhookSubscriptionResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - webhook-controller
   /api/v1/webhooks/{id}/deactivate:
@@ -2247,6 +4853,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/WebhookSubscriptionResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - webhook-controller
   /api/v1/webhooks/{id}/deliveries:
@@ -2291,6 +4928,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/PageResponseWebhookDeliveryResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       tags:
       - webhook-controller
   /api/v1/webhooks/{id}/rotate-secret:
@@ -2311,6 +4979,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/CreatedSubscriptionResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       summary: Заменить секрет подписи
       tags:
       - webhook-controller
@@ -2332,6 +5031,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/WebhookDeliveryResponse"
           description: OK
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Запрос не прошёл валидацию
+        "401":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Токен отсутствует, истёк или не принят"
+        "403":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: У роли нет прав на операцию
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Объект не найден
+        "500":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: "Внутренняя ошибка: в теле только код обращения, без технич\
+            еских деталей"
       summary: Тестовая отправка (FR-9.5)
       tags:
       - webhook-controller
@@ -3449,6 +6179,49 @@ components:
         userId:
           type: string
           format: uuid
+    ProblemDetail:
+      type: object
+      description: "Отказ по RFC 9457. Возможные значения type: urn:inconsensu:error:validation-failed,\
+        \ urn:inconsensu:error:bad-request, urn:inconsensu:error:unauthorized, urn:inconsensu:error:access-denied,\
+        \ urn:inconsensu:error:not-found, urn:inconsensu:error:method-not-allowed,\
+        \ urn:inconsensu:error:conflict, urn:inconsensu:error:unsupported-media-type,\
+        \ urn:inconsensu:error:payload-too-large, urn:inconsensu:error:too-many-requests,\
+        \ urn:inconsensu:error:internal-error"
+      properties:
+        detail:
+          type: string
+          description: Пояснение без технических деталей и без ПДн
+        errors:
+          type: array
+          description: "Заполняется при отказе валидации (FR-4.2, UI-0.9)"
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                description: "Поле запроса, которое не принято"
+              message:
+                type: string
+                description: Что именно не так с полем
+        instance:
+          type: string
+          description: "Адрес, по которому произошёл отказ"
+        requestId:
+          type: string
+          description: "Сквозной идентификатор запроса: по нему отказ ищется в жур\
+            нале"
+        status:
+          format: int32
+        timestamp:
+          type: string
+          format: date-time
+          description: Момент отказа
+        title:
+          type: string
+          description: Краткое название отказа по-русски
+        type:
+          type: string
+          description: "Код отказа: urn:inconsensu:error:<код>"
     ReencryptResult:
       type: object
       properties:

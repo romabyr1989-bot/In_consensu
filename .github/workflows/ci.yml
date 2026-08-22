@@ -15,6 +15,10 @@ jobs:
     name: Сборка, тесты и проверки качества
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # statuses: write нужен последнему шагу — он вывешивает имена упавших тестов в статус коммита.
+    permissions:
+      contents: read
+      statuses: write
     steps:
       - uses: actions/checkout@v4
 
@@ -61,6 +65,28 @@ jobs:
             [ -f "$report" ] || continue
             grep -l "FAILURE\|ERROR" "$report" >/dev/null 2>&1 && { echo "=== $report"; cat "$report"; }
           done
+
+      # Логи сборки доступны не всем: чтобы имя упавшего теста можно было узнать и без доступа к логам,
+      # оно вывешивается статусом коммита — его видно в API и на странице коммита.
+      - name: Вывесить упавшие тесты в статус коммита
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          FAILED=$(python3 - <<'PY'
+          import glob, xml.etree.ElementTree as ET
+
+          names = []
+          for report in glob.glob("target/**/TEST-*.xml", recursive=True):
+              root = ET.parse(report).getroot()
+              for case in root.iter("testcase"):
+                  if list(case.iter("failure")) or list(case.iter("error")):
+                      names.append(case.get("classname", "").split(".")[-1] + "." + case.get("name", ""))
+          print("; ".join(names[:4]) if names else "тесты не запускались: упал другой шаг")
+          PY
+          )
+          gh api "repos/${{ github.repository }}/statuses/${{ github.sha }}" \
+            -f state=failure -f context="упавшие тесты" -f description="${FAILED:0:130}" || true
 
       - name: Отчёты тестов и покрытия
         if: always()
