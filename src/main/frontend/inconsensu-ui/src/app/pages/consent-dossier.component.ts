@@ -1,4 +1,4 @@
-import { CommonModule, KeyValuePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -21,7 +21,6 @@ import { RevokeDialogComponent } from './revoke-dialog.component';
   standalone: true,
   imports: [
     CommonModule,
-    KeyValuePipe,
     RouterLink,
     MatCardModule,
     MatTableModule,
@@ -86,8 +85,8 @@ import { RevokeDialogComponent } from './revoke-dialog.component';
             {{ row.integrityMessage }}
           </div>
           <dl class="ic-facts ic-gap" *ngIf="hasEvidence(row)">
-            <ng-container *ngFor="let field of row.evidence | keyvalue">
-              <dt>{{ field.key }}</dt>
+            <ng-container *ngFor="let field of row.evidence">
+              <dt>{{ field.nameRu }}</dt>
               <dd>{{ field.value }}</dd>
             </ng-container>
           </dl>
@@ -165,7 +164,7 @@ export class ConsentDossierComponent {
   }
 
   hasEvidence(row: ConsentDossier): boolean {
-    return Object.keys(row.evidence ?? {}).length > 0;
+    return (row.evidence ?? []).length > 0;
   }
 
   revoke(row: ConsentDossier): void {

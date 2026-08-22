@@ -141,7 +141,9 @@ import { ApiService, BuilderOptions, FormPage } from '../api.service';
         </ng-container>
         <ng-container matColumnDef="updated">
           <th mat-header-cell *matHeaderCellDef>Обновлено</th>
-          <td mat-cell *matCellDef="let row">{{ (row.updatedAt | date: 'dd.MM.yyyy HH:mm') || '—' }}</td>
+          <!-- Дату форматирует сервер: значение приходит уже в виде «22.08.2026 14:59», и конвейер date
+               на такой строке падает с NG02100, обрушивая весь экран. -->
+          <td mat-cell *matCellDef="let row">{{ row.updatedAt || '—' }}</td>
         </ng-container>
         <ng-container matColumnDef="actions">
           <th mat-header-cell *matHeaderCellDef></th>

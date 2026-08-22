@@ -189,7 +189,8 @@ class WorkplaceRevocationApiIT extends AbstractIntegrationTest {
                         .content(REVOCATION))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(get("/ui/api/consents/" + consent.getId()).session(session))
+        String dossier = mockMvc.perform(
+                        get("/ui/api/consents/" + consent.getId()).session(session))
                 .andExpect(status().isOk())
                 // UI-4a: досье остаётся доказательством и после отзыва — сумма текста сходится.
                 .andExpect(jsonPath("$.checksumMatches").value(true))
@@ -198,7 +199,27 @@ class WorkplaceRevocationApiIT extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.revocationSourceRu").value("Звонок в колл-центр"))
                 .andExpect(jsonPath("$.revocationReason").value("Клиент попросил прекратить рекламу"))
                 // NFR-3: чувствительные значения доказательств маскируются и здесь.
-                .andExpect(jsonPath("$.evidence.phone").value("***"));
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        // Поля доказательств приходят списком с русскими подписями: экран не должен показывать
+        // технические имена. Значение телефона всё так же замаскировано.
+        var phone = evidenceOf(dossier, "phone");
+        assertThat(phone.get("value").asText()).isEqualTo("***");
+        assertThat(phone.get("nameRu").asText()).isEqualTo("Телефон, на который пришёл код");
+    }
+
+    /** Поле доказательства по коду: фильтры JsonPath по значению в этом проекте не работают. */
+    private static com.fasterxml.jackson.databind.JsonNode evidenceOf(String json, String code) throws Exception {
+        var fields =
+                new com.fasterxml.jackson.databind.ObjectMapper().readTree(json).get("evidence");
+        for (var field : fields) {
+            if (code.equals(field.get("code").asText())) {
+                return field;
+            }
+        }
+        throw new AssertionError("В досье нет поля доказательства " + code);
     }
 
     private static com.fasterxml.jackson.databind.JsonNode channel(String json, String code) throws Exception {

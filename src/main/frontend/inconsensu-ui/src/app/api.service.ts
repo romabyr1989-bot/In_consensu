@@ -170,7 +170,7 @@ export interface ConsentDossier {
   checksumMatches: boolean;
   integrityOk: boolean;
   integrityMessage: string;
-  evidence: Record<string, unknown>;
+  evidence: { code: string; nameRu: string; value: string }[];
   events: HistoryEntry[];
 }
 

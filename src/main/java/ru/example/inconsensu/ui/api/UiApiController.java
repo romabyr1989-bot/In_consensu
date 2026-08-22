@@ -543,8 +543,51 @@ public class UiApiController {
             boolean checksumMatches,
             boolean integrityOk,
             String integrityMessage,
-            Map<String, Object> evidence,
+            List<EvidenceField> evidence,
             List<UiSubjectViewService.HistoryEntry> events) {}
+
+    /** Поле доказательства: код нужен для сверки, подпись — сотруднику (UI-0.4). */
+    public record EvidenceField(String code, String nameRu, String value) {}
+
+    /**
+     * Русские подписи полей доказательств и даты в человеческом виде.
+     *
+     * <p>Экран показывал технические имена (`otpHash`, `userAgent`) и метку времени машинного формата:
+     * сотрудник должен читать доказательство, а не разбирать его.
+     */
+    private List<EvidenceField> evidenceFields(Map<String, Object> evidence) {
+        return evidence.entrySet().stream()
+                .map(entry -> new EvidenceField(
+                        entry.getKey(),
+                        EVIDENCE_NAMES.getOrDefault(entry.getKey(), entry.getKey()),
+                        evidenceValue(entry.getValue())))
+                .sorted(java.util.Comparator.comparing(EvidenceField::nameRu))
+                .toList();
+    }
+
+    private static final Map<String, String> EVIDENCE_NAMES = Map.ofEntries(
+            Map.entry("phone", "Телефон, на который пришёл код"),
+            Map.entry("otpHash", "Отпечаток кода подтверждения"),
+            Map.entry("otpVerifiedAt", "Код подтверждён"),
+            Map.entry("ip", "Адрес, с которого пришёл запрос"),
+            Map.entry("userAgent", "Браузер клиента"),
+            Map.entry("documentRef", "Ссылка на скан документа"),
+            Map.entry("signedAt", "Подписано"),
+            Map.entry("signatureId", "Идентификатор подписи"),
+            Map.entry("certificateSubject", "Владелец сертификата"),
+            Map.entry("operatorLogin", "Сотрудник, оформивший согласие"),
+            Map.entry("channel", "Канал обращения"),
+            Map.entry("email", "Почта, на которую пришло письмо"));
+
+    /** Метка времени показывается по-русски; остальное — как пришло. */
+    private String evidenceValue(Object value) {
+        String text = value == null ? "" : String.valueOf(value);
+        try {
+            return formats.dateTime(java.time.Instant.parse(text));
+        } catch (java.time.format.DateTimeParseException notATimestamp) {
+            return text;
+        }
+    }
 
     /** UI-4a: доказательство согласия — сведения, текст формы, контрольная сумма и лента событий. */
     @GetMapping("/consents/{id}")
@@ -577,7 +620,7 @@ public class UiApiController {
                                 + (dossier.integrityProblems().isEmpty()
                                         ? "—"
                                         : dossier.integrityProblems().get(0).description()),
-                evidence.maskedEvidence(dossier.consent(), objectMapper),
+                evidenceFields(evidence.maskedEvidence(dossier.consent(), objectMapper)),
                 subjectView.historyFeed(summary.subjectId(), null, null, null).entries().stream()
                         .filter(entry -> id.equals(entry.consentId()))
                         .toList());

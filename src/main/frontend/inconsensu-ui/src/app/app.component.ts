@@ -211,7 +211,8 @@ export class AppComponent {
     }
     const crumbs: Crumb[] = [{ title: 'Главная', path: '/' }];
     const section = this.section(url);
-    if (section && section.title !== page) {
+    // Раздел добавляется, только если открыт не он сам: иначе выходило «Главная / Формы / Формы согласий».
+    if (section && url !== `/${section.path}` && section.title !== page) {
       crumbs.push({ title: section.title, path: '/' + section.path });
     }
     crumbs.push({ title: page });

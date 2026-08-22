@@ -295,3 +295,8 @@ pre, .ic-form-text { white-space: pre-wrap; overflow-wrap: anywhere; }
    в одну строку при крупном шрифте, а раздел должен читаться целиком. */
 .ic-sidebar .mdc-list-item__primary-text { white-space: normal; overflow: visible; text-overflow: clip; }
 .ic-sidebar .mat-mdc-list-item { height: auto; min-height: 3rem; padding-top: 6px; padding-bottom: 6px; }
+
+/* Заголовок раскрывающегося блока растёт под текст: описание версии формы не помещалось в одну строку
+   и обрезалось по нижнему краю. */
+.mat-expansion-panel-header { height: auto; min-height: 3rem; padding-top: 8px; padding-bottom: 8px; }
+.mat-expansion-panel-header-description, .mat-expansion-panel-header-title { white-space: normal; overflow-wrap: anywhere; }
