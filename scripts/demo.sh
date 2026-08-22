@@ -222,7 +222,7 @@ AD_CONSENT_ID="$(cut -d' ' -f2 <<<"$READ_ALLOWED")"
 if [ -n "$OPEN_CHANNEL" ]; then
   ok "канал ${OPEN_CHANNEL} разрешён; $(sed -n 's/.*"summaryRu":"\([^"]*\)".*/\1/p' <<<"$CHANNELS_BEFORE")"
 else
-  fail "ни один канал не разрешён — демо-данные не соответствуют сценарию §11"
+  fail "ни один канал не разрешён: сценарий уже отрабатывал на этой базе — выполните make db-reset и перезапустите"
 fi
 
 step "Массовая проверка канала (FR-6.4)"
