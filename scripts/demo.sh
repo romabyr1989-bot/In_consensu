@@ -429,7 +429,9 @@ if curl --fail --silent -X POST -H "$AUTH" -H 'Content-Type: application/json' \
     fi
   fi
 else
-  fail "тестовое письмо не отправлено: проверьте настройки SMTP"
+  # Своего почтового сервера у продукта нет (ADR-0078): без доступного SMTP шаг пропускается, а не
+  # роняет сценарий — проверять здесь нечего, отправка не состоялась по причине вне продукта.
+  skip "тестовое письмо не отправлено: SMTP по ${INCONSENSU_MAIL_HOST:-localhost} недоступен"
 fi
 
 step "Внеочередной прогон задачи уведомлений (FR-9.1)"
@@ -445,13 +447,20 @@ UI_CSRF="$(curl --fail --silent -c "$UI_COOKIES" "${BASE_URL}/ui/login" \
   | sed -n 's/.*name="_csrf" content="\([^"]*\)".*/\1/p')"
 curl --fail --silent -b "$UI_COOKIES" -c "$UI_COOKIES" -o /dev/null \
   -X POST -d "username=${DEMO_LOGIN}&password=${DEMO_PASSWORD}&_csrf=${UI_CSRF}" "${BASE_URL}/ui/login" || true
-if curl --fail --silent -b "$UI_COOKIES" "${BASE_URL}/ui/" | contains "Действующих согласий"; then
-  ok "вход выполнен, дашборд UI-2 открывается"
+# Рабочее место — одностраничное приложение (ADR-0087): проверяется его оболочка и слой данных,
+# из которого экраны берут содержимое. Разметку рисует браузер, и curl её всё равно не увидит.
+if curl --fail --silent -b "$UI_COOKIES" "${BASE_URL}/app/" | contains "app-root"; then
+  ok "вход выполнен, рабочее место отдаётся"
 else
-  fail "интерфейс не открылся под демо-пользователем"
+  fail "рабочее место не открылось под демо-пользователем"
 fi
-if curl --fail --silent -b "$UI_COOKIES" "${BASE_URL}/ui/subjects/${SUBJECT_ID}" | contains "Телефонный звонок"; then
-  ok "карточка клиента UI-4 показывает плитки каналов"
+if curl --fail --silent -b "$UI_COOKIES" "${BASE_URL}/ui/api/dashboard" | contains '"activeConsents"'; then
+  ok "главная UI-2 получает счётчики"
+else
+  fail "счётчики главной не отдаются"
+fi
+if curl --fail --silent -b "$UI_COOKIES" "${BASE_URL}/ui/api/subjects/${SUBJECT_ID}" | contains "Телефонный звонок"; then
+  ok "карточка клиента UI-4 отдаёт плитки каналов"
 else
   fail "карточка клиента не отрисовалась"
 fi

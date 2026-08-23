@@ -50,7 +50,7 @@ make up          # запускает приложение с демо-данн�
 
 | Что | Адрес |
 |---|---|
-| Рабочее место сотрудника | <http://localhost:8080/ui/> |
+| Рабочее место сотрудника | <http://localhost:8080/app/> |
 | REST API | <http://localhost:8080/api/v1> |
 | Swagger UI | <http://localhost:8080/swagger-ui.html> |
 | OpenAPI (YAML) | <http://localhost:8080/v3/api-docs.yaml> |

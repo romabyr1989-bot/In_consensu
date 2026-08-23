@@ -142,7 +142,7 @@ curl -fsS http://localhost:8080/actuator/health
 ```
 
 Ответ `{"status":"UP"}` означает, что приложение поднялось и база доступна. Рабочее место сотрудника —
-`http://<адрес>:8080/ui/`, вход под администратором из `INCONSENSU_ADMIN_LOGIN`.
+`http://<адрес>:8080/app/` (вход — `/ui/login`), вход под администратором из `INCONSENSU_ADMIN_LOGIN`.
 
 Проверьте по журналу службы (`journalctl -u inconsensu`), что настройки прочитаны:
 

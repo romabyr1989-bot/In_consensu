@@ -25,7 +25,8 @@
 1. Проверьте `inconsensu_outbox_retry` и журнал доставок: `GET /api/v1/webhooks/{id}/deliveries`.
 2. Частая причина — недоступный или сменивший адрес потребитель. Исправьте адрес подписки
    (`PUT /api/v1/webhooks/{id}`) и верните события в очередь: экран «Webhooks» → «Повторить», либо
-   `POST /ui/webhooks/events/{id}/retry`.
+   `POST /ui/api/webhooks/{subscriptionId}/deliveries/{eventId}/retry`
+   (кнопка «Повторить» в разделе «Webhooks» рабочего места).
 3. Расписание повторов: 1 мин → 5 мин → 30 мин → 2 ч → 12 ч, затем событие получает статус `FAILED` и не
    исчезает: его можно вернуть в очередь после починки.
 
