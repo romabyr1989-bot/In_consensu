@@ -39,9 +39,19 @@ mat-sidenav.ic-sidebar, .ic-sidebar { width: 13rem; border-right: 1px solid #e5e
 .ic-active { background: rgba(0, 0, 0, 0.06); border-radius: 6px; }
 .ic-title { font-size: 1.375rem; font-weight: 600; margin: 0 0 16px; }
 .ic-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
-.ic-tile { padding: 16px; cursor: pointer; }
+/* Все плашки одинаковые: одна ячейка сетки, общая минимальная высота и один порядок содержимого.
+   Раньше подпись в две строки делала плитку выше соседней, а плашки проблем занимали две ячейки. */
+.ic-tile {
+  padding: 16px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 4px;
+  min-height: 6rem;
+}
 .ic-tile-value { font-size: 1.75rem; font-weight: 600; }
-.ic-tile-label { color: #6b7280; }
+.ic-tile-label { color: #6b7280; line-height: 1.25; }
 .ic-warn { color: #b26a00; }
 .ic-danger { color: #b3261e; }
 .ic-block { margin-top: 14px; }
@@ -59,9 +69,10 @@ mat-card.ic-filters {
 .ic-filters > mat-form-field { flex: 1 1 14rem; min-width: 0; }
 .ic-filters > button, .ic-filters > a { margin-top: 8px; }
 .ic-empty { color: #6b7280; margin: 16px 0 0; }
-.ic-muted { color: #6b7280; margin-left: 6px; }
+/* Отступа слева нет: серая подпись и так отделена обычным пробелом, а вместе получался двойной зазор. */
+.ic-muted { color: #6b7280; }
 /* UI-0.7: у бейджа есть подпись, а не только цвет. */
-.ic-chip { margin-left: 8px; }
+.ic-chip { margin-left: 4px; }
 .ic-chip.bg-warning { background: #ffe6bf; }
 .ic-chip.bg-danger { background: #ffd8d5; }
 .ic-count {
@@ -317,6 +328,6 @@ mat-card-actions.mat-mdc-card-actions { padding: 4px 10px 10px; min-height: 0; }
 .ic-table .mat-mdc-row, .ic-table .mat-mdc-header-row { height: auto; min-height: 2.2rem; }
 .ic-crumbs { margin-bottom: 6px; }
 .ic-form-grid { gap: 0 14px; }
-/* Плитка проблемы шире обычной: в неё помещается подпись с признаком состояния. */
-.ic-tile-alarm { grid-column: span 2; }
-@media (max-width: 900px) { .ic-tile-alarm { grid-column: auto; } }
+/* Все плашки главной устроены одинаково: число сверху, подпись под ним, обрамление одно и то же.
+   Подпись занимает две строки даже когда текст короткий — иначе плашки «прыгают» по высоте. */
+.ic-tile-label { min-height: 2.5em; }

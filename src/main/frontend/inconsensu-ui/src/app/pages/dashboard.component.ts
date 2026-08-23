@@ -81,19 +81,18 @@ import { ApiService, CurrentUser, Dashboard } from '../api.service';
         <div class="ic-tile-value">{{ d.publishedForms }}</div>
         <div class="ic-tile-label">Опубликованных форм</div>
       </mat-card>
-      <!-- Проблемы стоят теми же плитками: отдельная карточка ради одного числа занимала полэкрана. -->
-      <mat-card class="ic-tile ic-tile-alarm" *ngIf="showDeliveryProblems()" routerLink="/webhooks">
+      <!-- Проблемы — такие же плашки, как остальные: то же обрамление, число и подпись. Разный вид
+           читался бы как сбой вёрстки, а не как разница по смыслу; смысл несут цвет числа и подпись. -->
+      <mat-card class="ic-tile" *ngIf="showDeliveryProblems()" [style.border-left]="accent()" routerLink="/webhooks">
         <div class="ic-tile-value ic-danger">{{ failedDeliveries() }}</div>
         <div class="ic-tile-label">
-          {{ plural(failedDeliveries(), 'событие', 'события', 'событий') }} не доставлено
-          <span class="ic-badge danger">попытки исчерпаны</span>
+          {{ plural(failedDeliveries(), 'событие', 'события', 'событий') }} не доставлено получателям
         </div>
       </mat-card>
-      <mat-card class="ic-tile ic-tile-alarm" *ngIf="showImportProblems()" routerLink="/import">
+      <mat-card class="ic-tile" *ngIf="showImportProblems()" [style.border-left]="accent()" routerLink="/import">
         <div class="ic-tile-value ic-warn">{{ failedImports() }}</div>
         <div class="ic-tile-label">
           {{ plural(failedImports(), 'загрузка', 'загрузки', 'загрузок') }} с ошибками
-          <span class="ic-badge warn">нужен разбор</span>
         </div>
       </mat-card>
     </div>
