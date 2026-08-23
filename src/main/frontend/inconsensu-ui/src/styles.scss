@@ -331,3 +331,21 @@ mat-card-actions.mat-mdc-card-actions { padding: 4px 10px 10px; min-height: 0; }
 /* Все плашки главной устроены одинаково: число сверху, подпись под ним, обрамление одно и то же.
    Подпись занимает две строки даже когда текст короткий — иначе плашки «прыгают» по высоте. */
 .ic-tile-label { min-height: 2.5em; }
+
+/* §16.1: поиск в шапке. Поле выглядит как часть панели, а не как форма поверх неё. */
+/* Значок лупы вместо подписи: назначение поля видно без пояснения, а по Enter запрос уходит. */
+.ic-search { display: flex; align-items: center; gap: 6px; margin-right: 12px;
+  background: rgba(255, 255, 255, 0.16); border-radius: 8px; padding: 0 10px; }
+.ic-search-icon { color: rgba(255, 255, 255, 0.85); font-size: 1.1rem; width: 1.1rem; height: 1.1rem; }
+.ic-search-input {
+  border: 0;
+  padding: 8px 2px;
+  width: 13rem;
+  font: inherit;
+  font-size: 0.85rem;
+  background: transparent;
+  color: #fff;
+}
+.ic-search-input::placeholder { color: rgba(255, 255, 255, 0.75); }
+.ic-search-input:focus { outline: 2px solid rgba(255, 255, 255, 0.6); }
+@media (max-width: 1023px) { .ic-search { display: none; } }

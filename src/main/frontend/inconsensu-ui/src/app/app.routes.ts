@@ -87,5 +87,10 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/admin-settings.component').then((m) => m.AdminSettingsComponent),
     title: 'Настройки оператора · In consensu',
   },
-  { path: '**', redirectTo: '' },
+  {
+    // Опечатка в адресе не должна молча показывать главную: сотрудник решит, что раздел пуст.
+    path: '**',
+    loadComponent: () => import('./pages/not-found.component').then((m) => m.NotFoundComponent),
+    title: 'Раздел не найден · In consensu',
+  },
 ];

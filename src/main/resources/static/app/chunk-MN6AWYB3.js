@@ -1,0 +1,1 @@
+import{Da as i,_ as e}from"./chunk-4NJ5YIOE.js";var r=class n{pending=i("");ask(t){this.pending.set(t.trim())}take(){let t=this.pending();return this.pending.set(""),t}static \u0275fac=function(o){return new(o||n)};static \u0275prov=e({token:n,factory:n.\u0275fac,providedIn:"root"})};export{r as a};

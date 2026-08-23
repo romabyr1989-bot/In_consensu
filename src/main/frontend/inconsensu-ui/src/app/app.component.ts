@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Component, ElementRef, HostListener, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -6,6 +7,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { ActivatedRoute, NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { GlobalSearchService } from './global-search.service';
 import { ApiService, CurrentUser } from './api.service';
 
 /** Пункт меню и роли, которым он открыт (§16.2). */
@@ -41,6 +43,7 @@ function pageTitle(title: string | undefined): string {
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     RouterOutlet,
     RouterLink,
     RouterLinkActive,
@@ -60,6 +63,18 @@ function pageTitle(title: string | undefined): string {
         <span>In consensu · {{ user()?.operatorName || 'Центр управления согласиями' }}</span>
       </span>
       <span class="ic-spacer"></span>
+      <!-- §16.1: поиск клиента из любого раздела. Запрос уходит через приложение, а не адресом:
+           телефону, почте и ФИО нельзя попадать в адресную строку (UI-0.10). -->
+      <form class="ic-search" (submit)="runSearch($event)">
+        <mat-icon class="ic-search-icon" aria-hidden="true">search</mat-icon>
+        <input
+          class="ic-search-input"
+          name="q"
+          [(ngModel)]="query"
+          [ngModelOptions]="{ standalone: true }"
+          aria-label="Поиск клиента"
+        />
+      </form>
       <span class="ic-user" *ngIf="user() as u">{{ u.login }} · {{ rolesRu(u.roles) }}</span>
       <form action="/ui/logout" method="post">
         <button mat-button type="submit">Выйти</button>
@@ -110,10 +125,22 @@ export class AppComponent {
   /** Окно шире 1024 — меню открыто постоянно; уже — открывается кнопкой поверх содержимого. */
   readonly wide = signal(typeof window === 'undefined' || window.innerWidth >= 1024);
   readonly menuOpen = signal(false);
+  query = '';
 
   @HostListener('window:resize')
   onResize(): void {
     this.wide.set(window.innerWidth >= 1024);
+  }
+
+  /** Поиск из шапки открывает раздел «Клиенты» и сразу выполняет запрос. */
+  runSearch(event: Event): void {
+    event.preventDefault();
+    if (!this.query.trim()) {
+      return;
+    }
+    this.search.ask(this.query);
+    this.query = '';
+    this.router.navigate(['/subjects']);
   }
 
   closeOnNarrow(): void {
@@ -123,6 +150,7 @@ export class AppComponent {
   }
 
   private readonly api = inject(ApiService);
+  private readonly search = inject(GlobalSearchService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly host: ElementRef<HTMLElement> = inject(ElementRef);

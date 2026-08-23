@@ -13,6 +13,7 @@ import { MatSortModule, Sort } from '@angular/material/sort';
 import { MatTableModule } from '@angular/material/table';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ApiService, SubjectFilters, SubjectRow } from '../api.service';
+import { GlobalSearchService } from '../global-search.service';
 
 /**
  * UI-3: поиск клиента и список по отбору.
@@ -222,6 +223,7 @@ import { ApiService, SubjectFilters, SubjectRow } from '../api.service';
 })
 export class SubjectsComponent {
   private readonly api = inject(ApiService);
+  private readonly globalSearch = inject(GlobalSearchService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
 
@@ -253,6 +255,13 @@ export class SubjectsComponent {
 
   constructor() {
     this.api.subjectFilters().subscribe((filters) => this.filters.set(filters));
+    // Запрос из шапки: он приходит через приложение, а не адресом, и выполняется один раз.
+    const asked = this.globalSearch.take();
+    if (asked) {
+      this.query = asked;
+      this.search();
+    }
+
     // Плитка главной открывает список сразу с отбором: параметры приходят в адресе (UI-2).
     this.route.queryParamMap.subscribe((params) => {
       this.status = params.get('status') ?? '';
@@ -262,6 +271,10 @@ export class SubjectsComponent {
       this.expiringBefore = params.get('expiringBefore') ?? '';
       this.revokedOnly = params.get('revokedOnly') ?? '';
       // Экран открывается сразу со списком: у сотрудника «Клиенты» — это список, а поиск сужает его.
+      // Если пришли с запросом из шапки, список не подменяет его результат.
+      if (this.searchMode()) {
+        return;
+      }
       if (!this.filtersApplied()) {
         this.status = 'ACTIVE';
       }
