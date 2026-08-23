@@ -53,7 +53,6 @@ import { ApiService, SettingChange, SettingGroup } from '../api.service';
     <mat-card class="ic-block">
       <mat-card-header>
         <mat-card-title>Кто и когда менял настройки</mat-card-title>
-        <mat-card-subtitle>Список ведётся сам: править и удалять записи нельзя</mat-card-subtitle>
       </mat-card-header>
       <mat-card-content>
         <table mat-table [dataSource]="history()" class="ic-table" *ngIf="history().length">

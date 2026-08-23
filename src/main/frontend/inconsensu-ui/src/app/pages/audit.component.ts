@@ -117,7 +117,6 @@ const SUBJECT_ID_HELP =
                 <dt>Идентификатор объекта</dt>
                 <dd>{{ event.aggregateId || '—' }}</dd>
               </dl>
-              <p class="ic-subtitle ic-gap">Содержимое события — так, как его записал сервер:</p>
               <pre class="ic-form-text">{{ openedPayload() }}</pre>
             </mat-card-content>
             <mat-card-actions align="end">
@@ -133,7 +132,7 @@ const SUBJECT_ID_HELP =
               </ng-container>
               <ng-container matColumnDef="aggregate">
                 <th mat-header-cell *matHeaderCellDef>Объект</th>
-                <td mat-cell *matCellDef="let row">{{ row.aggregateType }}</td>
+                <td mat-cell *matCellDef="let row">{{ row.aggregateTypeRu || row.aggregateType }}</td>
               </ng-container>
               <ng-container matColumnDef="eventType">
                 <th mat-header-cell *matHeaderCellDef>Событие</th>
@@ -252,10 +251,6 @@ const SUBJECT_ID_HELP =
         <div class="ic-tab-body">
           <mat-card class="ic-block">
             <mat-card-content>
-              <p>
-                Проверка пересчитывает цепочку хешей журнала целиком. Она идёт в фоне: запись появится
-                в списке сразу, а результат — по завершении.
-              </p>
               <button mat-flat-button color="primary" (click)="verify()">Запустить проверку</button>
             </mat-card-content>
           </mat-card>

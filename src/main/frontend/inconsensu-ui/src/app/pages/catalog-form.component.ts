@@ -94,7 +94,6 @@ import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component'
       <mat-card class="ic-block">
         <mat-card-header>
           <mat-card-title>Реквизиты по закону</mat-card-title>
-          <mat-card-subtitle>Часть 4 статьи 9 152-ФЗ: что обязано быть в тексте согласия</mat-card-subtitle>
         </mat-card-header>
         <mat-card-content>
           <div class="ic-requisite" *ngFor="let requisite of row.checklist">
@@ -165,9 +164,6 @@ import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component'
           </dl>
           <p class="ic-empty" *ngIf="!row.history.length">
             Событий по версии ещё нет: первое появится, когда форму отправят на согласование.
-          </p>
-          <p class="ic-muted" *ngIf="row.history.length > 2">
-            Показаны первое и последнее события, остальные — на вкладке «История».
           </p>
         </mat-card-content>
       </mat-card>

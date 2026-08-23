@@ -94,7 +94,6 @@ import { ApiService, BuilderOptions, FormPage } from '../api.service';
         <!-- Обычные ссылки, а не запрос из кода: файл забирает браузер по той же сессии (UI-0.3). -->
         <a mat-stroked-button [href]="formsExportUrl">Формы в CSV</a>
         <a mat-stroked-button [href]="itemsExportUrl">Пункты форм в CSV</a>
-        <span class="ic-muted">В файл уходит весь каталог целиком, отбор на выгрузку не влияет.</span>
       </mat-card-content>
     </mat-card>
 

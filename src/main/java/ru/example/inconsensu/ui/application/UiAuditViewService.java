@@ -1,6 +1,7 @@
 package ru.example.inconsensu.ui.application;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,9 +23,11 @@ public class UiAuditViewService {
     /** @param user имя сотрудника; «—», если запись оставила система или учётной записи уже нет */
     public record AccessRow(String occurredAt, String user, String endpoint, String subjectId, String requestId) {}
 
+    /** @param aggregateTypeRu название объекта по-русски: код агрегата сотруднику ничего не говорит */
     public record EventRow(
             String occurredAt,
             String aggregateType,
+            String aggregateTypeRu,
             String aggregateId,
             String eventTypeRu,
             String actor,
@@ -52,6 +55,30 @@ public class UiAuditViewService {
     }
 
     /**
+     * Русское название объекта журнала (UI-0.4).
+     *
+     * <p>Событие подписано именем агрегата — техническим (`webhook_subscription`). Для сотрудника это
+     * ничего не значит, а на экране аудита имя стоит в отдельной колонке и в фильтре.
+     */
+    public String aggregateNameRu(String aggregateType) {
+        return AGGREGATE_NAMES.getOrDefault(aggregateType, aggregateType);
+    }
+
+    private static final Map<String, String> AGGREGATE_NAMES = Map.ofEntries(
+            Map.entry("subject", "Клиент"),
+            Map.entry("consent", "Согласие"),
+            Map.entry("consent_type", "Тип согласия"),
+            Map.entry("consent_form", "Форма согласия"),
+            Map.entry("third_party", "Третье лицо"),
+            Map.entry("partner_export", "Выгрузка партнёру"),
+            Map.entry("import_job", "Задача импорта"),
+            Map.entry("notification_rule", "Правило уведомлений"),
+            Map.entry("webhook_subscription", "Подписка на события"),
+            Map.entry("app_user", "Учётная запись"),
+            Map.entry("operator_settings", "Настройки оператора"),
+            Map.entry("retention", "Хранение и архив"));
+
+    /**
      * Типы объектов, встречающиеся в журнале (UI-15).
      *
      * <p>Берутся из самого журнала, а не из перечисления: событие может прийти от модуля, о котором экран
@@ -68,6 +95,7 @@ public class UiAuditViewService {
                 .map(event -> new EventRow(
                         formats.dateTime(event.getOccurredAt()),
                         event.getAggregateType(),
+                        aggregateNameRu(event.getAggregateType()),
                         event.getAggregateId(),
                         event.getEventType().nameRu(),
                         event.getActorId(),

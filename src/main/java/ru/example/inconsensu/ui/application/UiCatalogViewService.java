@@ -1,7 +1,6 @@
 package ru.example.inconsensu.ui.application;
 
 import jakarta.servlet.http.HttpServletRequest;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -72,7 +71,8 @@ public class UiCatalogViewService {
      *
      * @param actor имя согласующего; логин, если учётной записи уже нет
      */
-    public record ApprovalRow(String roleRu, boolean approved, String actor, Instant decidedAt, String comment) {}
+    /** @param decidedAt момент решения уже строкой: экран показывает его человеку, а не машине */
+    public record ApprovalRow(String roleRu, boolean approved, String actor, String decidedAt, String comment) {}
 
     private final ConsentTypeService types;
     private final ConsentFormService forms;
@@ -244,9 +244,9 @@ public class UiCatalogViewService {
                     return new ApprovalRow(
                             roleNameRu(role),
                             approval != null,
-                            approval == null ? null : actorName(approval),
-                            approval == null ? null : approval.getDecidedAt(),
-                            approval == null ? null : approval.getComment());
+                            approval == null ? "" : actorName(approval),
+                            approval == null ? "" : formats.dateTime(approval.getDecidedAt()),
+                            approval == null ? "" : approval.getComment());
                 })
                 .toList();
     }

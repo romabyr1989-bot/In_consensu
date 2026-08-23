@@ -153,10 +153,6 @@ interface FormatColumn {
             Скачать отчёт по строкам
           </a>
         </div>
-        <p class="ic-muted" *ngIf="current.job.dryRun && current.job.status === 'COMPLETED' && current.job.rejected">
-          Боевой импорт по этому файлу не запустить, пока есть отклонённые строки: поправьте их и
-          загрузите файл заново.
-        </p>
 
         <table mat-table [dataSource]="current.report" class="ic-table ic-gap" *ngIf="current.report.length">
           <ng-container matColumnDef="line">

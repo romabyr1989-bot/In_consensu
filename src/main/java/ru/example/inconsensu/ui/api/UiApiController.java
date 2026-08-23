@@ -105,6 +105,7 @@ public class UiApiController {
     }
 
     /** Строка результата поиска: контакты уже замаскированы по роли (UI-0.10). */
+    /** @param channels разрешённые каналы связи: в списке видно, кому вообще можно писать и звонить */
     public record SubjectSearchRow(
             UUID id,
             String fullName,
@@ -113,7 +114,11 @@ public class UiApiController {
             String email,
             long active,
             long expiring,
-            long revoked) {}
+            long revoked,
+            List<ChannelMark> channels) {}
+
+    /** Значок канала в списке: подпись обязательна, цвет её только дублирует (UI-0.7). */
+    public record ChannelMark(String channel, String nameRu, boolean allowed) {}
 
     /**
      * UI-3: поиск клиента.
@@ -139,7 +144,13 @@ public class UiApiController {
                 contact(row, ru.example.inconsensu.common.domain.ContactType.EMAIL),
                 row.active(),
                 row.expiring(),
-                row.revoked());
+                row.revoked(),
+                row.channels().entrySet().stream()
+                        .map(channel -> new ChannelMark(
+                                channel.getKey().name(),
+                                channel.getKey().nameRu(),
+                                Boolean.TRUE.equals(channel.getValue())))
+                        .toList());
     }
 
     private static String text(String value) {

@@ -34,6 +34,7 @@ export interface SubjectRow {
   active: number;
   expiring: number;
   revoked: number;
+  channels: { channel: string; nameRu: string; allowed: boolean }[];
 }
 
 /** Строка справочника третьих лиц (UI-11). */
@@ -452,6 +453,7 @@ export interface SubscriptionSaved {
 export interface AuditEventRow {
   occurredAt: string;
   aggregateType: string;
+  aggregateTypeRu: string;
   aggregateId: string;
   eventTypeRu: string;
   actor: string;

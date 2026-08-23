@@ -81,43 +81,22 @@ import { ApiService, CurrentUser, Dashboard } from '../api.service';
         <div class="ic-tile-value">{{ d.publishedForms }}</div>
         <div class="ic-tile-label">Опубликованных форм</div>
       </mat-card>
-    </div>
-
-    <mat-card class="ic-block" *ngIf="showDeliveryProblems()">
-      <mat-card-header><mat-card-title>Проблемы доставки webhook</mat-card-title></mat-card-header>
-      <mat-card-content>
+      <!-- Проблемы стоят теми же плитками: отдельная карточка ради одного числа занимала полэкрана. -->
+      <mat-card class="ic-tile ic-tile-alarm" *ngIf="showDeliveryProblems()" routerLink="/webhooks">
         <div class="ic-tile-value ic-danger">{{ failedDeliveries() }}</div>
         <div class="ic-tile-label">
-          {{ plural(failedDeliveries(), 'событие', 'события', 'событий') }} не доставлено получателям
+          {{ plural(failedDeliveries(), 'событие', 'события', 'событий') }} не доставлено
           <span class="ic-badge danger">попытки исчерпаны</span>
         </div>
-        <p class="ic-tile-note">
-          Сами эти события больше не повторятся. Проверьте, отвечает ли адрес подписки, и отправьте их
-          заново из журнала доставок.
-        </p>
-      </mat-card-content>
-      <mat-card-actions>
-        <a mat-stroked-button routerLink="/webhooks">Открыть журнал доставок</a>
-      </mat-card-actions>
-    </mat-card>
-
-    <mat-card class="ic-block" *ngIf="showImportProblems()">
-      <mat-card-header><mat-card-title>Ошибки импорта</mat-card-title></mat-card-header>
-      <mat-card-content>
+      </mat-card>
+      <mat-card class="ic-tile ic-tile-alarm" *ngIf="showImportProblems()" routerLink="/import">
         <div class="ic-tile-value ic-warn">{{ failedImports() }}</div>
         <div class="ic-tile-label">
           {{ plural(failedImports(), 'загрузка', 'загрузки', 'загрузок') }} с ошибками
           <span class="ic-badge warn">нужен разбор</span>
         </div>
-        <p class="ic-tile-note">
-          Часть строк отклонена или загрузка не дошла до конца. Отклонённое в базу не попало:
-          посмотрите отчёт задачи, поправьте файл и загрузите его ещё раз.
-        </p>
-      </mat-card-content>
-      <mat-card-actions>
-        <a mat-stroked-button routerLink="/import">Открыть задачи импорта</a>
-      </mat-card-actions>
-    </mat-card>
+      </mat-card>
+    </div>
 
     <mat-card class="ic-block" *ngIf="data() as d">
       <mat-card-header><mat-card-title>Последние уведомления</mat-card-title></mat-card-header>

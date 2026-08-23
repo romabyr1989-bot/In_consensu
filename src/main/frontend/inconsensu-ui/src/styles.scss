@@ -44,7 +44,7 @@ mat-sidenav.ic-sidebar, .ic-sidebar { width: 13rem; border-right: 1px solid #e5e
 .ic-tile-label { color: #6b7280; }
 .ic-warn { color: #b26a00; }
 .ic-danger { color: #b3261e; }
-.ic-block { margin-top: 24px; }
+.ic-block { margin-top: 14px; }
 .ic-table { width: 100%; }
 /* Селектор с именем элемента: у карточки Material своё правило display:block той же силы, и оно
    перебивало класс — панель фильтров переставала быть флексом, а поля разъезжались по строке. */
@@ -300,3 +300,23 @@ pre, .ic-form-text { white-space: pre-wrap; overflow-wrap: anywhere; }
    и обрезалось по нижнему краю. */
 .mat-expansion-panel-header { height: auto; min-height: 3rem; padding-top: 8px; padding-bottom: 8px; }
 .mat-expansion-panel-header-description, .mat-expansion-panel-header-title { white-space: normal; overflow-wrap: anywhere; }
+
+/* Плотность. При шрифте в полтора раза крупнее стандартные отступы Material дают экран, на котором
+   помещается вдвое меньше строк, чем нужно диспетчеру: расстояния уменьшены, а не увеличены вслед за
+   шрифтом. Имя элемента в селекторе обязательно — у Material свои правила той же силы. */
+.ic-block { margin-top: 14px; }
+mat-card-content.mat-mdc-card-content { padding: 10px 14px; }
+mat-card-header.mat-mdc-card-header { padding: 10px 14px 0; }
+mat-card-actions.mat-mdc-card-actions { padding: 4px 10px 10px; min-height: 0; }
+.ic-title { margin: 0 0 10px; }
+.ic-tiles { gap: 12px; }
+.ic-tile { padding: 12px 14px; }
+.ic-tile-value { font-size: 1.5rem; line-height: 1.2; }
+.ic-tab-body { padding: 10px 0; }
+.ic-table th, .ic-table td { padding-top: 4px; padding-bottom: 4px; }
+.ic-table .mat-mdc-row, .ic-table .mat-mdc-header-row { height: auto; min-height: 2.2rem; }
+.ic-crumbs { margin-bottom: 6px; }
+.ic-form-grid { gap: 0 14px; }
+/* Плитка проблемы шире обычной: в неё помещается подпись с признаком состояния. */
+.ic-tile-alarm { grid-column: span 2; }
+@media (max-width: 900px) { .ic-tile-alarm { grid-column: auto; } }

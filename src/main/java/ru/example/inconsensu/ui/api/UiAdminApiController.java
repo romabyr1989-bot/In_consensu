@@ -219,7 +219,7 @@ public class UiAdminApiController {
         return Map.of(
                 "aggregateTypes",
                         auditView.aggregateTypes().stream()
-                                .map(type -> Map.of("code", type, "nameRu", type))
+                                .map(type -> Map.of("code", type, "nameRu", auditView.aggregateNameRu(type)))
                                 .toList(),
                 "eventTypes",
                         java.util.Arrays.stream(AuditEventType.values())
