@@ -86,11 +86,10 @@ import { ApiService, BuilderOptions, FormPage } from '../api.service';
           <input matInput [(ngModel)]="text" (keyup.enter)="load()" />
         </mat-form-field>
         <button mat-flat-button color="primary" (click)="creating.set(true)">Новая форма</button>
-        <button mat-button *ngIf="filtersApplied()" (click)="reset()">Сбросить отбор</button>
+        <button mat-stroked-button *ngIf="filtersApplied()" (click)="reset()">Сбросить отбор</button>
       </mat-card-content>
 
       <mat-card-content class="ic-filters">
-        <span class="ic-muted">Выгрузка:</span>
         <!-- Обычные ссылки, а не запрос из кода: файл забирает браузер по той же сессии (UI-0.3). -->
         <a mat-stroked-button [href]="formsExportUrl">Формы в CSV</a>
         <a mat-stroked-button [href]="itemsExportUrl">Пункты форм в CSV</a>
@@ -110,7 +109,7 @@ import { ApiService, BuilderOptions, FormPage } from '../api.service';
           <input matInput [(ngModel)]="newTitle" />
         </mat-form-field>
         <button mat-flat-button color="primary" (click)="create()">Создать черновик</button>
-        <button mat-button (click)="creating.set(false)">Отмена</button>
+        <button mat-stroked-button (click)="creating.set(false)">Отмена</button>
       </mat-card-content>
     </mat-card>
 
@@ -147,7 +146,7 @@ import { ApiService, BuilderOptions, FormPage } from '../api.service';
         <ng-container matColumnDef="actions">
           <th mat-header-cell *matHeaderCellDef></th>
           <td mat-cell *matCellDef="let row">
-            <a mat-button *ngIf="row.editable" [routerLink]="['/catalog/forms', row.id, 'edit']">Конструктор</a>
+            <a mat-stroked-button *ngIf="row.editable" [routerLink]="['/catalog/forms', row.id, 'edit']">Конструктор</a>
           </td>
         </ng-container>
         <tr mat-header-row *matHeaderRowDef="columns"></tr>
@@ -167,7 +166,7 @@ import { ApiService, BuilderOptions, FormPage } from '../api.service';
         [length]="page()?.total ?? 0"
         [pageSize]="pageSize"
         [pageIndex]="pageIndex"
-        [pageSizeOptions]="[20, 50, 100]"
+        [pageSizeOptions]="[10, 20, 50]"
         (page)="turnPage($event)"
       ></mat-paginator>
     </mat-card>
@@ -193,7 +192,7 @@ export class CatalogFormsComponent {
   thirdPartyId = '';
   text = '';
   pageIndex = 0;
-  pageSize = 20;
+  pageSize = 10;
   newCode = '';
   newTitle = '';
 

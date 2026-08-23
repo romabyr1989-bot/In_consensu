@@ -74,7 +74,7 @@ import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component'
         </div>
       </mat-card-content>
       <mat-card-actions align="end">
-        <button mat-button *ngIf="draft.id" (click)="resetDraft()">Отмена</button>
+        <button mat-stroked-button *ngIf="draft.id" (click)="resetDraft()">Отмена</button>
         <button mat-flat-button color="primary" (click)="save()">Сохранить</button>
       </mat-card-actions>
     </mat-card>
@@ -89,7 +89,7 @@ import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component'
           <input matInput type="password" [(ngModel)]="newPassword" />
         </mat-form-field>
         <button mat-flat-button color="warn" [disabled]="!newPassword" (click)="applyReset()">Сбросить пароль</button>
-        <button mat-button (click)="cancelReset()">Отмена</button>
+        <button mat-stroked-button (click)="cancelReset()">Отмена</button>
       </mat-card-content>
     </mat-card>
 
@@ -121,8 +121,8 @@ import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component'
         <ng-container matColumnDef="actions">
           <th mat-header-cell *matHeaderCellDef></th>
           <td mat-cell *matCellDef="let row">
-            <button mat-button (click)="edit(row)">Править</button>
-            <button mat-button (click)="startReset(row)">Сбросить пароль</button>
+            <button mat-stroked-button (click)="edit(row)">Править</button>
+            <button mat-stroked-button (click)="startReset(row)">Сбросить пароль</button>
           </td>
         </ng-container>
         <tr mat-header-row *matHeaderRowDef="columns"></tr>
@@ -137,7 +137,7 @@ import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component'
         [length]="total()"
         [pageSize]="size"
         [pageIndex]="page"
-        [pageSizeOptions]="[20, 50, 100]"
+        [pageSizeOptions]="[10, 20, 50]"
         (page)="turnPage($event)"
       ></mat-paginator>
     </mat-card>
@@ -161,7 +161,7 @@ export class AdminUsersComponent {
   resettingId = '';
   resettingName = '';
   page = 0;
-  size = 20;
+  size = 10;
 
   constructor() {
     this.load();

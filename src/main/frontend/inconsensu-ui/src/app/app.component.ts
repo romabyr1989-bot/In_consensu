@@ -77,7 +77,7 @@ function pageTitle(title: string | undefined): string {
       </form>
       <span class="ic-user" *ngIf="user() as u">{{ u.login }} · {{ rolesRu(u.roles) }}</span>
       <form action="/ui/logout" method="post">
-        <button mat-button type="submit">Выйти</button>
+        <button mat-stroked-button type="submit">Выйти</button>
       </form>
     </mat-toolbar>
 

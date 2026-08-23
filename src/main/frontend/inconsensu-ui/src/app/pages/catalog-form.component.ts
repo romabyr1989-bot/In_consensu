@@ -87,7 +87,7 @@ import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component'
           <button mat-flat-button color="warn" [disabled]="!comment.trim()" (click)="act('reject', comment)">
             Отклонить
           </button>
-          <button mat-button (click)="rejecting.set(false)">Отмена</button>
+          <button mat-stroked-button (click)="rejecting.set(false)">Отмена</button>
         </mat-card-content>
       </mat-card>
 

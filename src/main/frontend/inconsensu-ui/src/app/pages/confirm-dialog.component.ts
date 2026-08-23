@@ -27,7 +27,7 @@ export interface ConfirmData {
       <p class="ic-danger" *ngIf="data.danger">Действие необратимо.</p>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button [mat-dialog-close]="false">Отмена</button>
+      <button mat-stroked-button [mat-dialog-close]="false">Отмена</button>
       <button mat-flat-button [color]="data.danger ? 'warn' : 'primary'" [mat-dialog-close]="true">
         {{ data.confirmLabel }}
       </button>

@@ -48,7 +48,16 @@ interface FormatColumn {
 
     <mat-card class="ic-block">
       <mat-card-content class="ic-filters">
-        <input type="file" accept=".csv,.json,text/csv,application/json" (change)="pick($event)" />
+        <!-- Родное поле выбора файла выглядит чужеродно среди кнопок: прячем его и открываем кнопкой. -->
+        <input
+          #picker
+          type="file"
+          class="ic-hidden-input"
+          accept=".csv,.json,text/csv,application/json"
+          (change)="pick($event)"
+        />
+        <button mat-stroked-button type="button" (click)="picker.click()">Выбрать файл</button>
+        <span class="ic-muted">{{ file?.name || 'файл не выбран' }}</span>
         <mat-form-field appearance="outline">
           <mat-label>Источник согласий</mat-label>
           <mat-select [(ngModel)]="source">
@@ -187,17 +196,19 @@ interface FormatColumn {
           <td mat-cell *matCellDef="let row">{{ row.dryRun ? 'пробный' : 'боевой' }}</td>
         </ng-container>
         <ng-container matColumnDef="status">
-          <th mat-header-cell *matHeaderCellDef>Статус</th>
+          <th mat-header-cell *matHeaderCellDef>Чем закончилось</th>
           <td mat-cell *matCellDef="let row">
-            <span class="ic-badge" [class]="'ic-badge ' + badge(row)">{{ row.statusRu }}</span>
+            <span class="ic-badge" [class]="'ic-badge ' + badge(row)">{{ outcome(row) }}</span>
           </td>
         </ng-container>
         <ng-container matColumnDef="counts">
           <th mat-header-cell *matHeaderCellDef>Строки</th>
+          <!-- Слова говорят, что произошло, цвет — насколько это хорошо (UI-0.7). -->
           <td mat-cell *matCellDef="let row">
-            <span class="ic-count ok">{{ row.imported }}</span>
-            <span class="ic-count danger">{{ row.rejected }}</span>
-            <span class="ic-muted">из {{ row.total }}</span>
+            {{ row.dryRun ? 'подошло' : 'принято' }}
+            <span class="ic-num ok">{{ row.imported }}</span> из {{ row.total }}<span *ngIf="row.rejected"
+              >, отклонено <span class="ic-num danger">{{ row.rejected }}</span></span
+            >
           </td>
         </ng-container>
         <ng-container matColumnDef="startedBy">
@@ -391,6 +402,27 @@ export class ImportComponent {
           error: (failure) => this.error.set(failure?.error?.detail ?? 'Боевой импорт не запущен.'),
         });
       });
+  }
+
+  /** Чем закончилась загрузка — словами: «завершена» ничего не говорит о том, попали ли строки в базу. */
+  outcome(row: { status: string; statusRu: string; dryRun: boolean; rejected: number; imported: number }): string {
+    if (row.status === 'RUNNING' || row.status === 'PENDING') {
+      return 'выполняется';
+    }
+    if (row.status === 'FAILED') {
+      return 'не завершилась';
+    }
+    if (row.rejected) {
+      return row.dryRun ? 'проверено, есть ошибки' : 'загружено частично';
+    }
+    return row.dryRun ? 'проверено, ошибок нет' : 'загружено полностью';
+  }
+
+  /** Строки словами: пары чисел в кружках сотрудник читал как код, а не как результат. */
+  rowsSummary(row: { total: number; imported: number; rejected: number; dryRun: boolean }): string {
+    const accepted = row.dryRun ? 'подошло' : 'принято';
+    const base = `${accepted} ${row.imported} из ${row.total}`;
+    return row.rejected ? `${base}, отклонено ${row.rejected}` : base;
   }
 
   badge(row: { status: string; rejected: number }): string {

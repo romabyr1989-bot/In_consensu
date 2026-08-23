@@ -39,7 +39,7 @@ import { ApiService, PartyRow } from '../api.service';
             <mat-option value="EXPIRING">истекает или истёк</mat-option>
           </mat-select>
         </mat-form-field>
-        <button mat-button (click)="reset()">Сбросить фильтры</button>
+        <button mat-stroked-button (click)="reset()">Сбросить фильтры</button>
       </mat-card-content>
     </mat-card>
 
@@ -78,11 +78,11 @@ import { ApiService, PartyRow } from '../api.service';
         <ng-container matColumnDef="consents">
           <th mat-header-cell *matHeaderCellDef>Согласия</th>
           <td mat-cell *matCellDef="let row">
-            <span class="ic-count ok" [attr.aria-label]="'Действующих согласий: ' + row.consentsActive">
+            <span class="ic-count ok" [attr.aria-label]="'Действующих согласий: ' + row.consentsActive" [attr.title]="'Действующих согласий: ' + row.consentsActive">
               {{ row.consentsActive }}</span>
-            <span class="ic-count warn" [attr.aria-label]="'Истекающих согласий: ' + row.consentsExpiring">
+            <span class="ic-count warn" [attr.aria-label]="'Истекающих согласий: ' + row.consentsExpiring" [attr.title]="'Истекающих согласий: ' + row.consentsExpiring">
               {{ row.consentsExpiring }}</span>
-            <span class="ic-count danger" [attr.aria-label]="'Отозванных согласий: ' + row.consentsRevoked">
+            <span class="ic-count danger" [attr.aria-label]="'Отозванных согласий: ' + row.consentsRevoked" [attr.title]="'Отозванных согласий: ' + row.consentsRevoked">
               {{ row.consentsRevoked }}</span>
           </td>
         </ng-container>

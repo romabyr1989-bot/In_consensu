@@ -123,7 +123,7 @@ import { ConfirmDialogComponent } from './confirm-dialog.component';
         </div>
       </mat-card-content>
       <mat-card-actions align="end">
-        <button mat-button (click)="editing.set(false)">Отмена</button>
+        <button mat-stroked-button (click)="editing.set(false)">Отмена</button>
         <button mat-flat-button color="primary" (click)="save()">Сохранить</button>
       </mat-card-actions>
     </mat-card>
@@ -154,13 +154,13 @@ import { ConfirmDialogComponent } from './confirm-dialog.component';
         <ng-container matColumnDef="consents">
           <th mat-header-cell *matHeaderCellDef>Согласия</th>
           <td mat-cell *matCellDef="let row">
-            <span class="ic-count ok" [attr.aria-label]="'Действующих: ' + row.consentsActive">{{
+            <span class="ic-count ok" [attr.aria-label]="'Действующих: ' + row.consentsActive" [attr.title]="'Действующих: ' + row.consentsActive">{{
               row.consentsActive
             }}</span>
-            <span class="ic-count warn" [attr.aria-label]="'Истекающих: ' + row.consentsExpiring">{{
+            <span class="ic-count warn" [attr.aria-label]="'Истекающих: ' + row.consentsExpiring" [attr.title]="'Истекающих: ' + row.consentsExpiring">{{
               row.consentsExpiring
             }}</span>
-            <span class="ic-count danger" [attr.aria-label]="'Отозванных: ' + row.consentsRevoked">{{
+            <span class="ic-count danger" [attr.aria-label]="'Отозванных: ' + row.consentsRevoked" [attr.title]="'Отозванных: ' + row.consentsRevoked">{{
               row.consentsRevoked
             }}</span>
           </td>
@@ -168,8 +168,8 @@ import { ConfirmDialogComponent } from './confirm-dialog.component';
         <ng-container matColumnDef="actions">
           <th mat-header-cell *matHeaderCellDef></th>
           <td mat-cell *matCellDef="let row">
-            <button mat-button (click)="startEdit(row)">Править</button>
-            <button mat-button color="warn" *ngIf="row.active" (click)="deactivate(row)">Деактивировать</button>
+            <button mat-stroked-button (click)="startEdit(row)">Править</button>
+            <button mat-stroked-button color="warn" *ngIf="row.active" (click)="deactivate(row)">Деактивировать</button>
           </td>
         </ng-container>
         <tr mat-header-row *matHeaderRowDef="columns"></tr>
@@ -188,7 +188,7 @@ import { ConfirmDialogComponent } from './confirm-dialog.component';
         [length]="rows().length"
         [pageSize]="size()"
         [pageIndex]="page()"
-        [pageSizeOptions]="[20, 50, 100]"
+        [pageSizeOptions]="[10, 20, 50]"
         (page)="turnPage($event)"
       ></mat-paginator>
     </mat-card>
@@ -206,7 +206,7 @@ export class CatalogTypesComponent {
   readonly error = signal('');
 
   readonly page = signal(0);
-  readonly size = signal(20);
+  readonly size = signal(10);
   /** Строки выбранной страницы: показываем ровно их, а не весь список (UI-0.8). */
   readonly pageRows = computed(() => {
     const from = this.page() * this.size();

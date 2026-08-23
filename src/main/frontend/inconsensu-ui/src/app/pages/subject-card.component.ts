@@ -55,7 +55,7 @@ export interface ConsentTextData {
       <p class="ic-danger" *ngIf="error()">{{ error() }}</p>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <a mat-button [routerLink]="['/consents', data.consentId]" mat-dialog-close>Открыть досье</a>
+      <a mat-stroked-button [routerLink]="['/consents', data.consentId]" mat-dialog-close>Открыть досье</a>
       <button mat-flat-button color="primary" mat-dialog-close>Закрыть</button>
     </mat-dialog-actions>
   `,
@@ -140,7 +140,7 @@ export class ConsentTextDialogComponent {
               <span class="ic-contact-type">{{ contact.typeRu }}</span>
               <span>{{ contact.value }}</span>
               <button
-                mat-button
+                mat-stroked-button
                 *ngIf="contact.masked && subject.mayReveal"
                 (click)="reveal(contact.type)"
               >
@@ -184,9 +184,9 @@ export class ConsentTextDialogComponent {
               <ng-container matColumnDef="actions">
                 <th mat-header-cell *matHeaderCellDef></th>
                 <td mat-cell *matCellDef="let row">
-                  <button mat-button (click)="openText(row.id, row.typeName)">Посмотреть текст</button>
+                  <button mat-stroked-button (click)="openText(row.id, row.typeName)">Посмотреть текст</button>
                   <button
-                    mat-button
+                    mat-stroked-button
                     color="warn"
                     *ngIf="row.revocable && subject.mayRevoke"
                     (click)="openRevoke(row.id, row.typeName)"

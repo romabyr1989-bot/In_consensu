@@ -56,7 +56,7 @@ import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component'
         <pre class="ic-form-text">{{ secret() }}</pre>
       </mat-card-content>
       <mat-card-actions align="end">
-        <button mat-button (click)="hideSecret()">Скрыть</button>
+        <button mat-stroked-button (click)="hideSecret()">Скрыть</button>
       </mat-card-actions>
     </mat-card>
 
@@ -93,7 +93,7 @@ import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component'
         </p>
       </mat-card-content>
       <mat-card-actions align="end">
-        <button mat-button *ngIf="draft.subscriptionId" (click)="resetDraft()">Отмена</button>
+        <button mat-stroked-button *ngIf="draft.subscriptionId" (click)="resetDraft()">Отмена</button>
         <button mat-flat-button color="primary" (click)="save()">
           {{ editingInactive() ? 'Сохранить и включить' : 'Сохранить' }}
         </button>
@@ -144,11 +144,11 @@ import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component'
           <th mat-header-cell *matHeaderCellDef></th>
           <td mat-cell *matCellDef="let row">
             <div class="ic-actions">
-              <button mat-button (click)="edit(row)">Править</button>
-              <button mat-button (click)="test(row)">Проверить</button>
-              <button mat-button (click)="openDeliveries(row)">Доставки</button>
-              <button mat-button (click)="rotateSecret(row)">Заменить секрет</button>
-              <button mat-button color="warn" *ngIf="row.active" (click)="deactivate(row)">Выключить</button>
+              <button mat-stroked-button (click)="edit(row)">Править</button>
+              <button mat-stroked-button (click)="test(row)">Проверить</button>
+              <button mat-stroked-button (click)="openDeliveries(row)">Доставки</button>
+              <button mat-stroked-button (click)="rotateSecret(row)">Заменить секрет</button>
+              <button mat-stroked-button color="warn" *ngIf="row.active" (click)="deactivate(row)">Выключить</button>
             </div>
           </td>
         </ng-container>
@@ -187,7 +187,7 @@ import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component'
           <ng-container matColumnDef="actions">
             <th mat-header-cell *matHeaderCellDef></th>
             <td mat-cell *matCellDef="let row">
-              <button mat-button *ngIf="!row.successful" (click)="retry(row)">Повторить</button>
+              <button mat-stroked-button *ngIf="!row.successful" (click)="retry(row)">Повторить</button>
             </td>
           </ng-container>
           <tr mat-header-row *matHeaderRowDef="deliveryColumns"></tr>
@@ -202,7 +202,7 @@ import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component'
         </p>
       </mat-card-content>
       <mat-card-actions align="end">
-        <button mat-button (click)="closeDeliveries()">Закрыть</button>
+        <button mat-stroked-button (click)="closeDeliveries()">Закрыть</button>
       </mat-card-actions>
     </mat-card>
   `,

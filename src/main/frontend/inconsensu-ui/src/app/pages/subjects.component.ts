@@ -50,13 +50,12 @@ import { GlobalSearchService } from '../global-search.service';
           <input matInput [(ngModel)]="query" (keyup.enter)="search()" />
         </mat-form-field>
         <button mat-flat-button color="primary" (click)="search()">Найти</button>
-        <button mat-button (click)="reset()">Сбросить</button>
+        <button mat-stroked-button (click)="reset()">Сбросить</button>
         <button mat-stroked-button (click)="creating.set(!creating())">Завести клиента</button>
       </mat-card-content>
 
       <!-- Готовые отборы рядом с поиском: это один и тот же список, а не разные экраны. -->
       <mat-card-content class="ic-filters">
-        <span class="ic-muted">Показать:</span>
         <button mat-stroked-button [class.ic-active-chip]="status === 'ACTIVE'" (click)="quick('status', 'ACTIVE')">
           с действующими согласиями
         </button>
@@ -70,8 +69,8 @@ import { GlobalSearchService } from '../global-search.service';
 
       <mat-expansion-panel class="ic-block">
         <mat-expansion-panel-header>
-          <mat-panel-title>Расширенный отбор</mat-panel-title>
-          <mat-panel-description>{{ filtersApplied() ? 'применён' : 'не задан' }}</mat-panel-description>
+          <mat-panel-title>Расширенный поиск</mat-panel-title>
+          <mat-panel-description>{{ filtersApplied() ? 'применён' : '' }}</mat-panel-description>
         </mat-expansion-panel-header>
         <div class="ic-form-grid">
           <mat-form-field appearance="outline">
@@ -152,7 +151,7 @@ import { GlobalSearchService } from '../global-search.service';
         </mat-form-field>
       </mat-card-content>
       <mat-card-actions align="end">
-        <button mat-button (click)="creating.set(false)">Отмена</button>
+        <button mat-stroked-button (click)="creating.set(false)">Отмена</button>
         <button mat-flat-button color="primary" (click)="saveSubject()">Сохранить</button>
       </mat-card-actions>
     </mat-card>
@@ -191,11 +190,11 @@ import { GlobalSearchService } from '../global-search.service';
         <ng-container matColumnDef="consents">
           <th mat-header-cell *matHeaderCellDef>Согласия</th>
           <td mat-cell *matCellDef="let row">
-            <span class="ic-count ok" [attr.aria-label]="'Действующих согласий: ' + row.active">{{ row.active }}</span>
-            <span class="ic-count warn" [attr.aria-label]="'Истекающих согласий: ' + row.expiring">{{
+            <span class="ic-count ok" [attr.aria-label]="'Действующих согласий: ' + row.active" [attr.title]="'Действующих согласий: ' + row.active">{{ row.active }}</span>
+            <span class="ic-count warn" [attr.aria-label]="'Истекающих согласий: ' + row.expiring" [attr.title]="'Истекающих согласий: ' + row.expiring">{{
               row.expiring
             }}</span>
-            <span class="ic-count danger" [attr.aria-label]="'Отозванных согласий: ' + row.revoked">{{
+            <span class="ic-count danger" [attr.aria-label]="'Отозванных согласий: ' + row.revoked" [attr.title]="'Отозванных согласий: ' + row.revoked">{{
               row.revoked
             }}</span>
           </td>
@@ -212,7 +211,7 @@ import { GlobalSearchService } from '../global-search.service';
         [length]="total()"
         [pageSize]="size"
         [pageIndex]="page"
-        [pageSizeOptions]="[20, 50, 100]"
+        [pageSizeOptions]="[10, 20, 50]"
         (page)="turnPage($event)"
       ></mat-paginator>
       <p class="ic-muted" *ngIf="searchMode() && total() >= 50">
@@ -249,7 +248,7 @@ export class SubjectsComponent {
   sort = '';
   direction = '';
   page = 0;
-  size = 20;
+  size = 10;
 
   draft = this.emptyDraft();
 

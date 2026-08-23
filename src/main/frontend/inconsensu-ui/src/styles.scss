@@ -8,6 +8,38 @@
 @import '@fontsource/roboto/latin-500.css';
 @import 'material-icons/iconfont/filled.css';
 
+
+/* Поля компактнее: при крупном шрифте стандартная высота поля Material — 92 пикселя, и форма из шести
+   полей занимает экран целиком. Плотность задаётся штатной примесью: она пересчитывает и высоту, и
+   положение плавающей подписи, поэтому подписи не «съезжают» с рамки. */
+html {
+  @include mat.form-field-density(-3);
+  @include mat.button-density(-1);
+  @include mat.select-density(-3);
+}
+
+/* Текст внутри полей — на полшага мельче общего: подписи разделов и таблицы остаются крупными, а форма
+   из шести полей перестаёт занимать экран целиком. Размер берётся из системного признака Material,
+   иначе правило не доходит ни до поля ввода, ни до плавающей подписи. */
+/* Размер задаётся вместилищу поля: само поле ввода у Material объявлено как font-size: inherit с той же
+   силой, что и любое прямое правило, и перебивало его. Подпись и список выбора — тем же размером. */
+.mat-mdc-form-field .mat-mdc-form-field-infix,
+.mat-mdc-option .mdc-list-item__primary-text { font-size: 0.84rem; line-height: 1.3; }
+/* Поле выбора было на десять пикселей выше поля ввода: у его надписи своя строка. Приводим к одному. */
+.mat-mdc-form-field .mat-mdc-select-value,
+.mat-mdc-form-field .mat-mdc-select-value-text,
+.mat-mdc-form-field .mat-mdc-select-min-line { font-size: 0.84rem; line-height: 1.3; }
+.mat-mdc-form-field .mat-mdc-form-field-infix { min-height: 1.75rem; padding-top: 10px; padding-bottom: 10px; }
+/* Подпись поля — тем же размером, что и ввод: крупная подпись не помещалась в вырез рамки и «съезжала».
+   Размер задаётся признаками Material: собственное правило перебивается его же формулой с переменной. */
+.mat-mdc-form-field {
+  --mdc-outlined-text-field-label-text-size: 0.84rem;
+  --mat-form-field-outlined-label-text-populated-size: 0.84rem;
+  /* Поле выбора держит свой размер строки и было выше поля ввода на десять пикселей. */
+  --mat-select-trigger-text-size: 0.84rem;
+  --mat-select-trigger-text-line-height: 26px;
+}
+
 /* Оформление рабочего места (§16). Тема Material собирается в артефакт: CDN запрещён (UI-0.2). */
 /* Шрифт крупнее в полтора раза: типографика Material задана в rem, поэтому достаточно корневого
    размера — 16 × 1,5. Свои размеры ниже тоже в rem, иначе они остались бы мелкими на общем фоне. */
@@ -58,19 +90,23 @@ mat-sidenav.ic-sidebar, .ic-sidebar { width: 13rem; border-right: 1px solid #e5e
 .ic-table { width: 100%; }
 /* Селектор с именем элемента: у карточки Material своё правило display:block той же силы, и оно
    перебивало класс — панель фильтров переставала быть флексом, а поля разъезжались по строке. */
+/* Кнопки стоят на одной линии с полями: у поля снизу пустая строка под сообщение об ошибке, поэтому
+   ряд выравнивается по середине, а не по верхнему краю. */
 .ic-filters,
 mat-card-content.ic-filters,
 mat-card.ic-filters {
   display: flex;
-  gap: 8px 16px;
-  align-items: flex-start;
+  gap: 8px 12px;
+  align-items: center;
   flex-wrap: wrap;
 }
-.ic-filters > mat-form-field { flex: 1 1 14rem; min-width: 0; }
-.ic-filters > button, .ic-filters > a { margin-top: 8px; }
+.ic-filters > mat-form-field { flex: 1 1 10rem; min-width: 0; }
+/* В панели поиска и фильтров поле не резервирует строку под сообщение об ошибке: показывать её здесь
+   негде, а из-за неё кнопки вставали ниже поля. В формах строка остаётся — там ошибки показываются. */
+.ic-filters .mat-mdc-form-field-subscript-wrapper { display: none; }
 .ic-empty { color: #6b7280; margin: 16px 0 0; }
 /* Отступа слева нет: серая подпись и так отделена обычным пробелом, а вместе получался двойной зазор. */
-.ic-muted { color: #6b7280; }
+.ic-muted { color: #6b7280; font-size: 0.84rem; }
 /* UI-0.7: у бейджа есть подпись, а не только цвет. */
 .ic-chip { margin-left: 4px; }
 .ic-chip.bg-warning { background: #ffe6bf; }
@@ -81,7 +117,6 @@ mat-card.ic-filters {
   text-align: center;
   border-radius: 10px;
   padding: 1px 6px;
-  margin-right: 4px;
   font-size: 0.75rem;
 }
 .ic-count.ok { background: #d8f2e0; }
@@ -181,7 +216,9 @@ app-root { display: block; }
    отступом слева, и ширина 100% сверх него выносила содержимое за край окна. */
 .ic-layout { width: 100%; }
 .ic-block { width: 100%; box-sizing: border-box; }
-.ic-filters > .ic-grow { flex: 3 1 min(22rem, 100%); }
+/* Поле поиска сжимается первым: иначе последняя кнопка ряда переносилась на вторую строку и вставала
+   ниже остальных — ряд выглядел «съехавшим». */
+.ic-filters > .ic-grow { flex: 1 1 min(14rem, 100%); }
 .ic-form-grid { width: 100%; }
 /* Таблица укладывается в ширину карточки и переносит длинные значения; если колонок всё же слишком
    много, карточка прокручивается по горизонтали. Правило пишется с именем элемента: у карточки Material
@@ -275,9 +312,9 @@ pre, .ic-form-text { white-space: pre-wrap; overflow-wrap: anywhere; }
 .ic-dialog mat-form-field { width: 100%; }
 
 /* Кнопка меню видна только на узком окне: на широком боковая панель открыта постоянно. */
-.ic-menu-button { display: none; }
+button.ic-menu-button { display: none; }
 @media (max-width: 1023px) {
-  .ic-menu-button { display: inline-flex; }
+  button.ic-menu-button { display: inline-flex; }
   .ic-user { display: none; }
 }
 
@@ -349,3 +386,26 @@ mat-card-actions.mat-mdc-card-actions { padding: 4px 10px 10px; min-height: 0; }
 .ic-search-input::placeholder { color: rgba(255, 255, 255, 0.75); }
 .ic-search-input:focus { outline: 2px solid rgba(255, 255, 255, 0.6); }
 @media (max-width: 1023px) { .ic-search { display: none; } }
+
+/* Постраничность не занимает целую полосу: у Material её содержимое прижато вправо, и слева
+   оставалась пустая лента во всю ширину карточки. */
+.mat-mdc-paginator-container { justify-content: flex-start; min-height: 2.4rem; padding-left: 8px; }
+.mat-mdc-paginator { --mat-paginator-container-size: 2.4rem; }
+
+/* Кнопки одного вида и одного размера везде — в панелях, в таблицах и в шапке. Основное действие —
+   залитая, остальные — в рамке; текстовых кнопок-ссылок в интерфейсе нет. */
+.mat-mdc-button-base:not(.mat-mdc-icon-button) {
+  min-height: 1.75rem;
+  height: 1.75rem;
+  padding: 0 14px;
+  font-size: 0.84rem;
+  white-space: nowrap;
+  border-radius: 8px;
+}
+.mat-mdc-icon-button { width: 1.75rem; height: 1.75rem; padding: 0; }
+.ic-hidden-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+/* Число с цветовой отметкой внутри фразы: слово объясняет, цвет подсказывает, насколько это хорошо. */
+.ic-num { font-weight: 600; }
+.ic-num.ok { color: #1e7a45; }
+.ic-num.warn { color: #b26a00; }
+.ic-num.danger { color: #b3261e; }

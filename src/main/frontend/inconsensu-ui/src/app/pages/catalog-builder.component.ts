@@ -55,7 +55,7 @@ import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component'
           <span class="ic-badge" [class]="changed() ? 'ic-badge warn' : 'ic-badge ok'">
             {{ changed() ? 'Есть несохранённые правки' : 'Всё сохранено' }}
           </span>
-          <button mat-button (click)="leave(row)">К просмотру</button>
+          <button mat-stroked-button (click)="leave(row)">К просмотру</button>
           <button mat-stroked-button color="warn" (click)="confirmRemove(row)">Удалить черновик</button>
           <button mat-flat-button color="primary" (click)="save()">Сохранить</button>
         </div>
@@ -167,7 +167,7 @@ import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component'
                       <mat-icon>arrow_downward</mat-icon>
                       Вниз
                     </button>
-                    <button mat-button color="warn" (click)="confirmRemoveItem(index)">Убрать пункт</button>
+                    <button mat-stroked-button color="warn" (click)="confirmRemoveItem(index)">Убрать пункт</button>
                   </div>
                 </div>
               </mat-expansion-panel>

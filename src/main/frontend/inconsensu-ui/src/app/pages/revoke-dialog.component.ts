@@ -85,7 +85,7 @@ export interface RevokeDialogData {
       <div class="ic-danger" *ngIf="error()">{{ error() }}</div>
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-button mat-dialog-close>Отмена</button>
+      <button mat-stroked-button mat-dialog-close>Отмена</button>
       <button mat-flat-button color="warn" [disabled]="!ready() || sending()" (click)="submit()">Отозвать</button>
     </mat-dialog-actions>
   `,

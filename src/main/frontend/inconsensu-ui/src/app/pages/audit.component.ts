@@ -99,7 +99,7 @@ const SUBJECT_ID_HELP =
                 <mat-label>По дату</mat-label>
                 <input matInput type="date" [(ngModel)]="to" (change)="applyEventFilters()" />
               </mat-form-field>
-              <button mat-button *ngIf="eventsFiltered()" (click)="resetEventFilters()">Сбросить отбор</button>
+              <button mat-stroked-button *ngIf="eventsFiltered()" (click)="resetEventFilters()">Сбросить отбор</button>
             </mat-card-content>
           </mat-card>
 
@@ -120,7 +120,7 @@ const SUBJECT_ID_HELP =
               <pre class="ic-form-text">{{ openedPayload() }}</pre>
             </mat-card-content>
             <mat-card-actions align="end">
-              <button mat-button (click)="closeEvent()">Закрыть</button>
+              <button mat-stroked-button (click)="closeEvent()">Закрыть</button>
             </mat-card-actions>
           </mat-card>
 
@@ -145,7 +145,7 @@ const SUBJECT_ID_HELP =
               <ng-container matColumnDef="payload">
                 <th mat-header-cell *matHeaderCellDef>Содержимое</th>
                 <td mat-cell *matCellDef="let row">
-                  <button mat-button (click)="toggleEvent(row)">
+                  <button mat-stroked-button (click)="toggleEvent(row)">
                     {{ openedEvent() === row ? 'Скрыть' : 'Показать' }}
                   </button>
                 </td>
@@ -166,7 +166,7 @@ const SUBJECT_ID_HELP =
               [length]="eventsTotal()"
               [pageSize]="eventsSize"
               [pageIndex]="eventsPage"
-              [pageSizeOptions]="[20, 50, 100]"
+              [pageSizeOptions]="[10, 20, 50]"
               (page)="turnEventsPage($event)"
             ></mat-paginator>
           </mat-card>
@@ -193,7 +193,7 @@ const SUBJECT_ID_HELP =
                 <mat-label>По дату</mat-label>
                 <input matInput type="date" [(ngModel)]="accessTo" (change)="applyAccessFilters()" />
               </mat-form-field>
-              <button mat-button *ngIf="accessFiltered()" (click)="resetAccessFilters()">Сбросить отбор</button>
+              <button mat-stroked-button *ngIf="accessFiltered()" (click)="resetAccessFilters()">Сбросить отбор</button>
             </mat-card-content>
           </mat-card>
 
@@ -240,7 +240,7 @@ const SUBJECT_ID_HELP =
               [length]="accessTotal()"
               [pageSize]="accessSize"
               [pageIndex]="accessPage"
-              [pageSizeOptions]="[20, 50, 100]"
+              [pageSizeOptions]="[10, 20, 50]"
               (page)="turnAccessPage($event)"
             ></mat-paginator>
           </mat-card>
@@ -320,14 +320,14 @@ export class AuditComponent {
   from = '';
   to = '';
   eventsPage = 0;
-  eventsSize = 20;
+  eventsSize = 10;
 
   endpoint = '';
   accessSubjectId = '';
   accessFrom = '';
   accessTo = '';
   accessPage = 0;
-  accessSize = 20;
+  accessSize = 10;
 
   constructor() {
     this.api.auditOptions().subscribe((options) => this.options.set(options));

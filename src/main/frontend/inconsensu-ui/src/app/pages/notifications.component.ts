@@ -111,7 +111,7 @@ import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component'
               </mat-form-field>
             </mat-card-content>
             <mat-card-actions align="end">
-              <button mat-button *ngIf="draft.ruleId" (click)="resetDraft()">Отмена</button>
+              <button mat-stroked-button *ngIf="draft.ruleId" (click)="resetDraft()">Отмена</button>
               <button mat-flat-button color="primary" (click)="saveRule()">Сохранить правило</button>
             </mat-card-actions>
           </mat-card>
@@ -147,8 +147,8 @@ import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component'
               <ng-container matColumnDef="actions">
                 <th mat-header-cell *matHeaderCellDef></th>
                 <td mat-cell *matCellDef="let row">
-                  <button mat-button (click)="editRule(row)">Править</button>
-                  <button mat-button color="warn" *ngIf="row.active" (click)="deactivate(row)">Выключить</button>
+                  <button mat-stroked-button (click)="editRule(row)">Править</button>
+                  <button mat-stroked-button color="warn" *ngIf="row.active" (click)="deactivate(row)">Выключить</button>
                 </td>
               </ng-container>
               <tr mat-header-row *matHeaderRowDef="ruleColumns"></tr>
@@ -207,7 +207,7 @@ import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component'
                 <mat-label>По дату</mat-label>
                 <input matInput type="date" [(ngModel)]="to" (change)="applyJournalFilters()" />
               </mat-form-field>
-              <button mat-button *ngIf="journalFiltered()" (click)="resetJournalFilters()">Сбросить отбор</button>
+              <button mat-stroked-button *ngIf="journalFiltered()" (click)="resetJournalFilters()">Сбросить отбор</button>
             </mat-card-content>
           </mat-card>
 
@@ -223,7 +223,7 @@ import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component'
               <div class="ic-danger" *ngIf="opened.error">{{ opened.error }}</div>
             </mat-card-content>
             <mat-card-actions align="end">
-              <button mat-button (click)="this.opened.set(null)">Закрыть</button>
+              <button mat-stroked-button (click)="this.opened.set(null)">Закрыть</button>
             </mat-card-actions>
           </mat-card>
 
@@ -259,7 +259,7 @@ import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component'
               <ng-container matColumnDef="actions">
                 <th mat-header-cell *matHeaderCellDef></th>
                 <td mat-cell *matCellDef="let row">
-                  <button mat-button *ngIf="row.canRetry" (click)="retry(row.id)">Повторить</button>
+                  <button mat-stroked-button *ngIf="row.canRetry" (click)="retry(row.id)">Повторить</button>
                 </td>
               </ng-container>
               <tr mat-header-row *matHeaderRowDef="journalColumns"></tr>
@@ -278,7 +278,7 @@ import { ConfirmData, ConfirmDialogComponent } from './confirm-dialog.component'
               [length]="journal()?.total ?? 0"
               [pageSize]="size"
               [pageIndex]="page"
-              [pageSizeOptions]="[20, 50, 100]"
+              [pageSizeOptions]="[10, 20, 50]"
               (page)="turnPage($event)"
             ></mat-paginator>
           </mat-card>
@@ -312,7 +312,7 @@ export class NotificationsComponent {
   from = '';
   to = '';
   page = 0;
-  size = 20;
+  size = 10;
 
   constructor() {
     this.loadOptions();

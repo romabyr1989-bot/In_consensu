@@ -48,7 +48,7 @@ import { ApiService, DictionaryItem, PartyCard } from '../api.service';
           </div>
         </div>
         <div class="ic-actions">
-          <a mat-button routerLink="/third-parties">К справочнику</a>
+          <a mat-stroked-button routerLink="/third-parties">К справочнику</a>
           <button mat-stroked-button color="warn" *ngIf="party.active && editable" (click)="deactivate()">
             Деактивировать
           </button>
@@ -166,7 +166,7 @@ import { ApiService, DictionaryItem, PartyCard } from '../api.service';
                 <ng-container matColumnDef="actions">
                   <th mat-header-cell *matHeaderCellDef></th>
                   <td mat-cell *matCellDef="let row">
-                    <a mat-button *ngIf="row.downloadable" [href]="'/ui/api/third-parties/exports/' + row.id + '/download'">
+                    <a mat-stroked-button *ngIf="row.downloadable" [href]="'/ui/api/third-parties/exports/' + row.id + '/download'">
                       Скачать
                     </a>
                     <span class="ic-muted" *ngIf="!row.downloadable">срок хранения истёк</span>
